@@ -1,0 +1,31 @@
+BUILD BEYOND MOD MANAGER 1.0.6
+
+You need a 64-bit Windows PC, Python 3, and the .NET Framework 4.x compiler.
+The build uses the Windows compiler at:
+C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe
+
+1. Download Beyond-Mod-Manager-1.0.6-Source.zip from the release and extract it.
+2. Open a terminal in the extracted folder that contains build.py.
+3. Run:
+
+   python build.py --skip-previews
+
+The script builds the manager and runs its built-in checks. It does not need
+the game, a GitHub account, API keys, administrator access or Python packages.
+The build and its checks do not download anything or install a mod.
+
+The finished program is:
+   dist\Beyond Mod Manager.exe
+
+The player download is:
+   dist\Beyond-Mod-Manager-1.0.6.zip
+
+The check results are saved in artifacts\self-test.txt.
+To include interface preview images, leave off --skip-previews.
+
+Keep the Assets folder intact. It contains the public artwork, metadata and
+loader files embedded in the single EXE. UE4SS is supplied as a prebuilt
+third-party dependency; this command builds BMM, not UE4SS.
+
+A new build can have a different file hash because compiler timestamps and
+build identifiers change. SOURCE-SHA256SUMS.txt identifies the supplied files.

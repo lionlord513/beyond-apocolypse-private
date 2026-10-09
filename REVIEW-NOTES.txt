@@ -1,0 +1,28 @@
+BEYOND MOD MANAGER 1.0.6 - SOURCE REVIEW
+
+Program.cs and MainWindow.xaml contain the interface and its actions.
+Core/ModInventory.cs handles ZIP validation, file ownership, backups,
+dependencies, enabling/disabling and uninstalling mods.
+Core/Updates.cs handles GitHub release checks, verified downloads and the
+manager updater. Download size and SHA-256 checks remain enforced.
+Tests/UpdatesTests.cs supplies the offline checks included in the build.
+Tests/InventoryTests.cs contains additional installation fixtures.
+
+The manager runs with the current user's permissions. It does not execute
+installer scripts found inside mod archives. It can add UE4SS support when
+needed, while retaining an existing loader. Installation changes require
+the game to be closed. Beyond Apocalypse is downloaded only when selected.
+
+Assets/dependency-runtime.zip is an embedded third-party support package.
+It contains UE4SS.dll, dwmapi.dll, the UE4SS settings and license, the
+BPModLoaderMod Lua script and UEHelpers.lua. Its full file hashes are listed
+in Assets/public-resources.json under dependencyFiles. These are prebuilt
+loader dependencies, not part of the BMM C# build.
+
+UE4SS source for the bundled revision:
+https://github.com/UE4SS-RE/RE-UE4SS/tree/8f7b2ca3c259df527c743a1568c400b61a1475cf
+The bundled UE4SS license is also available in THIRD-PARTY-UE4SS-LICENSE.txt.
+
+The application source, build script and embedded Assets in this package
+are unchanged from the local source used for BMM 1.0.6. Only these review
+documents and the source checksum list were added for this source release.

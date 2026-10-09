@@ -1,0 +1,12 @@
+{
+  "id": "example-mod",
+  "name": "Example Mod",
+  "version": "1.2.3",
+  "description": "What your mod adds to the game.",
+  "changelog": "1.2.3\n- Describe what changed.",
+  "dependencies": ["ue4ss"],
+  "loadAfter": [],
+  "preserve": [
+    "DriveBeyondHorizons/Binaries/Win64/ue4ss/Mods/ExampleMod/UserSettings.ini"
+  ]
+}

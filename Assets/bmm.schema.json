@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Beyond Mod Manager package metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"},
+    "name": {"type": "string", "minLength": 1, "maxLength": 120},
+    "version": {"type": "string", "maxLength": 80},
+    "description": {"type": "string", "maxLength": 8192},
+    "changelog": {"type": "string", "maxLength": 32768},
+    "channel": {"type": "string", "maxLength": 40},
+    "dependencies": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"}},
+    "loadAfter": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"}},
+    "preserve": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "repository"],
+      "anyOf": [{"required": ["assetPattern"]}, {"required": ["manifestAsset"]}],
+      "properties": {
+        "provider": {"const": "github"},
+        "repository": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*$"},
+        "tagPrefix": {"type": "string", "pattern": "^[A-Za-z0-9_-]{0,32}$", "default": "v"},
+        "assetPattern": {"type": "string", "minLength": 1, "maxLength": 180},
+        "manifestAsset": {"type": "string", "minLength": 1, "maxLength": 180},
+        "sha256Asset": {"type": "string", "minLength": 1, "maxLength": 180},
+        "kind": {"const": "mod", "default": "mod"}
+      }
+    }
+  }
+}

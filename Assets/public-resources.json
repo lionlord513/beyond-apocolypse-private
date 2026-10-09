@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "publicModVersion": "1.0.5",
+  "publicManifestSha256": "f74b25dbab05a8015b6156df650cddee0d628ce322017f090f4863140ece272e",
+  "publicPackageSha256": "2a644c769a3f3bb24fb1950705f414dad645ccadf36a0650f676bf70b8aed587",
+  "runtimeSha256": "e14657eec1c3fb08d1d0e4d5b24f69a9343cd06359e1af27ae6c9c84c5f010cf",
+  "runtimeArchiveSha256": "622d59fcf5e42ac041c99610f61f066350420ec5605742014413597faef0626a",
+  "logoSha256": "24758f891cf614119481766f7b3c5066fe8dd37ba729129173ca5df19aa90f32",
+  "historyEntries": 41,
+  "dependencyFiles": {
+    "runtime/dwmapi.dll": "0c407a52fd6666a0cea61035878a4f637ea19882b44634e33f4a9a4a45a98ebe",
+    "runtime/ue4ss/UE4SS.dll": "e14657eec1c3fb08d1d0e4d5b24f69a9343cd06359e1af27ae6c9c84c5f010cf",
+    "runtime/ue4ss/UE4SS-settings.ini": "9d8aec41f550df554379f8306096ef3bd9f2305e5d616eeec7187353d8a9b91c",
+    "runtime/ue4ss/LICENSE": "99e1d8f8b7cb68e8b2313380ae3b0c8115e39dfbc443fcf21fd67ab74ce1d57e",
+    "runtime/ue4ss/Mods/shared/UEHelpers/UEHelpers.lua": "7476f02eef0c87bfeab169f2ffe2e704363faeaae4bf9f1bda574b1e34f4a0e9",
+    "runtime/ue4ss/Mods/BPModLoaderMod/load_order.txt": "e260b9b0d8d472ee3ebab77204c838f3d2aad8a9d5f08b9b8cb6b42b7b5418b9",
+    "runtime/ue4ss/Mods/BPModLoaderMod/Scripts/main.lua": "c4d6602dc57559029e0e709650e43f33354bcb23f1a5df2ebe84d4651ebd08a3",
+    "bmm.json": "c3c13e5cb0592b6c77bee88a55b630a1d38c46db62e7f74482ecec90b0a4ce30",
+    "LICENSE-UE4SS.txt": "99e1d8f8b7cb68e8b2313380ae3b0c8115e39dfbc443fcf21fd67ab74ce1d57e"
+  },
+  "preparedPublicManifestSha256": "92f1fee7842131521ebe91e53883239830342e101b385b93206b153ab94c5574",
+  "preparedPublicPackageSha256": "45abe1ec26fd4c86ba891bcc6b654fee4567c022122395eab27a9822f3394fb7"
+}

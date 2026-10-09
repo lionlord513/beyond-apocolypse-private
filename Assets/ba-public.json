@@ -1,0 +1,357 @@
+{
+  "schema": 1,
+  "id": "beyondapocalypse",
+  "name": "Beyond Apocalypse",
+  "version": "1.0.5",
+  "channel": "beta",
+  "description": "Expand Drive Beyond Horizons with first-person rifles and attachments, backpacks, wandering zombies and encounters, the Hornet gyrocopter, two motorcycles, the Hangar parts shop, and F8 player settings. Back up saves and use the same mod version with everyone in co-op.",
+  "website": "https://www.nexusmods.com/drivebeyondhorizons/mods/28",
+  "update": {
+    "Provider": "github",
+    "Repository": "lionlord513/beyond-apocolypse-private",
+    "TagPrefix": "v",
+    "AssetPattern": "BeyondApocalypse-{version}-public.zip",
+    "ManifestAsset": "bmm-mod.json",
+    "Kind": "beyond-apocolypse"
+  },
+  "history": [
+    {
+      "version": "1.0.5",
+      "released": "2026-10-07",
+      "channel": "beta",
+      "notes": [
+        "Refined both motorcycles, rider positioning and removable headlights.",
+        "Improved Hangar purchases, backpack handling and saved keybinds.",
+        "Smoother Performance Mode updates and lighter weapon audio loading.",
+        "Improved engine fitting and rotor-blade pickup."
+      ]
+    },
+    {
+      "version": "1.0.4",
+      "released": "2026-10-06",
+      "channel": "beta",
+      "notes": [
+        "Refined the compact Suzuki PV 50 with fitted service parts, corrected grip targets and clearer detailed metal finishes.",
+        "Hold X while riding either motorcycle to gradually raise the front up to 35 degrees; release X to lower it.",
+        "Hangar computer setup now retries while loading, and custom orders use the native Buy callback across computers.",
+        "Includes saved F8 Performance Mode, both rare motorcycle loot variants, all three repaired rifles and the existing 1.0.4 fixes. Everyone in co-op should update and restart."
+      ]
+    },
+    {
+      "version": "1.0.3",
+      "released": "2026-10-05",
+      "channel": "beta",
+      "notes": [
+        "Added editable melee controls in F8, ammo cartons, small zombie ammo drops, and uncommon ammunition near loose rifles.",
+        "Hangar ammunition is 30 rounds for $300; guest orders, parcel safeguards, and the $1,000 radiator are included.",
+        "Improved Hornet towing and rotor-blade pickup.",
+        "Adjusted motorcycle tire alignment and rear skid effects, and improved rifle materials.",
+        "Included performance fixes and published-release history in Launcher 1.2.2."
+      ]
+    },
+    {
+      "version": "1.0.2",
+      "released": "2026-10-03",
+      "channel": "stable",
+      "notes": [
+        "Public release on Nexus Mods."
+      ]
+    },
+    {
+      "version": "0.13.13",
+      "released": "2026-10-04",
+      "channel": "beta",
+      "notes": [
+        "Motorcycle update."
+      ]
+    },
+    {
+      "version": "0.13.12",
+      "released": "2026-10-03",
+      "channel": "beta",
+      "notes": [
+        "Optional simple flight and automatic hover; gameplay and keybinding tabs in F8."
+      ]
+    },
+    {
+      "version": "0.13.11",
+      "released": "2026-10-03",
+      "channel": "beta",
+      "notes": [
+        "Aircraft fitting and rotor blade inventory fixes; F8 settings, bindings and personal stats."
+      ]
+    },
+    {
+      "version": "0.13.10",
+      "released": "2026-10-03",
+      "channel": "beta",
+      "notes": [
+        "Multiplayer aiming, audio and performance updates; Hangar ammunition and airframe changes."
+      ]
+    },
+    {
+      "version": "0.13.9",
+      "released": "2026-10-03",
+      "channel": "beta",
+      "notes": [
+        "Sights, rifle sounds and handling updates; Hangar and airframe fixes."
+      ]
+    },
+    {
+      "version": "0.13.8",
+      "released": "2026-10-03",
+      "channel": "beta",
+      "notes": [
+        "Hangar shop update."
+      ]
+    },
+    {
+      "version": "0.13.7",
+      "released": "2026-10-02",
+      "channel": "beta",
+      "notes": [
+        "Rifle controls, universal rotor blades, Hangar parts shop and 2x sights."
+      ]
+    },
+    {
+      "version": "0.13.6",
+      "released": "2026-10-02",
+      "channel": "beta",
+      "notes": [
+        "Graphics presets, weapon hotbar, drop position and flashlight shadow fixes."
+      ]
+    },
+    {
+      "version": "0.13.5",
+      "released": "2026-10-02",
+      "channel": "beta",
+      "notes": [
+        "Sprint aiming fixes, brighter weapon flashlights and zombie patrol movement."
+      ]
+    },
+    {
+      "version": "0.13.4",
+      "released": "2026-10-01",
+      "channel": "beta",
+      "notes": [
+        "Aiming and inventory fixes, brighter weapon lights and idle zombie wandering."
+      ]
+    },
+    {
+      "version": "0.13.3",
+      "released": "2026-10-01",
+      "channel": "beta",
+      "notes": [
+        "Weapon aiming and flashlights, backpack drop fixes and more responsive collective."
+      ]
+    },
+    {
+      "version": "0.13.2",
+      "released": "2026-10-01",
+      "channel": "beta",
+      "notes": [
+        "Smoother flight, collective gauge, backpack storage-drop fix and tougher Mechanic."
+      ]
+    },
+    {
+      "version": "0.13.1",
+      "released": "2026-10-01",
+      "channel": "beta",
+      "notes": [
+        "Slower Mechanic with immediate pursuit and attack recovery."
+      ]
+    },
+    {
+      "version": "0.13.0",
+      "released": "2026-10-01",
+      "channel": "beta",
+      "notes": [
+        "Mechanic night hunter."
+      ]
+    },
+    {
+      "version": "0.12.1",
+      "released": "2026-09-30",
+      "channel": "beta",
+      "notes": [
+        "Flight balance and collective gauge."
+      ]
+    },
+    {
+      "version": "0.12.0",
+      "released": "2026-09-30",
+      "channel": "beta",
+      "notes": [
+        "Manual flight and engine/turbo performance."
+      ]
+    },
+    {
+      "version": "0.11.12",
+      "released": "2026-09-30",
+      "channel": "beta",
+      "notes": [
+        "Mod update with Launcher 1.1."
+      ]
+    },
+    {
+      "version": "0.11.11",
+      "released": "2026-09-30",
+      "channel": "beta",
+      "notes": [
+        "Backpack removal and guest inventory refresh fixes; docking ownership updates."
+      ]
+    },
+    {
+      "version": "0.11.10",
+      "released": "2026-09-30",
+      "channel": "beta",
+      "notes": [
+        "Separated the player release package from development tools."
+      ]
+    },
+    {
+      "version": "0.11.9",
+      "released": "2026-09-29",
+      "channel": "beta",
+      "notes": [
+        "Unloading refits original racked blades and frees the trailer for another Hornet."
+      ]
+    },
+    {
+      "version": "0.11.8",
+      "released": "2026-09-29",
+      "channel": "beta",
+      "notes": [
+        "Rotor-sync actor work deferred to the game tick to address an RPC callback crash."
+      ]
+    },
+    {
+      "version": "0.11.7",
+      "released": "2026-09-28",
+      "channel": "beta",
+      "notes": [
+        "Owner-only aircraft simulation, multiplayer aircraft identity and blade fitting updates."
+      ]
+    },
+    {
+      "version": "0.11.6",
+      "released": "2026-09-28",
+      "channel": "beta",
+      "notes": [
+        "Docking collision, delayed attachment and trailer-mass synchronization fixes."
+      ]
+    },
+    {
+      "version": "0.11.5",
+      "released": "2026-09-28",
+      "channel": "beta",
+      "notes": [
+        "Restored the missing heli-trailer landing pad."
+      ]
+    },
+    {
+      "version": "0.11.4",
+      "released": "2026-09-28",
+      "channel": "beta",
+      "notes": [
+        "Guest left-click blade attachment and replicated landing pad collision."
+      ]
+    },
+    {
+      "version": "0.11.3",
+      "released": "2026-09-28",
+      "channel": "beta",
+      "notes": [
+        "Multiplayer aircraft/blade identities and docking synchronization."
+      ]
+    },
+    {
+      "version": "0.11.2",
+      "released": "2026-09-28",
+      "channel": "beta",
+      "notes": [
+        "Landing pad trim and stopped-engine Hornet audio cleanup."
+      ]
+    },
+    {
+      "version": "0.11.1",
+      "released": "2026-09-28",
+      "channel": "beta",
+      "notes": [
+        "Hover docking and native towing force fixes."
+      ]
+    },
+    {
+      "version": "0.11.0",
+      "released": "2026-09-28",
+      "channel": "beta",
+      "notes": [
+        "Native blade removal/refitting and separate Trailer/Heli trailer choices."
+      ]
+    },
+    {
+      "version": "0.10.1",
+      "released": "2026-09-28",
+      "channel": "beta",
+      "notes": [
+        "Blade pickup alignment and native left-click attachment."
+      ]
+    },
+    {
+      "version": "0.10.0",
+      "released": "2026-09-28",
+      "channel": "beta",
+      "notes": [
+        "Hornet carrier deck, removable main blades and docking/rack storage."
+      ]
+    },
+    {
+      "version": "0.9.3",
+      "released": "2026-09-28",
+      "channel": "beta",
+      "notes": [
+        "Hornet radiator and battery mounting positions retained after refitting."
+      ]
+    },
+    {
+      "version": "0.9.2",
+      "released": "2026-09-28",
+      "channel": "beta",
+      "notes": [
+        "Native input conflict fixes for aircraft vertical movement and banking."
+      ]
+    },
+    {
+      "version": "0.9.1",
+      "released": "2026-09-28",
+      "channel": "beta",
+      "notes": [
+        "Assisted vertical flight and restored rotor/propeller visibility."
+      ]
+    },
+    {
+      "version": "0.9.0",
+      "released": "2026-09-27",
+      "channel": "beta",
+      "notes": [
+        "Single-seat Hornet gyrocopter with native servicing and rare airframe spawns."
+      ]
+    },
+    {
+      "version": "0.8.0",
+      "released": "2026-09-27",
+      "channel": "beta",
+      "notes": [
+        "Imported Hazmat zombie variant with distance detail levels."
+      ]
+    },
+    {
+      "version": "0.7.2",
+      "released": "2026-09-27",
+      "channel": "beta",
+      "notes": [
+        "Multiplayer backpack lookup and transfer feedback fixes."
+      ]
+    }
+  ]
+}

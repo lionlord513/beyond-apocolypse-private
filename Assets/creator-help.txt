@@ -1,0 +1,32 @@
+Make a mod ZIP
+
+Keep your mod's normal folders:
+• Lua mods: MyMod/Scripts/main.lua, plus its other files.
+• Blueprint mods: DriveBeyondHorizons/Content/Paks/LogicMods/
+• Asset replacements: DriveBeyondHorizons/Content/Paks/~mods/
+Keep matching .pak, .utoc, .ucas and .sig files together. Don't include game files, saves or personal settings.
+
+Add a name and release notes
+
+Copy the example below, save it as bmm.json at the top of your ZIP, and replace the example values. This file is optional. Keep the same id when you release an update.
+
+Use dependencies for required mods, such as ue4ss or bpmodloadermod. Use loadAfter only when a Lua mod needs another mod loaded first. The names must match that mod's folder.
+
+preserve lists settings files to keep during updates. Paths start from the main game folder. Don't put your code files here.
+
+Offer updates (optional)
+
+Without an update section, players update by adding a new ZIP. To offer GitHub updates, add this to bmm.json:
+
+"update": {
+  "provider": "github",
+  "repository": "your-name/your-mod",
+  "tagPrefix": "v",
+  "assetPattern": "MyMod-{version}.zip"
+}
+
+Upload your ZIP to a public GitHub release. For example, tag v1.2.3 goes with MyMod-1.2.3.zip. Use two to four numbers in the version. Drafts and prereleases won't appear in BMM.
+
+BMM checks the download's size and SHA-256 before installing it. GitHub's asset checksum works directly. If the upload has no checksum, add "sha256Asset": "SHA256SUMS" to update and upload that file beside the ZIP. Its line should contain the ZIP's actual SHA-256, two spaces, then the exact ZIP filename.
+
+Tell players which game version your mod supports, its menu keys, and any known conflicts.

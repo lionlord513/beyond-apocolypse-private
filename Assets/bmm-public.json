@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "id": "bmm",
+  "name": "Beyond Mod Manager",
+  "version": "1.0.6",
+  "notes": [
+    "Fixed Cancel leaving the manager unresponsive with a white mod list."
+  ],
+  "description": "Install and manage Drive Beyond Horizons mods from ZIP files. Keep mod settings, see required support files, and check updates when a mod author provides an update source.",
+  "update": {
+    "Provider": "github",
+    "Repository": "lionlord513/beyond-apocolypse-private",
+    "TagPrefix": "bmm-v",
+    "AssetPattern": "Beyond-Mod-Manager-{version}.zip",
+    "ManifestAsset": "bmm-update.json",
+    "Kind": "manager"
+  }
+}
