@@ -4,11 +4,11 @@ return function(M,H,valid,log)
  local F={nextAt=0,terrain={},sky={},dirty=true,hooks={},gameplayMode=false}
  -- Client-local preference; transient engine settings are never written to
  -- native graphics config or sent to another player.
- local scene=dofile(M.root..'/Scripts/performance_scene.lua')(valid);F.scene=scene
+ -- Let Unreal select LODs and cull its own objects. The old component sweep
+ -- cost CPU time and its protection overrides disabled native distance culling.
  local preference=M.statePath and M.statePath('performance-mode.txt')or M.root..'/state/performance-mode.txt'
  do local f=io.open(preference,'r');if f then F.requested=f:read('*a'):match('^enabled=1%s*$')~=nil;f:close()end end
- local modeVars={{name='r.ViewDistanceScale',target=function(n)return math.min(n,.25)end,required=true},
-  {name='r.StaticMeshLODDistanceScale',target=function(n)return math.max(n,4)end,required=true},
+ local modeVars={{name='r.StaticMeshLODDistanceScale',target=function(n)return math.max(n,4)end,required=true},
   {name='grass.DensityScale',target=function()return 0 end,required=true,allowZero=true},
   {name='sg.PostProcessQuality',target=function()return 0 end,required=true,allowZero=true}}
  local function modeSystem()return StaticFindObject('/Script/Engine.Default__KismetSystemLibrary')end
@@ -21,14 +21,13 @@ return function(M,H,valid,log)
   F.requested=enabled
  end
  local function restoreMode(pc)
-  if not F.modePrevious then return scene.restore()end
+  if not F.modePrevious then return true end
   local sys=modeSystem();if not valid(pc)or not valid(sys)then return false end
   local worked=true
   for name,value in pairs(F.modePrevious)do
    local ok=pcall(setCvar,sys,pc,name,value)
    if not ok or math.abs(sys:GetConsoleVariableFloatValue(name)-value)>.01 then worked=false end
   end
-  if not scene.restore()then worked=false end
   if worked then F.modePrevious=nil end
   return worked
  end
@@ -51,15 +50,14 @@ return function(M,H,valid,log)
   F.modePrevious=previous
   local ok,why=pcall(function()
    for _,item in ipairs(modeVars)do
-    local target=item.target(previous[item.name]);setCvar(sys,pc,item.name,target)
+    local target=item.target(previous[item.name]);if math.abs(previous[item.name]-target)>.01 then setCvar(sys,pc,item.name,target)end
     assert(math.abs(sys:GetConsoleVariableFloatValue(item.name)-target)<.01,'Render setting was rejected: '..item.name)
    end
-   F.sceneScale=sys:GetConsoleVariableFloatValue('r.ViewDistanceScale');scene.begin();scene.tick(F.sceneScale)
    if not automatic then persist(true)end
   end)
   if not ok then restoreMode(pc);return false,tostring(why)end
   F.gameplayMode=true
-  F.status='Performance Mode on. Scenery target 160 m; updating scenery. Saved locally.'
+  F.status='Performance Mode on. Native LOD, grass and post-processing reductions. Saved locally.'
   log(F.status);return true,F.status
  end
  local function maintainMode(pc)
@@ -75,8 +73,7 @@ return function(M,H,valid,log)
     if math.abs(sys:GetConsoleVariableFloatValue(item.name)-target)>.01 then F.status='Performance Mode partly rejected by the engine.';log(F.status)end
    end
   end end
-  F.sceneScale=sys:GetConsoleVariableFloatValue('r.ViewDistanceScale')
-  F.status=('Performance Mode on. Scenery target 160 m; %d decorative components hidden. Saved locally.'):format(scene.hidden)
+  F.status='Performance Mode on. Native LOD, grass and post-processing reductions. Saved locally.'
  end
  local groups={[0]='GlobalIllumination',[1]='Texture',[4]='Reflection',[5]='AntiAliasing',[6]='Foliage',[9]='ViewDistance',[10]='Shadow',[11]='VisualEffect',[12]='Shading'}
  function F.values(menu)
@@ -122,9 +119,8 @@ return function(M,H,valid,log)
   end
  end
  function F.tick()
-  -- Apply a bounded scenery batch on the existing timer, not the entire world
-  -- in a single three-second maintenance burst.
-  if F.gameplayMode and F.sceneScale then scene.tick(F.sceneScale)end
+  -- Idle calls return immediately. No mesh discovery, visibility toggles or
+  -- per-component culling/identity loop runs in Performance Mode.
   if os.clock()<F.nextAt then return end;F.nextAt=os.clock()+.5
   local pc=H.GetPlayerController();if not valid(pc)then return end
   if os.clock()>=(F.modeAt or 0)then maintainMode(pc);F.modeAt=os.clock()+3 end

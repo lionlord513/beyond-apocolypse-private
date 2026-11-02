@@ -1,3 +1,10 @@
+BEYOND APOCALYPSE 1.0.9
+
+- Corrected native AK iron-sight alignment using its authored sight socket. Other rifles, hip-fire positioning and optic offsets retain their existing setup.
+- Removed Performance Mode's repeated per-component scenery pass and forced visibility overrides. Native distance culling now remains under the game's control.
+- Performance Mode retains native LOD, grass and post-processing reductions, skips unchanged settings, and restores previous values when disabled. Gains depend on existing quality settings and the scene; no minimum FPS is promised.
+- Retained the 1.0.8 nitrous, material, motorcycle and inventory fixes. Personal developer tools remain excluded.
+
 BEYOND APOCALYPSE 1.0.8
 2026-11-02
 

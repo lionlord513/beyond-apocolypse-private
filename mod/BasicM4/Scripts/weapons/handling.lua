@@ -1,6 +1,7 @@
 -- First-person presentation only. Native bullets, damage and remote poses stay native.
 return function(M,root,H,valid,enqueue,log)
  local V={blend=0};local mathlib
+ local akSight=dofile(root..'/Scripts/weapons/ak_sight.lua')
  V.slots=dofile(root..'/Scripts/weapons/slots.lua')(M,H,valid,enqueue)
  local function same(a,b)return valid(a)and valid(b)and a:GetAddress()==b:GetAddress()end
  local function copy(tr)return {Translation={X=tr.Translation.X,Y=tr.Translation.Y,Z=tr.Translation.Z},Rotation={X=tr.Rotation.X,Y=tr.Rotation.Y,Z=tr.Rotation.Z,W=tr.Rotation.W},Scale3D={X=tr.Scale3D.X,Y=tr.Scale3D.Y,Z=tr.Scale3D.Z}}end
@@ -38,6 +39,9 @@ return function(M,root,H,valid,enqueue,log)
    M.refreshWeapon(a);local meshes=M.components(a);local d=M.weaponDefinition(a);local body=d and d.Id=='ak'and a.SkeletalMesh or nil
    if d and d.Id~='ak'then for _,part in ipairs(meshes)do if part.AttachSocketName:ToString()~=d.MagazineSocket then body=part;break end end end
    c={actor=a,def=d,body=body,untilAt=now+.75};V.equipCache=c
+   if d and d.Id=='ak'and valid(body)then
+    c.sight=akSight(body:GetSocketTransform(FName('SightAttachmentPoint'),2).Translation,1.06)
+   end
   end
   if c.def then return a,p,pc,c.def end
  end
@@ -84,9 +88,11 @@ return function(M,root,H,valid,enqueue,log)
   local view=pc.PlayerCameraManager
   local cam=mathlib:MakeTransform(view:GetCameraLocation(),view:GetCameraRotation(),{X=1,Y=1,Z=1});local arm=p.FpsArm:K2_GetComponentToWorld()
   local relative=mathlib:MakeRelativeTransform(body:K2_GetComponentToWorld(),arm)
-  local sight=d.Id=='ak'and 6 or d.Id=='m4'and 9.6 or d.Id=='hunting'and 7.1 or 6.0
+  local nativeSight=d.Id=='ak'and V.equipCache.sight
+  local sight=nativeSight and nativeSight.height or d.Id=='m4'and 9.6 or d.Id=='hunting'and 7.1 or 6.0
   local optic=M.rail and M.rail.optic.has(a);if optic then sight=(M.rail.optic.mounts[d.Id].z+M.rail.optic.axisHeight)*1.06 end
   local wanted={Translation={X=24,Y=8*(1-V.blend)-(optic and (M.rail.optic.mounts[d.Id].y or 0)*1.06*V.blend or 0),Z=-11*(1-V.blend)-sight*V.blend},Rotation={X=0,Y=0,Z=0,W=1},Scale3D={X=1.06,Y=1.06,Z=1.06}}
+  if nativeSight and not optic then wanted.Translation.Y=wanted.Translation.Y-nativeSight.lateral*V.blend end
   if d.Id=='ak'then wanted.Rotation={X=0,Y=0,Z=-.70710678118655,W=.70710678118655}end
   -- Work in camera space: body/arms remain joined and movement cannot accumulate.
   local target=mathlib:ComposeTransforms(mathlib:InvertTransform(relative),wanted)

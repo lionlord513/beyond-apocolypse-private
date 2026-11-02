@@ -1,3 +1,24 @@
+BEYOND APOCALYPSE 1.0.9 - TARGETED PATCH CHECKS
+- All eight Lua regression groups pass; all public Lua sources compile.
+- In Steam build 26106988, the native AK SightAttachmentPoint is at local
+  (-0.7, 1.1275, 11.0717) cm. Applying the corrected camera presentation
+  through Unreal's own transforms places it at (25.195128, 0, 0) cm.
+- Performance Mode tests verify no scenery discovery/observers, no idle
+  console rewrites, untouched native view distance and exact setting restoration.
+  The separate existing graphics-menu repair remains unchanged.
+- A brief isolated-world, stationary-camera comparison recorded median / p95
+  frame times in milliseconds: old off 17.652 / 52.974; old on 19.758 / 50.811;
+  replacement off 16.655 / 51.359; replacement on 18.404 / 48.189.
+  Each phase lasted 18 seconds, with the first three seconds excluded.
+- The removed scenery pass averaged 1.147 ms per invocation in that old-mode
+  sample, including its activation work. The replacement does not call it.
+- These short samples show mixed frame-time results, not a proven FPS uplift.
+  They do not establish performance across hardware, weather, saves or co-op.
+  Final AK visual play testing remains necessary; new player models are research
+  only and are not included in this patch.
+
+Previous validation records:
+
 BEYOND APOCALYPSE 1.0.8 - TARGETED HOTFIX CHECKS
 - Live native collider bounds match the bracket-origin model: 38 x 10.26 x
   12.41 cm at medium size, scaled uniformly for all three capacities.

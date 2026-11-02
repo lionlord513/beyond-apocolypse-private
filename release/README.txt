@@ -1,9 +1,9 @@
-BEYOND APOCALYPSE 1.0.8
+BEYOND APOCALYPSE 1.0.9
 Drive Beyond Horizons - Windows / Steam build 26106988
 
 INSTALL
 Close the game before updating and back up your saves.
-Mod Manager: import BeyondApocalypse-1.0.8-public.zip, or use Check for updates.
+Mod Manager: import BeyondApocalypse-1.0.9-public.zip, or use Check for updates.
 Manual installer: extract the public ZIP and run Install.cmd.
 Nexus ZIP: merge its DriveBeyondHorizons folder into the game's main folder
 (Steam > Manage > Browse local files). Do not put it inside a second copy of
@@ -36,7 +36,9 @@ Host settings: zombie maximum 2-40. Fresh default 10: ordinary daytime target
 Day encounters prefer roads and buildings; nighttime roadside encounters can
 approach closer when stopped. All native and added zombies share the cap.
 Performance Mode is a saved local preference in F9 > Settings > Gameplay.
-It reduces decorative rendering work; it cannot guarantee a minimum frame rate.
+It uses native LOD, grass and post-processing settings without a custom
+per-mesh visibility loop. It leaves native view distance and object culling alone.
+Already-low settings may leave little benefit; no minimum frame rate is guaranteed.
 
 Tab: backpack. B: drop worn backpack. RMB: aim rifle. Middle mouse: drop rifle.
 L: fit/toggle rifle light or optic. Inventory attachment controls are retained.
