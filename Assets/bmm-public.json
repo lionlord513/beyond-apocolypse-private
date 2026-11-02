@@ -2,9 +2,10 @@
   "schema": 1,
   "id": "bmm",
   "name": "Beyond Mod Manager",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "notes": [
-    "Fixed Cancel leaving the manager unresponsive with a white mod list."
+    "Launch the game through Steam so it uses the normal launch environment and remains independent of Mod Manager.",
+    "Updated the Beyond Apocalypse catalogue to 1.0.6 with F9 controls and current release notes."
   ],
   "description": "Install and manage Drive Beyond Horizons mods from ZIP files. Keep mod settings, see required support files, and check updates when a mod author provides an update source.",
   "update": {

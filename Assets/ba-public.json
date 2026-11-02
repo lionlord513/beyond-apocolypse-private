@@ -2,9 +2,9 @@
   "schema": 1,
   "id": "beyondapocalypse",
   "name": "Beyond Apocalypse",
-  "version": "1.0.5",
-  "channel": "beta",
-  "description": "Expand Drive Beyond Horizons with first-person rifles and attachments, backpacks, wandering zombies and encounters, the Hornet gyrocopter, two motorcycles, the Hangar parts shop, and F8 player settings. Back up saves and use the same mod version with everyone in co-op.",
+  "version": "1.0.6",
+  "channel": "stable",
+  "description": "Expand Drive Beyond Horizons with first-person rifles and attachments, backpacks, wandering zombies and encounters, the Hornet gyrocopter, two motorcycles, the Hangar parts shop, and F9 player settings. Back up saves and use the same mod version with everyone in co-op.",
   "website": "https://www.nexusmods.com/drivebeyondhorizons/mods/28",
   "update": {
     "Provider": "github",
@@ -15,6 +15,20 @@
     "Kind": "beyond-apocolypse"
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "released": "2026-11-01",
+      "channel": "stable",
+      "notes": [
+        "Updated for Drive Beyond Horizons build 26106988 while retaining established vehicle, inventory, input and Hangar fixes.",
+        "F9 opens player settings, statistics and host zombie population controls (2 to 40). Default targets are 5 by day and 10 at night or around an infested building.",
+        "Bounded scenery updates replace repeated world-wide mesh scans; idle input and trailer searches are reduced.",
+        "Both motorcycles retain corrected rider positioning, stable parked wheels and contact-height presentation. Removable bike-shaped headlights use the native car lighting system.",
+        "Hornet pitch, roll and yaw remain enabled after resting on the ground; the manual collective gauge updates smoothly between flight calculations.",
+        "Restored rotor-blade pickup recovery, replicated service-part fitting, Hangar click safeguards and saved control reconciliation.",
+        "Public gameplay files only. Mod Manager is optional; the game can be launched directly through Steam."
+      ]
+    },
     {
       "version": "1.0.5",
       "released": "2026-10-07",

@@ -1,4 +1,4 @@
-BEYOND MOD MANAGER 1.0.6 - SOURCE REVIEW
+BEYOND MOD MANAGER 1.0.7 - SOURCE REVIEW
 
 Program.cs and MainWindow.xaml contain the interface and its actions.
 Core/ModInventory.cs handles ZIP validation, file ownership, backups,
@@ -23,6 +23,7 @@ UE4SS source for the bundled revision:
 https://github.com/UE4SS-RE/RE-UE4SS/tree/8f7b2ca3c259df527c743a1568c400b61a1475cf
 The bundled UE4SS license is also available in THIRD-PARTY-UE4SS-LICENSE.txt.
 
-The application source, build script and embedded Assets in this package
-are unchanged from the local source used for BMM 1.0.6. Only these review
-documents and the source checksum list were added for this source release.
+Version 1.0.7 launches the game through Steam, supports verified replacement
+packages with the same mod version, and excludes personal companion files
+from Beyond Apocalypse packages. The public catalogue targets mod 1.0.6.
+The pinned third-party loader dependencies remain unchanged.

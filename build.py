@@ -12,12 +12,12 @@ ARTIFACTS = ROOT / 'artifacts'
 FRAMEWORK = Path('C:/Windows/Microsoft.NET/Framework64/v4.0.30319')
 for directory in (DIST, ARTIFACTS):
     directory.mkdir(exist_ok=True)
-version = re.search(r'ManagerVersion = "([0-9.]+)"', (ROOT / 'Program.cs').read_text()).group(1)
+version = re.search(r'ManagerVersion = "([0-9.]+)"', (ROOT / 'Program.cs').read_text(encoding='utf-8-sig')).group(1)
 metadata = json.loads((ROOT / 'Assets/bmm-public.json').read_text(encoding='utf-8'))
 assert metadata['version'] == version
 assert metadata['update']['TagPrefix'] == 'bmm-v'
 assert metadata['update']['ManifestAsset'] == 'bmm-update.json'
-assert json.loads((ROOT / 'Assets/ba-public.json').read_text(encoding='utf-8'))['version'] == '1.0.5'
+assert json.loads((ROOT / 'Assets/ba-public.json').read_text(encoding='utf-8'))['version'] == '1.0.6'
 
 references = ['System.dll', 'System.Core.dll', 'System.Xaml.dll', 'System.Web.Extensions.dll',
               'System.Windows.Forms.dll', 'System.Drawing.dll', 'System.Net.Http.dll',

@@ -34,7 +34,7 @@ namespace BeyondModManager
 
     public static class Program
     {
-        public const string ManagerVersion = "1.0.6";
+        public const string ManagerVersion = "1.0.7";
         static readonly string DataRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BeyondModManager");
         static readonly JavaScriptSerializer Json = new JavaScriptSerializer { MaxJsonLength = 2 * 1024 * 1024, RecursionLimit = 32 };
         static readonly Dictionary<string, UpdateCandidate> Available = new Dictionary<string, UpdateCandidate>(StringComparer.OrdinalIgnoreCase);
@@ -393,9 +393,9 @@ namespace BeyondModManager
             if (GameInstallation.Running()) { Status("Drive Beyond Horizons is already running."); return; }
             try
             {
-                string executable = Path.Combine(Store.GamePath, "DriveBeyondHorizons.exe");
-                if (!File.Exists(executable)) executable = Path.Combine(Store.GamePath, GameInstallation.BinaryRoot.Replace('/', Path.DirectorySeparatorChar), "DriveBeyondHorizons-Win64-Shipping.exe");
-                Process.Start(new ProcessStartInfo(executable) { WorkingDirectory = Store.GamePath, UseShellExecute = true }); Log("Starting Drive Beyond Horizons.");
+                // Steam owns the game process and its normal launch environment.
+                // Closing this optional manager has no effect on that process.
+                Process.Start(new ProcessStartInfo("steam://rungameid/2625420") { UseShellExecute = true }); Log("Starting Drive Beyond Horizons through Steam.");
             }
             catch (Exception error) { Log(Friendly(error)); }
         }

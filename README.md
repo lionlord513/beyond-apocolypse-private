@@ -1,4 +1,4 @@
-# Beyond Mod Manager 1.0.6
+# Beyond Mod Manager 1.0.7
 
 Source for the Windows release of Beyond Mod Manager (BMM).
 
