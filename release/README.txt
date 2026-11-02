@@ -1,9 +1,9 @@
-BEYOND APOCALYPSE 1.0.7
+BEYOND APOCALYPSE 1.0.8
 Drive Beyond Horizons - Windows / Steam build 26106988
 
 INSTALL
 Close the game before updating and back up your saves.
-Mod Manager: import BeyondApocalypse-1.0.7-public.zip, or use Check for updates.
+Mod Manager: import BeyondApocalypse-1.0.8-public.zip, or use Check for updates.
 Manual installer: extract the public ZIP and run Install.cmd.
 Nexus ZIP: merge its DriveBeyondHorizons folder into the game's main folder
 (Steam > Manage > Browse local files). Do not put it inside a second copy of
@@ -22,7 +22,8 @@ including to attached vehicle parts. Start the engine, release the handbrake,
 and hold Shift while driving. Release Shift or brake to stop. Stage II is stronger;
 extra bottles add supply, not stacked power. High speed and sharp steering taper
 the force. Boost does not operate in reverse, in the air or without engine power.
-Exhaust outlets emit blue flames during boost. Nitrous is not engine gasoline.
+Stage I exhaust flames are blue; Stage II flames are purple. Bottles mount
+horizontally on their brackets using the normal placement controls. Nitrous is not engine gasoline.
 The right-side digital cluster displays vehicle and fluid information. Hornet
 shows collective, altitude above world sea level and vertical speed. Aircraft
 Shift/Ctrl controls are unchanged. Set VehicleDashboard=false in local config.lua

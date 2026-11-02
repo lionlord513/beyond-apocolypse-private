@@ -1,3 +1,13 @@
+BEYOND APOCALYPSE 1.0.8
+2026-11-02
+
+- Corrected indirect lighting on nitrous bottles and custom rifles so their textures remain readable in shade. Normal, roughness and metallic maps now load in the correct colour space.
+- Stage II nitrous emits purple exhaust flames; Stage I retains blue flames. Colour changes follow the active bottle stage.
+- The native nitrous inspection percentage, fluid name and fill bar use the bottle stage colour: blue or purple.
+- Replaced the large donor-barrel physics mesh with a compact bottle-sized collider. Pickup/drop restores the matching bottle scale.
+- Nitrous bottles now mount horizontally with their placement origin between the two bracket feet. The valve and fluid-transfer interaction follow the new model orientation.
+- Existing boost power, consumption, saved bottle identities, motorcycle setup and personal-menu separation are retained.
+
 BEYOND APOCALYPSE 1.0.7
 2026-11-02
 

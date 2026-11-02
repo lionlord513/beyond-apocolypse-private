@@ -1,3 +1,18 @@
+BEYOND APOCALYPSE 1.0.8 - TARGETED HOTFIX CHECKS
+- Live native collider bounds match the bracket-origin model: 38 x 10.26 x
+  12.41 cm at medium size, scaled uniformly for all three capacities.
+- The bracket feet are on the placement plane; the bottle axis is horizontal.
+- Existing Stage I and Stage II bottles were rebuilt successfully in game.
+- M4A1 and Lee-Enfield material updates ran successfully; native normal textures
+  report SRGB=false. White AO uses multiplier 1 rather than zero.
+- Native Stage II inspection bar and percentage text read back purple
+  (0.62, 0.16, 1.00). Stage I follows the same hook with blue.
+- Exhaust tint now follows the active boost stage without recreating particles.
+- Existing Lua regressions and source syntax checks pass.
+- Final visual judgement and extended placement/co-op testing remain with the player.
+
+Previous validation records:
+
 BEYOND APOCALYPSE 1.0.7 - VALIDATION RECORD
 Game: Steam build 26106988, Windows, Unreal Engine 5.2.1
 

@@ -148,9 +148,11 @@ return function(M,root,H,valid,enqueue,log)
   end
  end
  N.net=dofile(root..'/Scripts/nitrous/network.lua')(N,M,H,valid,enqueue,log)
+ N.presentation=dofile(root..'/Scripts/nitrous/presentation.lua')(N,valid)
  local function tick(p,now)
   if M.features==false or not N.fluid.install()then return end
   N.net.install()
+  if not N.presentationReady and now>=(N.presentationAt or 0)then N.presentationAt=now+1;N.presentationReady=N.presentation.install()end
   if p:HasAuthority()then N.journal.load(game:GetGameInstance(p).MainSaveGame)end
   N.net.input(now)
   if now<N.nextAt then return end

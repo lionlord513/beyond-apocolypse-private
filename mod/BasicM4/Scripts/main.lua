@@ -72,21 +72,18 @@ local function identify(meshes)
  end
  if body and mag then return defs.m4 end
 end
+local loadPbrImages=dofile(root..'/Scripts/weapons/pbr_images.lua')(root,valid)
 local function getMaterial(a,d)
  if valid(materials[d.Id])then return materials[d.Id]end
  local parent=LoadAsset(d.MaterialParent)
  local lib=StaticFindObject('/Script/Engine.Default__KismetMaterialLibrary')
  local mat=lib:CreateDynamicMaterialInstance(a,parent,FName(d.MaterialName),0)
  assert(valid(mat),'Cannot create '..d.Id..' material')
- local render=StaticFindObject('/Script/Engine.Default__KismetRenderingLibrary')
- for param,file in pairs(d.Textures)do
-  local tex=render:ImportFileAsTexture2D(a,root..'/'..file);assert(valid(tex),'Missing '..file)
-  mat:SetTextureParameterValue(FName(param),tex)
- end
- local ao=render:ImportFileAsTexture2D(a,root..'/assets/gyrocopter/clean-ao.png');assert(valid(ao),'Missing neutral occlusion map')
- mat:SetTextureParameterValue(FName('AOMap'),ao)
- mat:SetScalarParameterValue(FName('AODarkness'),0)
- mat:SetScalarParameterValue(FName('DiffuseBrightness'),1.2)
+ local images=loadPbrImages('assets/'..d.Id..'-textures.gltf')
+ for param,tex in pairs(images)do mat:SetTextureParameterValue(FName(param),tex)end
+ -- White AO must stay white: zero was suppressing indirect light in shade.
+ mat:SetScalarParameterValue(FName('AODarkness'),1)
+ mat:SetScalarParameterValue(FName('DiffuseBrightness'),1.35)
  mat:SetScalarParameterValue(FName('RoughnessBrightness'),1)
  materials[d.Id]=mat;return mat
 end

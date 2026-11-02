@@ -1,11 +1,11 @@
--- Reuse the game's exhaust flame, tinted blue. No boost audio or dynamic lights.
+-- Reuse the game's exhaust flame, tinted by the active boost stage. No boost audio or dynamic lights.
 return function(H,valid)
  local E={};local game=StaticFindObject('/Script/Engine.Default__GameplayStatics')
  local component=StaticFindObject('/Script/Niagara.NiagaraComponent')
  local slotClass;local system
  local identity={Translation={X=0,Y=0,Z=0},Rotation={X=0,Y=0,Z=0,W=1},Scale3D={X=1,Y=1,Z=1}}
  local function clear(r)
-  for _,v in ipairs(r.flames or{})do if valid(v.fx)then pcall(function()v.fx:Deactivate();v.fx:K2_DestroyComponent(r.actor)end)end end;r.flames=nil;r.flameSignature=nil;r.flamesActive=false
+  for _,v in ipairs(r.flames or{})do if valid(v.fx)then pcall(function()v.fx:Deactivate();v.fx:K2_DestroyComponent(r.actor)end)end end;r.flames=nil;r.flameSignature=nil;r.flamesActive=false;r.flameTier=nil
  end
  function E.update(r,active)
   local a=r.actor;if not valid(a)then return end
@@ -32,6 +32,12 @@ return function(H,valid)
      fx:SetRelativeScale3D({X=.85,Y=.85,Z=1.15});fx:SetVariableLinearColor(FName('User.User_ColorTint'),{R=.04,G=.38,B=2.5,A=1});fx:SetCastShadow(false);fx:SetCullDistance(16000)
     end end
    end
+  end
+  local tier=r.tier==2 and 2 or 1
+  if r.flameTier~=tier then
+   local tint=tier==2 and {R=1.35,G=.05,B=2.5,A=1}or {R=.04,G=.38,B=2.5,A=1}
+   for _,v in ipairs(r.flames or{})do if valid(v.fx)then v.fx:SetVariableLinearColor(FName('User.User_ColorTint'),tint)end end
+   r.flameTier=tier
   end
   -- Two retained bursts overlap at each tip, producing an uninterrupted flame.
   -- Only alternate components restart; nothing is spawned or searched each pulse.

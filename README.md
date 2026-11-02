@@ -1,8 +1,8 @@
 # Beyond Apocalypse
 
-Beyond Apocalypse 1.0.7 for Drive Beyond Horizons Steam build 26106988.
+Beyond Apocalypse 1.0.8 for Drive Beyond Horizons Steam build 26106988.
 
-[Downloads and release notes](https://github.com/lionlord513/beyond-apocolypse-private/releases/tag/v1.0.7).
+[Downloads and release notes](https://github.com/lionlord513/beyond-apocolypse-private/releases/tag/v1.0.8).
 The public ZIP supports Beyond Mod Manager; the Nexus ZIP uses the game-folder layout.
 Mod Manager is optional. Launch the game through Steam.
 
