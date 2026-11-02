@@ -1,0 +1,4 @@
+Character Mechanic by Kolbaca
+https://sketchfab.com/3d-models/character-mechanic-2ad94ef710714435ab87fe173d5a40cb
+CC BY 4.0: https://creativecommons.org/licenses/by/4.0/
+Adapted: normalized origin and scale, combined meshes, rebaked original animations.

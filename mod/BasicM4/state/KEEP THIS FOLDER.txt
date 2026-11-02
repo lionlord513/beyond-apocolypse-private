@@ -1,0 +1,1 @@
+Your local mod progress is stored here after playing. Keep this folder when updating.

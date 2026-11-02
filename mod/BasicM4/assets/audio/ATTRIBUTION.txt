@@ -1,0 +1,5 @@
+The Free Firearm Sound Library
+Ben Jaszczak, Brian Nelson, Kevin Heras and Matthew Nanney
+CC0 1.0 Universal
+https://opengameart.org/node/21826
+Trimmed, converted to mono 48 kHz and level-matched for Beyond Apocolypse.

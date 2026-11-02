@@ -1,0 +1,279 @@
+-- Beyond Apocolypse. Stable internal folder preserves old saves.
+local root=debug.getinfo(1,'S').source:sub(2):gsub('\\','/'):match('^(.*)/Scripts/[^/]+$')
+assert(root,'Install as Mods/BasicM4/Scripts/main.lua')
+local configPath=root..'/Scripts/config.lua'
+local configFile=io.open(configPath,'r')
+if configFile then configFile:close()else configPath=root..'/Scripts/default_config.lua'end
+local config=dofile(configPath)
+local release=dofile(root..'/Scripts/release.lua')
+local defs=dofile(root..'/Scripts/weapons/catalog.lua')
+local M={version=release.Version,release=release,active=true,definitions=defs,config=config}
+local forced,chosen,tracked,filled,errors={},{},{},{},{}
+local geometry,materials={},{ }
+local refreshRetry={}
+local akClass,pmcClass,game
+local function log(s)print('[Beyond Apocolypse] '..s..'\n') end
+local function valid(o)return o and o:IsValid()end
+local H=dofile(root..'/Scripts/local_context.lua')(valid)
+M.root=root
+local performance=dofile(root..'/Scripts/performance.lua')(M,H,valid,log);M.performance=performance
+local branding=dofile(root..'/Scripts/menu_branding.lua')(root,release,H,valid)
+M.branding=branding
+local function player()
+ local p=H.GetPlayer();if not valid(p)then return end
+ local kind=p:GetFullName():match('^(%S+)')
+ if kind~='PlayerBase_C' and kind~='MaleCharacter_C' and kind~='FemaleCharacter_C' then return end
+ if p.IsInitialized and p.IsLoaded then return p end
+end
+local function guid(a)
+ local g=a.GuidUnique
+ if g.A==0 and g.B==0 and g.C==0 and g.D==0 then return end
+ return string.format('%08x:%08x:%08x:%08x',g.A&0xffffffff,g.B&0xffffffff,g.C&0xffffffff,g.D&0xffffffff)
+end
+local function readState(file,fn)
+ local f=io.open(root..'/state/'..file,'r');if f then for line in f:lines()do fn(line)end;f:close()end
+end
+readState('forced-m4.txt',function(k)if k:match('^%x+:%x+:%x+:%x+$')then forced[k]=true end end)
+readState('rifles.txt',function(line)local k,id=line:match('^(%x+:%x+:%x+:%x+) (%w+)$');if k and (defs[id]or id=='ak')then chosen[k]=id end end)
+local function saveChoice(key,id)
+ if chosen[key]==id then return end
+ local f=assert(io.open(root..'/state/rifles.txt','a'),'Cannot save rifle identity')
+ f:write(key..' '..id..'\n');f:close();chosen[key]=id
+end
+local function selected(a)
+ local k=guid(a);if not k then return end
+ if chosen[k]then return defs[chosen[k]]end
+ local id='ak'
+ if forced[k]then id='m4' else
+  local h=5381;for i=1,#k do h=(h*33+k:byte(i))&0xffffffff end
+  local roll=h%100;local m=math.max(0,math.min(100,config.LootPercent))
+  local s=math.max(0,math.min(100-m,config.HuntingPercent));local b=math.max(0,math.min(100-m-s,config.EnfieldPercent))
+  if roll<m then id='m4' elseif roll<m+s then id='hunting' elseif roll<m+s+b then id='enfield' end
+ end
+ saveChoice(k,id);return defs[id]
+end
+local function components(a)
+ local out={}
+ for _,v in ipairs(a:K2_GetComponentsByClass(pmcClass))do
+  local c=v:get()
+  if valid(c) and valid(c.AttachParent) and c.AttachParent:GetAddress()==a.SkeletalMesh:GetAddress()then
+   local s=c.AttachSocketName:ToString()
+   if s=='None' or s=='magazine_joint' or s=='BWP_hunting' or s=='BWP_enfield'then out[#out+1]=c end
+  end
+ end
+ return out
+end
+local function identify(meshes)
+ local body,mag
+ for _,c in ipairs(meshes)do
+  local s=c.AttachSocketName:ToString()
+  if s=='BWP_hunting'then return defs.hunting end
+  if s=='BWP_enfield'then return defs.enfield end
+  if s=='None'then body=true elseif s=='magazine_joint'then mag=true end
+ end
+ if body and mag then return defs.m4 end
+end
+local function getMaterial(a,d)
+ if valid(materials[d.Id])then return materials[d.Id]end
+ local parent=LoadAsset(d.MaterialParent)
+ local lib=StaticFindObject('/Script/Engine.Default__KismetMaterialLibrary')
+ local mat=lib:CreateDynamicMaterialInstance(a,parent,FName(d.MaterialName),0)
+ assert(valid(mat),'Cannot create '..d.Id..' material')
+ local render=StaticFindObject('/Script/Engine.Default__KismetRenderingLibrary')
+ for param,file in pairs(d.Textures)do
+  local tex=render:ImportFileAsTexture2D(a,root..'/'..file);assert(valid(tex),'Missing '..file)
+  mat:SetTextureParameterValue(FName(param),tex)
+ end
+ local ao=render:ImportFileAsTexture2D(a,root..'/assets/gyrocopter/clean-ao.png');assert(valid(ao),'Missing neutral occlusion map')
+ mat:SetTextureParameterValue(FName('AOMap'),ao)
+ mat:SetScalarParameterValue(FName('AODarkness'),0)
+ mat:SetScalarParameterValue(FName('DiffuseBrightness'),1.2)
+ mat:SetScalarParameterValue(FName('RoughnessBrightness'),1)
+ materials[d.Id]=mat;return mat
+end
+local function fill(a,c,d)
+ local key=c:GetFullName()
+ if valid(filled[key]) and filled[key]:GetAddress()==c:GetAddress()and c:GetNumSections()>0 then return end
+ geometry[d.Id]=geometry[d.Id]or dofile(root..'/'..d.Geometry)
+ local part=c.AttachSocketName:ToString()==d.MagazineSocket and 'magazine' or 'body'
+ local data=assert(geometry[d.Id][part]);c:SetCollisionEnabled(0)
+
+ c:CreateMeshSection(0,data.vertices,data.triangles,data.normals,data.uv,{},data.tangents or {},false)
+ c:SetMaterial(0,getMaterial(a,d))
+ if data.ironTriangles then c:CreateMeshSection(1,data.vertices,data.ironTriangles,data.normals,data.uv,{},data.tangents or{},false);c:SetMaterial(1,getMaterial(a,d))end
+ if a:HasAuthority()then
+  local tr=d.Transform()
+  if part=='magazine'then tr=StaticFindObject('/Script/Engine.Default__KismetMathLibrary'):MakeRelativeTransform(tr,a.SkeletalMesh:GetSocketTransform(FName(d.MagazineSocket),2))end
+  c:K2_SetRelativeTransform(tr,false,{},true)
+ end
+ filled[key]=c
+end
+local function create(a,d)
+ local made={};local mesh=a.SkeletalMesh
+ local ok,e=pcall(function()
+  for _,part in ipairs(d.Parts)do
+   local tr=d.Transform();local socket=part=='magazine'and d.MagazineSocket or d.BodySocket
+   if part=='magazine'then tr=StaticFindObject('/Script/Engine.Default__KismetMathLibrary'):MakeRelativeTransform(tr,mesh:GetSocketTransform(FName(socket),2))end
+   local c=a:AddComponentByClass(pmcClass,true,tr,false);assert(valid(c),'Mesh creation failed')
+   made[#made+1]=c;c:K2_AttachToComponent(mesh,FName(socket),0,0,0,false);c:K2_SetRelativeTransform(tr,false,{},true)
+   fill(a,c,d);c:SetIsReplicated(true)
+  end
+  a:FlushNetDormancy();a:ForceNetUpdate()
+ end)
+ if not ok then for _,c in ipairs(made)do if valid(c)then c:K2_DestroyComponent(a)end end;error(e)end
+ return made
+end
+local function update(a)
+ if not valid(a)or not valid(a.SkeletalMesh)then return end
+ local meshes=components(a);local d=identify(meshes)
+ if #meshes==0 and a:HasAuthority()then d=selected(a);if d then meshes=create(a,d)end end
+ if d then
+  for _,c in ipairs(meshes)do fill(a,c,d)end
+  a.SkeletalMesh.VisibilityBasedAnimTickOption=0;a.SkeletalMesh:SetVisibility(false,false)
+  a.IsAutomatic=false;a.CanBeAutomatic=false;a.FireRate=d.FireRate
+  if M.ballistics and M.ballistics.installed then M.ballistics.prepare(a,d)end
+  if M.rail then M.rail.update(a,d)end
+  local scope=M.rail and M.rail.optic.has(a)
+  for _,c in ipairs(meshes)do if c:GetNumSections()>1 then c:SetMeshSectionVisible(1,not scope)end end
+  tracked[a:GetFullName()]={actor=a,def=d}
+ elseif #meshes==0 then
+  local known=a:HasAuthority()
+  local scene=StaticFindObject('/Script/Engine.SceneComponent');local mark
+  for _,v in ipairs(a:K2_GetComponentsByClass(scene))do local c=v:get();if valid(c)and c.AttachSocketName:ToString()=='BA_NativeAK'then mark=c;known=true;break end end
+  if a:HasAuthority()then
+   a.IsAutomatic=true;a.CanBeAutomatic=true
+   if not mark then local tr={Translation={X=0,Y=0,Z=0},Rotation={X=0,Y=0,Z=0,W=1},Scale3D={X=1,Y=1,Z=1}};mark=a:AddComponentByClass(scene,true,tr,false);mark:K2_AttachToComponent(a.SkeletalMesh,FName('BA_NativeAK'),0,0,0,false);mark:SetIsReplicated(true);a:ForceNetUpdate()end
+  end
+  a.SkeletalMesh:SetVisibility(known,false)
+  if known and M.rail then M.rail.update(a,M.nativeRifle)end
+ else a.SkeletalMesh:SetVisibility(false,false)end
+end
+local function guardedUpdate(a)
+ local key=a:GetFullName();local now=os.time()
+ if now<(refreshRetry[key]or 0)then return end
+ local ok,e=pcall(update,a)
+ if ok then refreshRetry[key]=nil;return end
+ refreshRetry[key]=now+2
+ local message=tostring(e)
+ if not errors[message]then errors[message]=true;log(message)end
+end
+local function initialize()
+ if valid(akClass)and valid(pmcClass)then return true end
+ akClass=LoadAsset(defs.m4.BaseClass);pmcClass=StaticFindObject('/Script/ProceduralMeshComponent.ProceduralMeshComponent')
+ game=StaticFindObject('/Script/Engine.Default__GameplayStatics')
+ return valid(akClass)and valid(pmcClass)
+end
+function M.force(a,id)
+ id=id or 'm4';local d=assert(defs[id],'Unknown rifle')
+ assert(initialize()and valid(a)and a:IsA(akClass),'Hold a rifle first')
+ assert(a:HasAuthority(),'Host only');local k=assert(guid(a),'Item identity not ready')
+ saveChoice(k,id)
+ for _,c in ipairs(components(a))do c:K2_DestroyComponent(a)end
+ tracked[a:GetFullName()]=nil;update(a);log(d.Name..' selected: '..k)
+end
+function M.spawn(id)
+ assert(initialize());local p=player();assert(valid(p)and p:HasAuthority(),'Spawn requires host game')
+ local l,v=p:K2_GetActorLocation(),p:GetActorForwardVector()
+ local tr={Translation={X=l.X+v.X*120,Y=l.Y+v.Y*120,Z=l.Z+30},Rotation={X=0,Y=0,Z=0,W=1},Scale3D={X=1,Y=1,Z=1}}
+ local a=game:BeginDeferredActorSpawnFromClass(p,akClass,tr,1,nil,0);assert(valid(a),'Native AK spawn failed')
+ game:FinishSpawningActor(a,tr,0)
+ if id=='ak'then saveChoice(assert(guid(a),'Item identity not ready'),'ak')else M.force(a,id)end
+ return a
+end
+function M.scan()
+ if M.features==false or not player()or not initialize()then return end
+ local seen={}
+ for _,a in ipairs(FindAllOf('AkWeapon_C')or{})do if valid(a)then seen[a:GetFullName()]=true;guardedUpdate(a)end end
+ for k,t in pairs(tracked)do if not valid(t.actor)then tracked[k]=nil end end
+ for k,c in pairs(filled)do if not valid(c)then filled[k]=nil end end
+ for k in pairs(refreshRetry)do if not seen[k]then refreshRetry[k]=nil end end
+end
+local firing=dofile(root..'/Scripts/firing.lua')(valid)
+local hazmat=dofile(root..'/Scripts/hazmat.lua')(root,config.Apocalypse,valid,log)
+M.hazmat=hazmat
+local apocalypse=dofile(root..'/Scripts/apocalypse.lua')(root,config.Apocalypse,valid,log,hazmat)
+M.apocalypse=apocalypse
+local mechanic=dofile(root..'/Scripts/night_hunter.lua')(root,config.Apocalypse,valid,log);M.mechanic=mechanic
+local actions,scanElapsed={},config.PollMilliseconds
+local function shortcut(fn)actions[#actions+1]=fn end
+local session=dofile(root..'/Scripts/session.lua')(M,H,valid,shortcut);M.session=session
+local devmenu=dofile(root..'/Scripts/optional_interface.lua')(M,root,H,valid,shortcut,log)
+M.devmenu=devmenu
+M.guid=guid
+local backpack=dofile(root..'/Scripts/backpack/controller.lua')(M,root,H,valid,shortcut,log)
+M.backpack=backpack
+local weaponHandling=dofile(root..'/Scripts/weapons/handling.lua')(M,root,H,valid,shortcut,log);M.weaponHandling=weaponHandling
+local rail=dofile(root..'/Scripts/weapons/rail.lua')(M,root,H,valid,shortcut,log);M.rail=rail
+M.ballistics=dofile(root..'/Scripts/weapons/ballistics.lua')(M,root,valid,log,H)
+local rpg=dofile(root..'/Scripts/rpg.lua')(M,root,H,valid,shortcut,log);M.rpg=rpg
+M.controls=dofile(root..'/Scripts/controls.lua')(M,root,H,valid)
+local gyrocopter=dofile(root..'/Scripts/gyrocopter/controller.lua')(M,root,H,valid,log)
+M.gyrocopter=gyrocopter
+local motorcycle=dofile(root..'/Scripts/motorcycle/controller.lua')(M,root,H,valid,log);M.motorcycle=motorcycle
+M.utility=dofile(root..'/Scripts/utility.lua')(M,root,H,valid,shortcut,log)
+local hangar=dofile(root..'/Scripts/hangar.lua')(M,root,H,valid,shortcut,log);M.hangar=hangar
+local towing=dofile(root..'/Scripts/towing.lua')(M,valid,shortcut,log);M.towing=towing
+M.ammo=dofile(root..'/Scripts/ammo.lua')(M,root,H,valid,shortcut,log)
+local roaming=dofile(root..'/Scripts/zombie_roaming.lua')(M,valid,log);M.roaming=roaming
+dofile(root..'/Scripts/game_loop.lua')(function()return M.active end,function()
+  local ok,e=pcall(function()
+   if M.resetRequested then
+    M.resetRequested=false;actions={};tracked={};filled={};materials={};refreshRetry={};akClass=nil;pmcClass=nil;game=nil
+    motorcycle.reset();M.utility.reset();H.reset();session.reset();performance.reset();firing.reset();apocalypse.reset();hazmat.reset();mechanic.reset();branding.reset();devmenu.reset();backpack.reset();gyrocopter.reset();weaponHandling.reset();weaponHandling.slots.reset();weaponHandling.equipCache=nil;rail.reset();roaming.reset();hangar.reset();towing.reset();M.ammo.reset();M.ballistics.reset()
+   end
+   session.tick()
+   local pending=actions;actions={};for _,fn in ipairs(pending)do local worked,err=pcall(fn);if not worked then log(tostring(err))end end
+   scanElapsed=scanElapsed+50
+   if scanElapsed>=config.PollMilliseconds then scanElapsed=0;M.scan();branding.tick();local hp=player();if hp and M.features~=false then hazmat.tick(hp)end end
+   local perfOK,perfError=pcall(performance.tick)
+   if not perfOK and not errors[tostring(perfError)]then errors[tostring(perfError)]=true;log('Graphics settings: '..tostring(perfError))end
+   M.utility.tick()
+   if M.features==false then firing.reset();return end
+   devmenu.tick();backpack.tick()
+   local p=player()
+   if p and valid(game)then
+    rpg.install();M.ballistics.install();M.ballistics.tick();hangar.tick();towing.tick();weaponHandling.tick();rail.tick(p);M.ammo.tick(p,game:GetTimeSeconds(p))
+    local a=p.ItemEquiped;local t=valid(a)and tracked[a:GetFullName()]
+    local now=game:GetTimeSeconds(p)
+    if not game:IsGamePaused(p)then
+     firing.tick(a,t and t.def,now,not M.utility.opened and not devmenu.ui.opened and not backpack.ui.opened and not p.BP_PlayerStats.IsDead and not p.BP_PlayerStats.IsDying,H.GetPlayerController():IsInputKeyDown({KeyName=FName('LeftMouseButton')}))
+     apocalypse.tick(p,game,now)
+     mechanic.tick(p,game,now)
+     roaming.tick(p,game,now)
+     gyrocopter.tick(p,now)
+     motorcycle.tick(p,now)
+    end
+   else firing.reset()end
+  end)
+  if not ok and not errors[tostring(e)]then errors[tostring(e)]=true;log(tostring(e))end
+end,log)
+RegisterKeyBind(Key.ESCAPE,function()shortcut(function()if M.utility.opened then if M.utility.capture then M.utility.capture=nil;M.utility.render()else M.utility.close()end end;if devmenu.ui.opened then devmenu.ui.close()end;if backpack.ui.opened then backpack.ui.close()end end)end)
+RegisterKeyBind(Key.MIDDLE_MOUSE_BUTTON,function()shortcut(function()rail.request('drop')end)end)
+RegisterKeyBind(Key.L,function()shortcut(function()rail.request('light')end)end)
+RegisterKeyBind(Key.TAB,function()shortcut(function()backpack.toggle()end)end)
+RegisterKeyBind(Key.B,function()shortcut(function()backpack.unequip()end)end)
+RegisterKeyBind(Key.RIGHT_MOUSE_BUTTON,function()if devmenu.ui.opened and devmenu.ui.rightClick then shortcut(function()devmenu.ui.rightClick()end);return end;local intended=backpack.storeTarget;shortcut(function()backpack.store(intended)end)end)
+M.guid=guid;M.components=components;M.identify=identify;M.firing=firing
+M.nativeRifle={Id='ak',Name='AK-47',Mode='auto',Transform=function()return {Translation={X=0,Y=0,Z=0},Rotation={X=0,Y=0,Z=.70710678118655,W=.70710678118655},Scale3D={X=1,Y=1,Z=1}}end}
+function M.weaponDefinition(a)
+ if M.features==false or not valid(a)or not a:GetFullName():match('^AkWeapon_C ')then return end
+ initialize();return identify(components(a))or M.nativeRifle
+end
+function M.refreshWeapon(a)if M.features~=false and valid(a)and a:GetFullName():match('^AkWeapon_C ')and initialize()then guardedUpdate(a)end end
+function M.itemName(a)
+ if not valid(a)then return 'Item'end
+ if M.gyrocopter and M.gyrocopter.transport.blades.info(a)then return 'Universal rotor blade'end
+ if M.rail and M.rail.optic.item(a)then return '2x Sight'end
+ if a:GetFullName():match('^AkWeapon_C ')then
+  local d=identify(components(a));if not d and a:HasAuthority()then d=selected(a)end
+  return d and d.Name or 'AK-47'
+ end
+ return (a:GetFullName():match('^(%S+)')or'Item'):gsub('_C$',''):gsub('(%l)(%u)','%1 %2'):gsub('_',' ')
+end
+M.akClass=function()initialize();return akClass end
+-- The private launcher test package alone supplies this limited host fixture kit.
+-- Public packages have no spawn-test key bindings.
+RegisterLoadMapPreHook(function()M.features=false;M.resetRequested=true end)
+_G.BasicM4=M;_G.BasicWeaponPack=M;_G.BeyondApocolypse=M
+log(release.Version..' '..release.Channel..' loaded: M4 burst, hunting semi-auto, Enfield bolt cadence; additive apocalypse enabled='..tostring(config.Apocalypse.Enabled))
+return M

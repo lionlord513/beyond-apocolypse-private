@@ -1,0 +1,10 @@
+Zombie Hazmat by LxNazarov
+https://sketchfab.com/3d-models/zombie-hazmat-49b3b4307f6a4d2386fdb02354158d04
+Creative Commons Attribution 4.0 International (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/
+
+Adapted for Beyond Apocolypse: remapped and fitted skin weights and bind pose,
+merged suit/head, removed the importer's broken vertex-color multiplier,
+generated two simplified distance LODs, converted normal-map handedness and
+baked glTF roughness/metallic factors, and omitted the source animation clips.
+The game supplies its own zombie animations at runtime. No endorsement implied.

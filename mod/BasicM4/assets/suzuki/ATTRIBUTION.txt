@@ -1,0 +1,2 @@
+Mobile optimized Suzuki PV 50. Exact user-supplied mobile_optimized_suzuki_pv_50.glb and its embedded albedo, ORM and normal maps.
+Adapted for Beyond Apocalypse: separated wheels/steering/fenders; removed baked engine, airbox, carburettor, exhaust and chain; native replaceable service parts and spray-paint registration.
