@@ -1,0 +1,13 @@
+Nitrous bottle geometry was converted from the supplied
+nos-nitrous-canisters.zip / clo_nitrou_cannisters.fbx model.
+The supplied archive contained no author or license notice. No additional
+third-party licensing claim is made here; the original code MIT license does
+not grant rights to third-party bottle geometry or NOS trademarks.
+
+Blue and purple texture atlases were enhanced with OpenAI image generation
+from the supplied 256-pixel atlas. The instruction preserved UV island layout,
+NOS labeling and non-painted surfaces, adding subtle enamel and surface detail.
+Purple recolors the blue painted surfaces while preserving labeling.
+Geometry: 504 triangles per bottle, scaled to 26 / 38 / 52 cm.
+Native game material and Niagara exhaust assets are referenced at runtime,
+not redistributed. The model converter is provided in tools/.

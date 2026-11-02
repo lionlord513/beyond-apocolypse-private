@@ -2,9 +2,9 @@
   "schema": 1,
   "id": "beyondapocalypse",
   "name": "Beyond Apocalypse",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "channel": "stable",
-  "description": "Expand Drive Beyond Horizons with first-person rifles and attachments, backpacks, wandering zombies and encounters, the Hornet gyrocopter, two motorcycles, the Hangar parts shop, and F9 player settings. Back up saves and use the same mod version with everyone in co-op.",
+  "description": "Nitrous tuning, digital vehicle and flight dashboards, first-person rifles, backpacks, zombies, the Hornet, motorcycles, Hangar shopping and F9 player settings for Drive Beyond Horizons.",
   "website": "https://www.nexusmods.com/drivebeyondhorizons/mods/28",
   "update": {
     "Provider": "github",
@@ -15,6 +15,20 @@
     "Kind": "beyond-apocolypse"
   },
   "history": [
+    {
+      "version": "1.0.7",
+      "released": "2026-11-02",
+      "channel": "stable",
+      "notes": [
+        "Added six refillable nitrous bottles: blue Stage I and purple Stage II, each in 2 L, 5 L and 10 L sizes.",
+        "Nitrous is a separate native fluid with normal pouring and transfer controls. Attach bottles to a vehicle using the normal attachment controls, then hold Shift while driving to boost.",
+        "Boost strength tapers at high speed and sharp steering, stops under braking or without engine power, and consumes nitrous. Multiple bottles extend supply without stacking force.",
+        "Blue exhaust effects accompany boost. Bottles appear as uncommon building loot and can be purchased through Hangar.",
+        "Added a compact digital vehicle dashboard with speed, gear, RPM, engine temperature, fluid levels, battery warnings and nitrous supply.",
+        "The Hornet has a dedicated flight dashboard with collective, altitude and vertical speed; its existing Shift/Ctrl flight controls are retained.",
+        "Retained 1.0.6 motorcycle seating, modular headlights, performance controls, weapons, backpacks and other existing fixes. Personal developer tools are excluded."
+      ]
+    },
     {
       "version": "1.0.6",
       "released": "2026-11-01",

@@ -2,5 +2,5 @@ Hornet gyrocopter by Emmanuel Baranger (helijah), with original Hornet engineeri
 FlightGear Hornet source, revision ecae170; included in the model-source companion.
 GPL v2 or later; see COPYING.txt.
 Modified for Beyond Apocolypse: axis/UV conversion, separate rotor/propeller, omitted baked engine, split removable blades and LOD simplification.
-Original model, adaptation script and editable asset files: BeyondApocolypse-1.0.6-Hornet-Model-Source.zip, available as a separate download on the same Nexus mod page.
+Original model, adaptation script and editable asset files: BeyondApocolypse-1.0.7-Hornet-Model-Source.zip, available as a separate download on the same Nexus mod page.
 Players do not need to install that source download.

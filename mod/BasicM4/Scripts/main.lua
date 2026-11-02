@@ -209,6 +209,7 @@ M.controls=dofile(root..'/Scripts/controls.lua')(M,root,H,valid)
 local gyrocopter=dofile(root..'/Scripts/gyrocopter/controller.lua')(M,root,H,valid,log)
 M.gyrocopter=gyrocopter
 local motorcycle=dofile(root..'/Scripts/motorcycle/controller.lua')(M,root,H,valid,log);M.motorcycle=motorcycle
+M.nitrous=dofile(root..'/Scripts/nitrous/controller.lua')(M,root,H,valid,shortcut,log)
 M.utility=dofile(root..'/Scripts/utility.lua')(M,root,H,valid,shortcut,log)
 local hangar=dofile(root..'/Scripts/hangar.lua')(M,root,H,valid,shortcut,log);M.hangar=hangar
 local towing=dofile(root..'/Scripts/towing.lua')(M,valid,shortcut,log);M.towing=towing
@@ -220,7 +221,7 @@ dofile(root..'/Scripts/game_loop.lua')(function()return M.active end,function()
   local ok,e=pcall(function()
    if M.resetRequested then
     M.resetRequested=false;M.population.reset();actions={};tracked={};filled={};materials={};refreshRetry={};akClass=nil;pmcClass=nil;game=nil
-    motorcycle.reset();M.utility.reset();H.reset();session.reset();performance.reset();firing.reset();apocalypse.reset();hazmat.reset();mechanic.reset();branding.reset();devmenu.reset();backpack.reset();gyrocopter.reset();weaponHandling.reset();weaponHandling.slots.reset();weaponHandling.equipCache=nil;rail.reset();roaming.reset();hangar.reset();towing.reset();M.ammo.reset();M.ballistics.reset()
+    M.nitrous.reset();M.dashboard.reset();motorcycle.reset();M.utility.reset();H.reset();session.reset();performance.reset();firing.reset();apocalypse.reset();hazmat.reset();mechanic.reset();branding.reset();devmenu.reset();backpack.reset();gyrocopter.reset();weaponHandling.reset();weaponHandling.slots.reset();weaponHandling.equipCache=nil;rail.reset();roaming.reset();hangar.reset();towing.reset();M.ammo.reset();M.ballistics.reset()
    end
    session.tick()
    local pending=actions;actions={};for _,fn in ipairs(pending)do local worked,err=pcall(fn);if not worked then log(tostring(err))end end
@@ -229,6 +230,7 @@ dofile(root..'/Scripts/game_loop.lua')(function()return M.active end,function()
    local perfOK,perfError=pcall(performance.tick)
    if not perfOK and not errors[tostring(perfError)]then errors[tostring(perfError)]=true;log('Graphics settings: '..tostring(perfError))end
    M.utility.tick()
+   M.dashboard.tick(valid(game)and game:GetTimeSeconds(H.GetPlayerController())or 0)
    if M.features==false then firing.reset();return end
    devmenu.tick();backpack.tick()
    local p=player()
@@ -246,6 +248,7 @@ dofile(root..'/Scripts/game_loop.lua')(function()return M.active end,function()
      end
      gyrocopter.tick(p,now)
      motorcycle.tick(p,now)
+     M.nitrous.tick(p,now)
     end
    else firing.reset()end
   end)
@@ -266,6 +269,7 @@ end
 function M.refreshWeapon(a)if M.features~=false and valid(a)and a:GetFullName():match('^AkWeapon_C ')and initialize()then guardedUpdate(a)end end
 function M.itemName(a)
  if not valid(a)then return 'Item'end
+ if M.nitrous then local d=M.nitrous.info(a);if d then return d.name end end
  if M.gyrocopter and M.gyrocopter.transport.blades.info(a)then return 'Universal rotor blade'end
  if M.rail and M.rail.optic.item(a)then return '2x Sight'end
  if a:GetFullName():match('^AkWeapon_C ')then

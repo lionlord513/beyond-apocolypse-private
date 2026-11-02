@@ -1,3 +1,33 @@
+BEYOND APOCALYPSE 1.0.7 - VALIDATION RECORD
+Game: Steam build 26106988, Windows, Unreal Engine 5.2.1
+
+New feature checks:
+- Lua syntax and existing regression suites pass, including bike geometry,
+  flight controls, bounded scenery work, inventory, firing and zombie caps.
+- Nitrous policy tests cover both stages, braking/engine/ground gates,
+  speed and steering taper, partial tanks, stalled-frame limits and non-stacking.
+- Save-journal tests cover exact native revision identity and malformed records.
+- Live native checks confirmed six bottle models and names, 6 = Nitrous without
+  changing native fluid IDs 0-5, absolute fill, and one-litre native transfer.
+- Native free placement attached a bottle to a Rotor GT7 through its normal
+  attachment component and vehicle mesh.
+- A five-second native driving check consumed approximately one litre of Stage I
+  nitrous and accelerated the test car with the existing vehicle boost system.
+- Vehicle dashboard was rendered and visually inspected in the running game.
+- Textures retain the bottle layout and NOS label, with blue and purple variants.
+- Public packages exclude the private menu, test dispatcher and local user data.
+
+Testing limits:
+- Final player testing is still needed for remote co-op, held/packed bottles,
+  Hangar nitrous delivery, prolonged exhaust appearance and all vehicle variants.
+- No fixed minimum FPS is promised. Earlier whole-game audio crackling in a
+  heavily populated world has not been conclusively diagnosed.
+- A temporary offscreen catalogue-rendering probe crashed the diagnostic game
+  session. That capture code and all temporary probes are excluded from release.
+- Native helper DLLs remain unchanged; their source was not recovered.
+
+Previous release validation retained below:
+
 BEYOND APOCALYPSE 1.0.6 - VALIDATION RECORD
 Game: Steam build 26106988, Windows, Unreal Engine 5.2.1
 

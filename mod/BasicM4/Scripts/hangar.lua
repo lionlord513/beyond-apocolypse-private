@@ -19,6 +19,10 @@ return function(M,root,H,valid,enqueue,log)
   {id='hunting',name='Hunting Rifle',price=5000,category='apocalypse'},
   {id='enfield',name='Lee-Enfield',price=8000,category='apocalypse'},
  }
+ for _,d in ipairs(dofile(root..'/Scripts/nitrous/catalog.lua'))do
+  items[#items+1]={id='nitrous'..d.id,name=d.name,price=d.price,nitrous=d.id,
+   description=('%d L refillable bottle. Attach anywhere on a car. Hold Shift to boost. Stage %s.'):format(d.litres,d.tier==1 and 'I'or 'II')}
+ end
  A.items=items
  local function identity(a)
   if not M.guid(a)then a.GuidUnique=StaticFindObject('/Script/Engine.Default__KismetGuidLibrary'):NewGuid()end
@@ -74,6 +78,7 @@ return function(M,root,H,valid,enqueue,log)
     return
    end
    if id=='trailer'then local _;_,created=M.gyrocopter.transport.create(p,true,at);return end
+   if item.nitrous then created=M.nitrous.spawn(p,item.nitrous,{X=at.X,Y=at.Y,Z=at.Z+50});created=A.parcel(p,created,item,at);return end
    local path=id=='radiator'and '/Game/BP/CarsV2/System/Actors/Radiator/Radiator6L.Radiator6L_C'or id=='ammo'and '/Game/BP/Items/Movable/Bullets/AkBullet.AkBullet_C'or M.definitions[id]and M.definitions[id].BaseClass or id=='tank'and '/Game/BP/CarsV2/System/Actors/Lada/LadaTank.LadaTank_C'or id=='blade'and '/Game/BP/CarsV2/System/Actors/GTR/BP_GTR_Light_HL.BP_GTR_Light_HL_C'or '/Game/BP/Items/Movable/Binocular/Binocular.Binocular_C'
    local cls=LoadAsset(path);assert(valid(cls),'Part model unavailable')
    local tr={Translation={X=at.X,Y=at.Y,Z=at.Z+50},Rotation={X=0,Y=0,Z=0,W=1},Scale3D={X=1,Y=1,Z=1}}

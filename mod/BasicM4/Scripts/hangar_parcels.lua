@@ -23,7 +23,7 @@ return function(M,valid,log)
     if part.NbBullet~=30 then log('Hangar rifle parcel restored '..tostring(part.NbBullet)..' rounds; correcting to 30')end
     part.Min=30;part.Max=30;part.NbBullet=30
    end
-   if record[2]==1 then local B=M.gyrocopter.transport.blades;local r=assert(J.state.blade[record[1]]);B.skin(part,r[2],r[1])elseif record[2]==2 then M.rail.optic.markItem(part)elseif record[2]>=4 then M.force(part,({[4]='m4',[5]='hunting',[6]='enfield'})[record[2]])end
+   if record[2]==1 then local B=M.gyrocopter.transport.blades;local r=assert(J.state.blade[record[1]]);B.skin(part,r[2],r[1])elseif record[2]==2 then M.rail.optic.markItem(part)elseif record[2]>=4 and record[2]<=6 then M.force(part,({[4]='m4',[5]='hunting',[6]='enfield'})[record[2]])elseif record[2]==7 then M.nitrous.adopt(part,assert(M.nitrous.journal.state.bottle[record[1]]),false)end
    -- Consume the native payload before dropping/destroying can cause another event.
    box.ActorData.Class=nil;box.ActorToSpawn=part;P.delivered[key]={box=box,part=part,guid=record[1]};P.restored[key]=nil
    part.FromInventory=false;part.LastInventoryComponent=nil;part.LastSlot=-1;part:DropItem()
@@ -85,7 +85,7 @@ return function(M,valid,log)
  end
  function P.prepare(box,part,kind)
   P.install();assert(P.hook,'Native parcel interaction unavailable')
-  local J=M.gyrocopter.transport.journal;J.writable();local id=assert(M.guid(box));J.state.parcel[id]={assert(M.guid(part)),({blade=1,sight=2,tank=3,radiator=3,ammo=3,m4=4,hunting=5,enfield=6})[kind]or error('Unknown parcel kind')}
+  local J=M.gyrocopter.transport.journal;J.writable();local id=assert(M.guid(box));J.state.parcel[id]={assert(M.guid(part)),({blade=1,sight=2,tank=3,radiator=3,ammo=3,m4=4,hunting=5,enfield=6})[kind]or kind:match('^nitrous[1-6]$')and 7 or error('Unknown parcel kind')}
   suppress(box)
  end
  return P

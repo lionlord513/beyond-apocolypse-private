@@ -45,3 +45,6 @@ and shader assets are referenced at runtime and are not distributed.
 
 Character Mechanic by Kolbaca: CC BY 4.0. See assets/mechanic/ATTRIBUTION.txt
 for the original model, license and adaptation credits.
+
+Nitrous bottle: see assets/nitrous/ATTRIBUTION.txt. Supplied third-party geometry
+and NOS trademarks are excluded from the original-code MIT grant.

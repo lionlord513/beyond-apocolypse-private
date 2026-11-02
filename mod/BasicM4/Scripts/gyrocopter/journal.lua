@@ -20,7 +20,7 @@ return function(root,valid,log,statePath)
    if n==3 then assert(type(v)=='number'and v>=25 and v<=5000);row=row..' '..('%.6f'):format(v)
    else
     if n>0 then assert(isguid(v[1]));row=row..' '..v[1]end
-    if n>1 then assert(v[2]==1 or v[2]==2 or kind=='parcel'and v[2]>=3 and v[2]<=6 and v[2]%1==0);row=row..' '..v[2]end
+    if n>1 then assert(v[2]==1 or v[2]==2 or kind=='parcel'and v[2]>=3 and v[2]<=7 and v[2]%1==0);row=row..' '..v[2]end
    end
    lines[#lines+1]=row
   end end
@@ -35,7 +35,7 @@ return function(root,valid,log,statePath)
    assert(not state[kind][id],'Duplicate transport snapshot entry')
    if n==3 then local mass=tonumber(words[3]);assert(mass and mass>=25 and mass<=5000);state[kind][id]=mass
    elseif n==0 then state[kind][id]=true else
-    assert(isguid(words[3]));local side=tonumber(words[4]);if n==2 then assert(side==1 or side==2 or kind=='parcel'and side and side>=3 and side<=6 and side%1==0)end
+    assert(isguid(words[3]));local side=tonumber(words[4]);if n==2 then assert(side==1 or side==2 or kind=='parcel'and side and side>=3 and side<=7 and side%1==0)end
     state[kind][id]={words[3],side}
    end
   end

@@ -1,3 +1,14 @@
+BEYOND APOCALYPSE 1.0.7
+2026-11-02
+
+- Added six refillable nitrous bottles: blue Stage I and purple Stage II, each in 2 L, 5 L and 10 L sizes.
+- Nitrous is a separate native fluid with normal pouring and transfer controls. Attach bottles to a vehicle using the normal attachment controls, then hold Shift while driving to boost.
+- Boost strength tapers at high speed and sharp steering, stops under braking or without engine power, and consumes nitrous. Multiple bottles extend supply without stacking force.
+- Blue exhaust effects accompany boost. Bottles appear as uncommon building loot and can be purchased through Hangar.
+- Added a compact digital vehicle dashboard with speed, gear, RPM, engine temperature, fluid levels, battery warnings and nitrous supply.
+- The Hornet has a dedicated flight dashboard with collective, altitude and vertical speed; its existing Shift/Ctrl flight controls are retained.
+- Retained 1.0.6 motorcycle seating, modular headlights, performance controls, weapons, backpacks and other existing fixes. Personal developer tools are excluded.
+
 BEYOND APOCALYPSE 1.0.6
 
 - Updated for Drive Beyond Horizons build 26106988 while retaining established vehicle, inventory, input and Hangar fixes.
