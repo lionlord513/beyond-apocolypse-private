@@ -1,5 +1,5 @@
 -- All native calls run inside the weapon pack's single game-thread queue.
-return function(root,c,valid,log,hazmat)
+return function(root,c,valid,log,hazmat,statePath)
  local P=dofile(root..'/Scripts/apocalypse_policy.lua')
  local Z=dofile(root..'/Scripts/zombie_variants.lua')
  local stops=dofile(root..'/Scripts/stop_encounters.lua')(P,c)
@@ -21,14 +21,15 @@ return function(root,c,valid,log,hazmat)
  function A.reset()
   save();gs=nil;sys=nil;road=nil;classes=nil;splines={};A.owned={};A.locations={};cleared={}
   placementLeft=nil;locationCursor=1
-  stops.reset();A.previous=nil;A.spawningPaused=false;A.devPending=nil;stateFile=nil;last=nil;nextPass=0;nextRefresh=0;play=0;nextRoamer=0;nextSwarm=0;swarmLeft=0;swarmUntil=0;saveAt=0
+  stops.reset();A.previous=nil;A.spawningPaused=false;A.devPending=nil;A.infestationActive=false;stateFile=nil;last=nil;nextPass=0;nextRefresh=0;play=0;nextRoamer=0;nextSwarm=0;swarmLeft=0;swarmUntil=0;saveAt=0
  end
  A.reset()
  local function setup(p,game)
   gs=game:GetGameState(p);if not valid(gs)or not valid(gs.BP_ZombieSpawner)or not valid(gs.LSLevelSpawner)then return false end
   sys=StaticFindObject('/Script/Engine.Default__KismetSystemLibrary');classes=Z.classes(gs.BP_ZombieSpawner,valid)
   if #classes==0 then return false end
-  stateFile=root..'/state/apocalypse-'..tostring(gs.Seed)..'.txt'
+  local name='apocalypse-'..tostring(gs.Seed)..'.txt'
+  stateFile=statePath and statePath(name)or root..'/state/'..name
   local f=io.open(stateFile,'r');if f then
    for line in f:lines()do
     local a,b,d=line:match('^clock ([%d.]+) ([%d.]+) ([%d.]+)$')
@@ -39,7 +40,7 @@ return function(root,c,valid,log,hazmat)
   end
   if nextRoamer<=0 then nextRoamer=play+between(c.RoamerMinSeconds,c.RoamerMaxSeconds)end
   if nextSwarm<=0 then nextSwarm=play+between(c.SwarmMinSeconds,c.SwarmMaxSeconds)end
-  log('Apocalypse host manager ready; native spawner unchanged');return true
+  log('Apocalypse host manager ready; shared population budget active');return true
  end
  local function players(p,dt)
   local list={};gs.Players:ForEach(function(_,v)
@@ -75,10 +76,10 @@ return function(root,c,valid,log,hazmat)
   for _,s in ipairs(FindAllOf('SLSplineInfluencer')or{})do
    if valid(s)and s:GetFullName():find('PRRoadState',1,true)and s:GetSplineLength()>0 then splines[#splines+1]=s end
   end
-  local total=0
-  for _,z in ipairs(FindAllOf('BP_Zombie_C')or{})do
+  local total=A.population and A.population.live or 0
+  if not A.population then for _,z in ipairs(FindAllOf('BP_Zombie_C')or{})do
    if valid(z)and not z.IsDead and P.nearest(z:K2_GetActorLocation(),ps)<c.DespawnMeters then total=total+1 end
-  end
+  end end
   A.nearbyTotal=total
  end
  local function roadDistance(q)
@@ -99,7 +100,9 @@ return function(root,c,valid,log,hazmat)
   else ok=sys:LineTraceSingle(context,a,b,0,false,{},0,hit,true,color,color,0)end
   return ok,hit
  end
- local function point(p,origin,ps,rmin,rmax,game,sector)
+ local function point(p,origin,ps,rmin,rmax,game,sector,kind)
+  local night=valid(gs.UDS)and P.night(gs.UDS['Time of Day'])
+  local minimum=night and(c.NightMinSpawnMeters or 45)or c.MinSpawnMeters
   for attempt=1,4 do
    if placementLeft then
     if placementLeft<=0 then return end;placementLeft=placementLeft-1
@@ -107,20 +110,32 @@ return function(root,c,valid,log,hazmat)
    local angle=sector and (sector.angle+(math.random()-0.5)*math.pi/8)or math.random()*math.pi*2
    local r=between(rmin,rmax)*100
    local q={X=origin.X+math.cos(angle)*r,Y=origin.Y+math.sin(angle)*r,Z=origin.Z}
-   if P.safePoint(q,ps,c)and roadSafe(q)then
-    local ok,h=trace(p,{X=q.X,Y=q.Y,Z=q.Z+15000},{X=q.X,Y=q.Y,Z=q.Z-20000})
+   if kind=='road'then
+    local best,near
+    for _,s in ipairs(splines)do if valid(s)then local at=s:FindLocationClosestToWorldLocation(q,1);local d=P.distance(at,q);if not near or d<near then best,near=vec(at),d end end end
+    if best then q=best end
+   end
+   if P.safePoint(q,ps,c,minimum)and(kind=='road'or roadSafe(q))then
+    local ok,h=trace(p,{X=q.X,Y=q.Y,Z=q.Z+(kind=='building'and 250 or 15000)},{X=q.X,Y=q.Y,Z=q.Z-(kind=='building'and 600 or 20000)})
     if ok and h.ImpactNormal.Z>0.8 then
      local hitComponent=h.Component:Get()
      A.lastGround=valid(hitComponent)and hitComponent:GetFullName()or 'no hit component'
      -- The procedural terrain is ground; rooftops and objects are excluded.
-     local terrain=valid(hitComponent)and hitComponent:GetFullName():lower():find('landscape',1,true)
+     local hitName=valid(hitComponent)and hitComponent:GetFullName():lower()or''
+     local terrain=hitName:find('landscape',1,true)or kind=='road'and hitName:find('road',1,true)
+     if not terrain and kind=='building'and valid(hitComponent)and not hitName:find('roof',1,true)and math.abs(h.ImpactPoint.Z-origin.Z)<250 then
+      -- Procedural buildings do not consistently have navigation data in the
+      -- current game. Require a stationary floor, then use the same capsule
+      -- clearance and concealed placement checks as outdoor native ground.
+      terrain=hitComponent.Mobility==0 and hitComponent:IsA(StaticFindObject('/Script/Engine.StaticMeshComponent'))
+     end
      q=vec(h.ImpactPoint)
      local spaced=true
      if sector then
       if P.distance(q,origin)<rmin or P.distance(q,origin)>rmax then spaced=false end
-      for _,prior in ipairs(sector.prior)do if P.distance(q,prior)<c.StopSpawnSeparationMeters then spaced=false;break end end
+      for _,prior in ipairs(sector.prior or{})do if P.distance(q,prior)<c.StopSpawnSeparationMeters then spaced=false;break end end
      end
-     if terrain and spaced and P.safePoint(q,ps,c)then
+     if terrain and spaced and P.safePoint(q,ps,c,minimum)then
       local blocked=trace(p,{X=q.X,Y=q.Y,Z=q.Z+55},{X=q.X,Y=q.Y,Z=q.Z+160},42)
       local visible=false
       if not blocked then
@@ -141,6 +156,7 @@ return function(root,c,valid,log,hazmat)
   A.stats.deferred=A.stats.deferred+1
  end
  local function spawn(p,game,q,key,runner,night,stopGroup,variant)
+  if A.population and A.population.remaining()==0 then return false end
   local tr={Translation=q,Rotation={X=0,Y=0,Z=0,W=1},Scale3D={X=1,Y=1,Z=1}}
   local useHazmat=hazmat and(variant=='hazmat' or math.random(100)<=math.max(0,math.min(100,c.HazmatPercent or 20)))and hazmat.ready(p)
   local class=useHazmat and LoadAsset('/Game/BP/Player/Zombies/BP_Zombie_M01.BP_Zombie_M01_C')or classes[between(1,#classes)]
@@ -159,6 +175,7 @@ return function(root,c,valid,log,hazmat)
   if not ok then a:K2_DestroyActor();error(e)end
   A.owned[#A.owned+1]={actor=a,key=key,runner=runner,stopGroup=stopGroup,baseSpeed=a.MaxSpeed,born=play,chaseUntil=play+c.SwarmChaseSeconds}
   A.stats.spawned=A.stats.spawned+1;A.nearbyTotal=(A.nearbyTotal or 0)+1
+  if A.population then A.population.track(a)end
   return true
  end
  local function maintain(ps,night)
@@ -206,7 +223,10 @@ return function(root,c,valid,log,hazmat)
   local night=valid(gs.UDS)and P.night(gs.UDS['Time of Day'])or false
   local counts=maintain(ps,night)
   if now>=nextRefresh then refresh(ps);nextRefresh=now+5 end
+  A.infestationActive=false
+  for _,loc in ipairs(A.locations)do if P.infested(loc.key,c)and P.nearest(loc.pos,ps)<350 then A.infestationActive=true;break end end
   local budget=P.budget(#A.owned,A.nearbyTotal or 0,night,c)
+  if A.population then budget=math.min(c.MaxSpawnsPerPass,A.population.remaining())end
   placementLeft=nil
   A.status={play=play,night=night,live=#A.owned,locations=#A.locations,total=A.nearbyTotal,nextSwarm=nextSwarm-play,swarmLeft=swarmLeft}
   -- Pausing additions must not suspend distance cleanup or existing AI maintenance.
@@ -233,9 +253,9 @@ return function(root,c,valid,log,hazmat)
     if P.distance(t.pos,loc.pos)<=c.BuildingRadiusMeters then t.nearBuilding=true;break end
    end
   end
-  for _,request in ipairs(stops.update(ps,play,stopAlive))do
+  for _,request in ipairs(stops.update(ps,play,stopAlive,night))do
    if budget<=0 or stopCount>=c.StopMaxHunters then break end
-   local q=point(p,request.origin,ps,c.StopSpawnMinMeters,c.StopSpawnMaxMeters,game,request)
+   local q=point(p,request.origin,ps,night and(c.NightStopSpawnMinMeters or 55)or c.StopSpawnMinMeters,night and(c.NightStopSpawnMaxMeters or 95)or c.StopSpawnMaxMeters,game,request)
    local created=q and spawn(p,game,q,nil,false,night,request.group.id)
    stops.result(request,created and q or nil,play)
    if created then budget=budget-1;stopCount=stopCount+1 end
@@ -258,17 +278,18 @@ return function(root,c,valid,log,hazmat)
    local index=(start+offset-1)%locationCount+1
    local loc=A.locations[index];locationCursor=index%locationCount+1
    local rec=cleared[loc.key];if rec and rec.untilTime<=play then cleared[loc.key]=nil;rec=nil end
-   local hash=5381;for i=1,#loc.key do hash=(hash*33+loc.key:byte(i))&0xffffffff end
-   local lo,hi=night and c.NightMin or c.DayMin,night and c.NightMax or c.DayMax
-   local desired=math.max(0,lo+hash%(hi-lo+1)-(rec and rec.kills or 0))
+   local desired=math.max(0,P.locationTarget(loc.key,night,c,A.population and A.population.limit or 10)-(rec and rec.kills or 0))
    if (counts[loc.key]or 0)<desired then
-    local q=point(p,loc.pos,ps,30,140,game)
+    local q=point(p,loc.pos,ps,8,70,game,nil,'building')
     if q and spawn(p,game,q,loc.key,false,night)then budget=budget-1;counts[loc.key]=(counts[loc.key]or 0)+1 end
    end
   end
   placementLeft=nil
   if play>=nextRoamer and budget>0 then
-   local q=point(p,ps[1].pos,ps,160,300,game)
+   local person=ps[1];local forward=person.speed>1 and person.velocity or person.forward
+   local ahead=not night and math.random()<.65
+   local sector={angle=math.atan(forward.Y,forward.X)+(ahead and 0 or math.pi),prior={}}
+   local q=point(p,person.pos,ps,ahead and 300 or 160,ahead and 750 or 300,game,sector,ahead and 'road'or nil)
    if q and spawn(p,game,q,nil,false,night)then
     nextRoamer=play+between(c.RoamerMinSeconds,c.RoamerMaxSeconds)/(night and 1.75 or 1);save()
    end

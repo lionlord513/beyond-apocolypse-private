@@ -182,7 +182,7 @@ return function(B,root,H,valid)
    for _,w in ipairs({U.inspectBg,U.inspectIcon,U.inspectName,U.inspectParts,U.inspectAction})do if valid(w)then w:SetVisibility(rifle and 3 or 1)end end
    if rifle then U.inspectName:SetText(FText(c.name));U.inspectParts:SetText(FText(c.attachments~=''and c.attachments or 'No attachments'));if valid(c.art)then U.inspectIcon:SetBrush(c.art.Brush)else U.inspectIcon:SetVisibility(1)end end
   end
-  if not U.drag and not B.pending and valid(U.status)then U.status:SetText(FText(os.clock()<(B.feedbackUntil or 0)and B.message or c and(c.name..(c.attachments and c.attachments~=''and ' | '..c.attachments..' | MMB: remove attachments'or ''))or B.message or''))end
+  if not U.drag and not B.pending and valid(U.status)then U.status:SetText(FText(os.clock()<(B.feedbackUntil or 0)and B.message or c and c.name and(c.name..(c.attachments and c.attachments~=''and ' | '..c.attachments..' | MMB: remove attachments'or ''))or B.message or''))end
   local now=os.clock();if now<(U.next or 0)then return end;U.next=now+.25
   local vp=layout:GetViewportSize(U.pc);local dpi=layout:GetViewportScale(U.pc)
   if not U.drag and(math.abs(vp.X/dpi-U.vw)>1 or math.abs(vp.Y/dpi-U.vh)>1)then U.render();return end

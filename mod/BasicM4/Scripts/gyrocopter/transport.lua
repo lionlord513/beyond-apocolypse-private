@@ -2,7 +2,7 @@
 -- never put an entire aircraft in the native item-cargo serialization list.
 return function(M,G,root,H,valid,log)
  local T={carriers={},aircraft={},pending={},seen={},nextScan=0};local ownerChanges={};local none=FName('None')
- local J=dofile(root..'/Scripts/gyrocopter/journal.lua')(root,valid,log);T.journal=J
+ local J=dofile(root..'/Scripts/gyrocopter/journal.lua')(root,valid,log,M.statePath);T.journal=J
  local game=StaticFindObject('/Script/Engine.Default__GameplayStatics')
  local mathlib=StaticFindObject('/Script/Engine.Default__KismetMathLibrary')
  local sys=StaticFindObject('/Script/Engine.Default__KismetSystemLibrary')

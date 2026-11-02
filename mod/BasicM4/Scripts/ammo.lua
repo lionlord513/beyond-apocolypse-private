@@ -8,7 +8,7 @@ return function(M,root,H,valid,enqueue,log)
  local color={R=0,G=0,B=0,A=1};local pmc=StaticFindObject('/Script/ProceduralMeshComponent.ProceduralMeshComponent')
  local rendering=StaticFindObject('/Script/Engine.Default__KismetRenderingLibrary')
  local function texture(a,file)return rendering:ImportFileAsTexture2D(a,root..'/assets/'..file)end
- A.journal=dofile(root..'/Scripts/ammo_journal.lua')(root,M.gyrocopter.transport.journal,valid,log)
+ A.journal=dofile(root..'/Scripts/ammo_journal.lua')(root,M.gyrocopter.transport.journal,valid,log,M.statePath)
  local function distance(a,b)return (a.X-b.X)^2+(a.Y-b.Y)^2+(a.Z-b.Z)^2 end
  function A.spawn(context,at,count)
   assert(valid(context)and context:HasAuthority(),'Ammo spawning requires authority')

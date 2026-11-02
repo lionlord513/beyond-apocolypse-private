@@ -28,9 +28,10 @@ return function(M,G,T,H,valid,log)
    end end
    if best then return packet('dock',vehicle,best,nil,0,'Snap onto pad and stow blades')end;return
   elseif valid(vehicle)then return end
-  local a=nearest(p,gyros());local trailers=FindAllOf('Vehicle_Trailer_C')or{};local t=nearest(p,trailers)
+  local a=nearest(p,gyros())
   local held=M.backpack.native.held(pc);local side,owner;if held then side,owner=B.info(held)end
   if side then
+   local t=nearest(p,FindAllOf('Vehicle_Trailer_C')or{})
    -- Host knows the matching aircraft even when native pilot-seat ID is zero.
    if owner then a=nil;for _,r in pairs(G.tracked)do if valid(r.actor)and G.id(r.actor)==owner and T.distance(p:K2_GetActorLocation(),r.actor:K2_GetActorLocation())<280 then a=r.actor;break end end end
    if t and T.hasCarrier(t)and T.same(pc.ItemTargeted,t)then return packet('rack',nil,t,held,side,'Secure blade in rack')end
@@ -141,7 +142,9 @@ return function(M,G,T,H,valid,log)
   local down=M.controls and M.controls.down(pc,'transport')or(not M.controls and pc:IsInputKeyDown({KeyName=FName(key)}));local pressed=down and not C.down;C.down=down
   local left=pc:IsInputKeyDown({KeyName=FName('LeftMouseButton')});local clicked=left and not C.left;C.left=left
   if pc.HUD.ChatUI.TypeInChat or H.IsPauseMenu(pc)or M.devmenu.ui.opened or M.backpack.ui.opened or(M.utility and M.utility.opened) then if valid(C.promptRow)then C.promptRow:SetVisibility(1)end;return end
-  local context=C.context(pc)
+  -- Hints already refresh at 4 Hz. Discover nearby trailers only when drawing
+  -- that hint or on a fresh action press; host execution still revalidates it.
+  local context;if pressed or now>=C.nextHint then context=C.context(pc)end
   -- Runtime native mount shapes are local objects. Send stable actor tokens
   -- for the same left-click action; the host rechecks the original held part.
   if clicked then local fit=C.fitContext(pc);if fit then C.submit(pc,fit)end end

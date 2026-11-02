@@ -1,7 +1,7 @@
 -- Separate, revision-bound ammo records; native actor/item bytes stay native.
-return function(root,T,valid,log)
+return function(root,T,valid,log,statePath)
  local J={ready=false,state={kill={},site={}}}
- local function path(key)return root..'/state/ammo-'..key..'.txt'end
+ local function path(key)local name='ammo-'..key..'.txt';return statePath and statePath(name)or root..'/state/'..name end
  function J.encode(state)
   local rows={'BAM1'}
   for kind,values in pairs(state)do assert(kind=='kill'or kind=='site')

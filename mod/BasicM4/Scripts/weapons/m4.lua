@@ -10,7 +10,7 @@ return {
     Registry = 'forced-m4.txt',
     Geometry = 'assets/model.lua',
     MaterialParent = '/MasterWeapon/Materials/Weapons/MAT_ArK47.MAT_ArK47',
-    MaterialName = 'BasicM4Material',
+    MaterialName = 'BeyondApocalypseM4Material',
     Textures = {
         Diffuse = 'assets/M4A1_Base_Color.png',
         MetalMap = 'assets/M4A1_Metallic.png',

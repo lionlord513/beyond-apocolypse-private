@@ -1,8 +1,8 @@
 -- An immutable sidecar for each native save revision. Never load a world's
 -- newest record when the player selects an older save. No native actor data is
 -- copied or serialized by Lua; vehicles/parts remain the game's responsibility.
-return function(root,valid,log)
- local J={state={},ready=false};local kinds={carrier=0,ordinary=0,dock=1,blade=2,issued=0,rack=2,bodymass=3,parcel=2}
+return function(root,valid,log,statePath)
+ local J={state={},ready=false};local kinds={carrier=0,ordinary=0,dock=1,blade=2,issued=0,rack=2,bodymass=3,parcel=2,lampClassic=0,lampSuzuki=0}
  local function guid(g)return ('%08x:%08x:%08x:%08x'):format(g.A&0xffffffff,g.B&0xffffffff,g.C&0xffffffff,g.D&0xffffffff)end
  local function isguid(s)return type(s)=='string'and #s==35 and s:match('^%x+:%x+:%x+:%x+$')~=nil end
  local function key(meta)
@@ -10,8 +10,8 @@ return function(root,valid,log)
   if world=='00000000:00000000:00000000:00000000'or revision=='00000000:00000000:00000000:00000000'then return end
   return world:gsub(':','')..'-'..revision:gsub(':','')..'-'..tostring(s.Iterator),world
  end
- local function path(k)return root..'/state/transport-'..k..'.txt'end
- function J.empty()return {carrier={},ordinary={},dock={},blade={},issued={},rack={},bodymass={},parcel={}}end
+ local function path(k)local name='transport-'..k..'.txt';return statePath and statePath(name)or root..'/state/'..name end
+ function J.empty()return {carrier={},ordinary={},dock={},blade={},issued={},rack={},bodymass={},parcel={},lampClassic={},lampSuzuki={}}end
  function J.encode(state)
   local lines={'BAT1'}
   for kind,n in pairs(kinds)do for id,v in pairs(state[kind]or{})do

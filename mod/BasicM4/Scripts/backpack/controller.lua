@@ -29,25 +29,40 @@ return function(M,root,H,valid,enqueue,log)
   if N.held(pc)then hint('Empty your hands before removing your backpack.');return end
   local ok,e=pcall(N.request,b,'unequip',-1,-1);if not ok then hint(tostring(e):gsub('^.-:%d+: ',''))end
  end
+ local function fistMappings(ctx,action)
+  local simple,protected={},{}
+  ctx.Mappings:ForEach(function(_,v)local m=v:get();if valid(m.Action)and m.Action:GetAddress()==action:GetAddress()then
+   local key=m.Key.KeyName:ToString();if #m.Modifiers==0 and #m.Triggers==0 then simple[key]=(simple[key]or 0)+1 else protected[key]=true end
+  end end)
+  return simple,protected
+ end
  function B.restoreMelee()
   if valid(B.fistContext)and valid(B.fistAction)then
-   for _,key in ipairs(B.fistAdded or{})do B.fistContext:UnmapKey(B.fistAction,{KeyName=FName(key)})end
-   for _,key in ipairs(B.fistOriginal or{})do B.fistContext:MapKey(B.fistAction,{KeyName=FName(key)})end
+   local simple,protected=fistMappings(B.fistContext,B.fistAction)
+   for _,key in ipairs(B.fistAdded or{})do if not protected[key]then B.fistContext:UnmapKey(B.fistAction,{KeyName=FName(key)});simple[key]=nil end end
+   for _,key in ipairs(B.fistOriginal or{})do if not simple[key]and not protected[key]then B.fistContext:MapKey(B.fistAction,{KeyName=FName(key)})end end
    StaticFindObject('/Script/EnhancedInput.Default__EnhancedInputLibrary'):RequestRebuildControlMappingsUsingContext(B.fistContext,true)
   end
-  B.fistContext=nil;B.fistAction=nil;B.fistOriginal=nil;B.fistAdded=nil;B.mapping=nil;B.meleeSignature=nil
+  B.fistContext=nil;B.fistAction=nil;B.fistOriginal=nil;B.fistAdded=nil;B.mapping=nil;B.meleeSignature=nil;B.meleeCheckAt=nil
  end
  function B.remap()
   local ctx=StaticFindObject('/Game/Inputs/PIE/IMC_Player.IMC_Player');if not valid(ctx)then return end
   local keys=M.controls and M.controls.values.melee or {'CapsLock','None'};local signature=keys[1]..'|'..keys[2]
-  if B.mapping==ctx:GetAddress()and B.meleeSignature==signature then return end
+  local unchanged=B.mapping==ctx:GetAddress()and B.meleeSignature==signature
+  local now=os.clock();if unchanged and now<(B.meleeCheckAt or 0)then return end
   local action=StaticFindObject('/Game/Inputs/ActionsPlayer/FistMode.FistMode');if not valid(action)then return end
+  if unchanged then
+   -- Native settings can refill the same context after our first remap. Check
+   -- at most once a second, rebuilding only when our simple mappings drift.
+   B.meleeCheckAt=now+1
+   local simple,protected=fistMappings(ctx,action);local desired={};local matches=true
+   for _,key in ipairs(keys)do if key~='None'then desired[key]=true;if simple[key]~=1 then matches=false end end end
+   for key in pairs(simple)do if not desired[key]and not protected[key]then matches=false end end
+   if matches then return end
+  end
   B.restoreMelee();local original={}
   -- Borrow only simple native bindings; modified/chorded mappings are preserved.
-  local simple,protected={},{}
-  ctx.Mappings:ForEach(function(_,v)local m=v:get();if m.Action:GetAddress()==action:GetAddress()then
-   local key=m.Key.KeyName:ToString();if #m.Modifiers==0 and #m.Triggers==0 then simple[key]=true else protected[key]=true end
-  end end)
+  local simple,protected=fistMappings(ctx,action)
   -- UnmapKey removes every mapping for that action/key, including chords.
   for key in pairs(simple)do if not protected[key]then original[#original+1]=key end end
   for _,key in ipairs(keys)do assert(not protected[key],'Melee key has a native chord: '..key)end
@@ -55,7 +70,7 @@ return function(M,root,H,valid,enqueue,log)
   for _,key in ipairs(B.fistOriginal)do ctx:UnmapKey(action,{KeyName=FName(key)})end
   for _,key in ipairs(keys)do if key~='None'then ctx:MapKey(action,{KeyName=FName(key)});B.fistAdded[#B.fistAdded+1]=key end end
   StaticFindObject('/Script/EnhancedInput.Default__EnhancedInputLibrary'):RequestRebuildControlMappingsUsingContext(ctx,true)
-  B.mapping=ctx:GetAddress();B.meleeSignature=signature;log('Backpack controls ready: Tab inventory, '..keys[1]..' melee, B unequip on foot')
+  B.mapping=ctx:GetAddress();B.meleeSignature=signature;B.meleeCheckAt=now+1;log('Backpack controls ready: Tab inventory, '..keys[1]..' melee, B unequip on foot')
  end
  function B.store(intended)
   if not intended or not B.secondarySuppressed or B.ui.opened or busy()or B.pending then return end
@@ -72,10 +87,11 @@ return function(M,root,H,valid,enqueue,log)
   B.storeTarget=item
   local active=valid(item)
   local gun=M.weaponHandling and M.weaponHandling.equipped()
-  local suppress=active or valid(gun)
+  local suppress=not not(active or valid(gun))
   local ctx=StaticFindObject('/Game/Inputs/PIE/IMC_Player.IMC_Player')
   local action=StaticFindObject('/Game/Inputs/ActionsPlayer/InteractSecondary.InteractSecondary')
-  if valid(ctx)and valid(action)then
+  if valid(ctx)and valid(action)and(suppress or B.secondarySuppressed)and
+   (not B.secondaryBinding or B.secondaryBinding.ctx~=ctx:GetAddress()or B.secondaryBinding.suppress~=suppress or os.clock()>=B.secondaryBinding.verifyAt)then
    local found=false;ctx.Mappings:ForEach(function(_,v)local m=v:get();if m.Action:GetAddress()==action:GetAddress()and m.Key.KeyName:ToString()=='RightMouseButton'then found=true end end)
    local changed=false
    if suppress then
@@ -85,6 +101,9 @@ return function(M,root,H,valid,enqueue,log)
     B.secondarySuppressed=true
    elseif B.secondarySuppressed then if not found then ctx:MapKey(action,{KeyName=FName('RightMouseButton')});changed=true end;B.secondarySuppressed=false end
    if changed then StaticFindObject('/Script/EnhancedInput.Default__EnhancedInputLibrary'):RequestRebuildControlMappingsUsingContext(ctx,true)end
+   -- Input changes are immediate; only reconciliation with external/native
+   -- rebinding is periodic. Idle play never needs to enumerate every mapping.
+   B.secondaryBinding={ctx=ctx:GetAddress(),suppress=suppress,verifyAt=os.clock()+1}
   end
   local hud=valid(pc)and pc.HUD
   if not valid(hud)then return end
@@ -126,7 +145,7 @@ return function(M,root,H,valid,enqueue,log)
    local ctx=StaticFindObject('/Game/Inputs/PIE/IMC_Player.IMC_Player');local a=StaticFindObject('/Game/Inputs/ActionsPlayer/InteractSecondary.InteractSecondary')
    if valid(ctx)and valid(a)then ctx:MapKey(a,{KeyName=FName('RightMouseButton')});StaticFindObject('/Script/EnhancedInput.Default__EnhancedInputLibrary'):RequestRebuildControlMappingsUsingContext(ctx,true)end
   end
-  B.secondarySuppressed=false;B.promptVisible=false;B.mapping=nil;N.scratch=nil;N.rate={};N.last={};N.pickups={};N.clearPending()
+  B.secondarySuppressed=false;B.secondaryBinding=nil;B.promptVisible=false;B.mapping=nil;N.scratch=nil;N.rate={};N.last={};N.pickups={};N.clearPending()
   if N.view then N.view.reset()end
  end
  return B

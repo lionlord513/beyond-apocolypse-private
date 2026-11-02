@@ -1,6 +1,6 @@
 -- Native flashlight model, replicated component markers and revision-bound state.
 return function(M,root,H,valid,enqueue,log)
- local R={records={},last={},queued=0,seq=0};local J=dofile(root..'/Scripts/weapons/light_state.lua')(root,valid,log);R.journal=J
+ local R={records={},last={},queued=0,seq=0};local J=dofile(root..'/Scripts/weapons/light_state.lua')(root,valid,log,M.statePath);R.journal=J
  local N=M.backpack.native;local game,mathlib,meshClass
  R.optic=dofile(root..'/Scripts/weapons/optic.lua')(M,R,root,valid)
  local prefix='BAWL1|';local marker='BA_RailLight_'

@@ -3,7 +3,8 @@ return function(P,c,random)
  local R={groups={},serial=0,stats={triggered=0,buildingSkipped=0}}
  random=random or math.random
  local function copy(v)return {X=v.X,Y=v.Y,Z=v.Z}end
- local function delay(mode)
+ local function delay(mode,night)
+  if night and mode=='roadside'then return random(c.NightRoadsideStopMinSeconds or 45,c.NightRoadsideStopMaxSeconds or 100)end
   return mode=='building' and random(c.BuildingStopMinSeconds,c.BuildingStopMaxSeconds)
    or random(c.RoadsideStopMinSeconds,c.RoadsideStopMaxSeconds)
  end
@@ -13,7 +14,7 @@ return function(P,c,random)
   if p.roadMeters and p.roadMeters<=c.RoadsideNearRoadMeters then return 'roadside' end
  end
  function R.reset()R.groups={};R.serial=0 end
- function R.update(ps,now,alive)
+ function R.update(ps,now,alive,night)
   if not c.StopEncountersEnabled then R.reset();return {} end
   local groups,claimed={},{}
   -- Nearby co-op players share one timer. Walking around to repair is allowed.
@@ -36,16 +37,16 @@ return function(P,c,random)
   R.groups=groups -- leaving cancels unspawned encounters, never existing hunters
   local requests={}
   for _,g in ipairs(groups)do
-   if g.mode~=g.nextMode then
-    g.mode=g.nextMode;g.wave=nil;g.due=now+delay(g.mode)
+   if g.mode~=g.nextMode or g.night~=night then
+    g.mode=g.nextMode;g.night=night;g.wave=nil;g.due=now+delay(g.mode,night)
    end
    local count=alive[g.id]or 0
    if g.wave and (now>=g.wave.expires or g.wave.spawned>=c.StopMaxHunters)then g.wave=nil;g.due=nil end
-   if not g.wave and not g.due and count==0 then g.due=now+delay(g.mode)end
+   if not g.wave and not g.due and count==0 then g.due=now+delay(g.mode,night)end
    if g.due and now>=g.due then
     if count>0 then g.due=nil
     elseif g.mode=='building' and random()>c.BuildingStopChance then
-     g.due=now+delay(g.mode);R.stats.buildingSkipped=R.stats.buildingSkipped+1
+     g.due=now+delay(g.mode,night);R.stats.buildingSkipped=R.stats.buildingSkipped+1
     else
      g.due=nil;g.wave={expires=now+c.StopSpawnWindowSeconds,nextAttempt=now,
       angle=random()*math.pi*2,used={},positions={},cursor=1,spawned=0}

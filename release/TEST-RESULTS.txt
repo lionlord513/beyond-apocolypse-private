@@ -1,0 +1,20 @@
+BEYOND APOCALYPSE 1.0.6 - VALIDATION RECORD
+Game: Steam build 26106988, Windows, Unreal Engine 5.2.1
+
+Completed:
+- Compared recovered alpha scripts with public 1.0.5 and restored applicable inventory, transport, control and Hangar safeguards.
+- All public Lua files compile. Automated regressions cover bounded scenery work and recycled object identities, shared zombie caps, client restrictions, burst firing, inventory limits, idle prompts, flight input, collective display, bike contact geometry and saved part identities.
+- Live host checks exercised Hangar offers/purchases, custom weapon and backpack spawning, native vehicle service parts and seat entry/exit.
+- Both bike variants passed headlamp detach, held geometry, compact collision, attachment target, native eligibility, reattachment, GUID preservation and single-beam checks.
+- Existing rider seating was retained. Parked wheel jitter is suppressed; visible tire contact follows native wheel height during body pitch.
+- Handheld flashlight crash correction was confirmed during user play testing.
+- Launcher is optional; Steam launches the game independently.
+- Mod Manager passed 97 inventory/dependency/ownership checks. Actual release packages passed installation, reinstallation, state/configuration preservation, personal-companion isolation, Nexus recognition and update-metadata checks in an isolated game fixture.
+
+Limits:
+- These checks do not certify every multiplayer interaction, long flight/towing session, hardware configuration or saved-world combination.
+- Final extended play testing, clean-session audio and frame-time testing remain necessary. No fixed minimum frame rate is guaranteed.
+- Whole-game audio crackling was reported during a heavily populated test session. Closing background apps did not resolve it; its cause and fresh-session behavior are not yet confirmed.
+- The recovered native helper DLLs are unchanged; their original C++ source was not available. The matching UE4SS runtime is pinned.
+- Two diagnostic sessions crashed during intrusive inspection; those temporary probes and the audit dispatcher are excluded from the release.
+- Personal host/developer tools are not part of this distribution.

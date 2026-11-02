@@ -25,7 +25,7 @@ return function(B,M,root,H,valid,enqueue,log)
   end);return result
  end
  N.token=S.token
- local weaponIds={};local weaponIdFile=root..'/state/inventory-weapons.txt'
+ local weaponIds={};local weaponIdFile=M.statePath and M.statePath('inventory-weapons.txt')or root..'/state/inventory-weapons.txt'
  do local f=io.open(weaponIdFile,'r');if f then for line in f:lines()do local token,id=line:match('^(%x+:%x+:%x+:%x+) (%x+:%x+:%x+:%x+)$');if token then weaponIds[token]=id end end;f:close()end end
  local function rememberWeapon(token,id)
   if not id or weaponIds[token]==id then return end;weaponIds[token]=id
@@ -47,7 +47,7 @@ return function(B,M,root,H,valid,enqueue,log)
   end
   return id and M.rail.attachments(id)or ''
  end
- local labels={};local labelFile=root..'/state/inventory-labels.txt'
+ local labels={};local labelFile=M.statePath and M.statePath('inventory-labels.txt')or root..'/state/inventory-labels.txt'
  do local f=io.open(labelFile,'r');if f then for line in f:lines()do local token,label=line:match('^(%x+:%x+:%x+:%x+) (.+)$');if token then labels[token]=label end end;f:close()end end
  function N.remember(d,item)
   if not M.itemName then return end

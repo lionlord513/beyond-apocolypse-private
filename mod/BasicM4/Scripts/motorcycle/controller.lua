@@ -5,7 +5,7 @@ return function(M,root,H,valid,log)
  local game=StaticFindObject('/Script/Engine.Default__GameplayStatics')
  local scene=StaticFindObject('/Script/Engine.SceneComponent')
  local identity={Translation={X=0,Y=0,Z=0},Rotation={X=0,Y=0,Z=0,W=1},Scale3D={X=1,Y=1,Z=1}}
- local mark='BA_Motorcycle_v1';local marks={classic=mark,suzuki='BA_Motorcycle_suzuki_v1'};local file=root..'/state/motorcycles.txt'
+ local mark='BA_Motorcycle_v1';local marks={classic=mark,suzuki='BA_Motorcycle_suzuki_v1'};local file=M.statePath and M.statePath('motorcycles.txt')or root..'/state/motorcycles.txt'
  local function vec(x,y,z)return {X=x,Y=y,Z=z}end
  local function id(a)local g=a.GuidGarage;if g.A==0 and g.B==0 and g.C==0 and g.D==0 then return end;return ('%08x:%08x:%08x:%08x'):format(g.A&0xffffffff,g.B&0xffffffff,g.C&0xffffffff,g.D&0xffffffff)end
  do local f=io.open(file,'r');if f then for k in f:lines()do local guid,variant=k:match('^(%x+:%x+:%x+:%x+) (suzuki)$');if guid then B.known[guid]=variant elseif k:match('^%x+:%x+:%x+:%x+$')then B.known[k]='classic'end end;f:close()end end
@@ -89,6 +89,7 @@ return function(M,root,H,valid,log)
   B.rider.install();V.install(B);B.wheelie.keys()
   for k,r in pairs(B.tracked)do if not valid(r.actor)then B.tracked[k]=nil elseif not r.failed then local ok,e=pcall(B.update,r,now);if not ok then B.wheelie.clear(r);r.failed=true;log('Motorcycle: '..tostring(e))end end end
   B.service.tick(now)
+  B.headlights.tick(now)
   if now<B.nextScan then return end;B.nextScan=now+1
   for i=#B.pending,1,-1 do local q=B.pending[i]
    if not valid(q.actor)then table.remove(B.pending,i);if q.onFailure then pcall(q.onFailure)end
@@ -100,10 +101,11 @@ return function(M,root,H,valid,log)
    else B.loot.consider(a,p,id(a))end
   end end
  end
- function B.reset()B.wheelie.reset();for _,r in pairs(B.tracked)do V.restoreSkid(r)end;B.tracked={};B.pending={};B.nextScan=0;V.reset();B.service.reset();B.loot.reset()end
+ function B.reset()B.wheelie.reset();B.headlights.reset();for _,r in pairs(B.tracked)do V.restoreSkid(r)end;B.tracked={};B.pending={};B.nextScan=0;V.reset();B.service.reset();B.loot.reset()end
  B.loot=dofile(root..'/Scripts/motorcycle/loot.lua')(B,M,valid,log)
  B.service=dofile(root..'/Scripts/motorcycle/service.lua')(M,B,valid,log)
  B.wheelie=dofile(root..'/Scripts/motorcycle/wheelie.lua')(M,B,H,valid,log)
  B.rider=dofile(root..'/Scripts/motorcycle/rider.lua')(B,valid)
+ B.visuals=V;B.headlights=dofile(root..'/Scripts/motorcycle/headlights.lua')(M,B,valid,log)
  return B
 end

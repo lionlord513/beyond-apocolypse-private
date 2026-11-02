@@ -16,14 +16,14 @@ return function(M,root,H,valid)
  for symbol,code in pairs(Key)do
   local name=special[symbol]or(symbol:match('^[A-Z]$')and symbol)or(symbol:match('^F%d+$')and symbol)
   local n=symbol:match('^NUM_(%d)$')or symbol:match('^(%d)$');if n then name=digits[tonumber(n)+1]end
-  if name and name~='F8'and name~='F7'then C.keys[name]=true;C.codes[code]=name end
+  if name and name~='F9'and name~='F7'then C.keys[name]=true;C.codes[code]=name end
  end
  for i,name in ipairs({'Zero','One','Two','Three','Four','Five','Six','Seven','Eight','Nine'})do local code=Key[name:upper()];if code then C.codes[code]=name;C.keys[name]=true end end
  for code,name in pairs({[160]='LeftShift',[161]='RightShift',[162]='LeftControl',[163]='RightControl',[164]='LeftAlt',[165]='RightAlt'})do C.codes[code]=name;C.keys[name]=true end
  C.keys.None=true
  for _,r in ipairs(C.rows)do C.values[r[1]]={r[3],r[4]};C.keys[r[3]]=true;C.keys[r[4]]=true end
- local file=root..'/state/controls.txt'
- local gameplayFile=root..'/state/gameplay.txt'
+ local file=M.statePath and M.statePath('controls.txt')or root..'/state/controls.txt'
+ local gameplayFile=M.statePath and M.statePath('gameplay.txt')or root..'/state/gameplay.txt'
  C.simpleFlight=false
  do local f=io.open(gameplayFile,'r');if f then C.simpleFlight=f:read('*a'):match('^simpleFlight=1%s*$')~=nil;f:close()end end
  function C.setSimpleFlight(enabled)
@@ -46,14 +46,22 @@ return function(M,root,H,valid)
  end
  function C.copy()local t={};for id,v in pairs(C.values)do t[id]={v[1],v[2]}end;return t end
  local function rebuild(ctx)StaticFindObject('/Script/EnhancedInput.Default__EnhancedInputLibrary'):RequestRebuildControlMappingsUsingContext(ctx,true)end
+ local function simpleMappings(ctx,action)
+  local simple,protected={},{}
+  ctx.Mappings:ForEach(function(_,v)local m=v:get();if valid(m.Action)and m.Action:GetAddress()==action:GetAddress()then
+   local key=m.Key.KeyName:ToString();if #m.Modifiers==0 and #m.Triggers==0 then simple[key]=(simple[key]or 0)+1 else protected[key]=true end
+  end end)
+  return simple,protected
+ end
  function C.restore()
   local contexts={}
   for _,r in ipairs(C.borrowed)do if valid(r.ctx)and valid(r.action)then
-   for _,k in ipairs(r.added)do r.ctx:UnmapKey(r.action,{KeyName=FName(k)})end
-   for _,k in ipairs(r.old)do r.ctx:MapKey(r.action,{KeyName=FName(k)})end
+   local simple,protected=simpleMappings(r.ctx,r.action)
+   for _,k in ipairs(r.added)do if not protected[k]then r.ctx:UnmapKey(r.action,{KeyName=FName(k)});simple[k]=nil end end
+   for _,k in ipairs(r.old)do if not simple[k]and not protected[k]then r.ctx:MapKey(r.action,{KeyName=FName(k)})end end
    contexts[r.ctx:GetAddress()]=r.ctx
   end end
-  for _,ctx in pairs(contexts)do rebuild(ctx)end;C.borrowed={};C.vehicle=nil
+  for _,ctx in pairs(contexts)do rebuild(ctx)end;C.borrowed={};C.vehicle=nil;C.nextMappingCheck=nil;C.mappingPending=nil
  end
  function C.meleeKeyAllowed(key)
   if key=='None'then return true end
@@ -71,7 +79,7 @@ return function(M,root,H,valid)
  function C.apply(values)
   local used={}
   for _,r in ipairs(C.rows)do local v=assert(values[r[1]],'Missing binding');for _,key in ipairs(v)do
-   assert(C.keys[key]and key~='F8'and key~='F7','Unsupported or reserved key')
+   assert(C.keys[key]and key~='F9'and key~='F7','Unsupported or reserved key')
    if r[1]=='melee'then assert(C.meleeKeyAllowed(key),'Key used by another control: '..key)end
    if key~='None'then assert(not used[key],'Key already used: '..key);used[key]=true end
   end;assert(v[1]~='None'or v[2]~='None','Each action needs a key')end
@@ -86,18 +94,32 @@ return function(M,root,H,valid)
   local pc=H.GetPlayerController();local a=valid(pc)and pc.Vehicle
   local active=M.features~=false and valid(a)and M.gyrocopter and M.gyrocopter.tracked[a:GetFullName()]
   if not active then if C.vehicle then C.restore()end;return end
-  if C.vehicle==a:GetAddress()then return end;C.restore();C.vehicle=a:GetAddress()
+  local now=os.clock()
+  if C.vehicle==a:GetAddress()then
+   if now<(C.nextMappingCheck or 0)then return end;C.nextMappingCheck=now+1
+   local matches=not C.mappingPending
+   for _,r in ipairs(C.borrowed)do
+    if not valid(r.ctx)or not valid(r.action)then matches=false
+    else local simple,protected=simpleMappings(r.ctx,r.action);local desired={}
+     for _,key in ipairs(r.added)do desired[key]=true;if simple[key]~=1 then matches=false end end
+     for key in pairs(simple)do if not desired[key]and not protected[key]then matches=false end end
+    end
+   end
+   if matches then return end
+  end
+  C.restore();C.vehicle=a:GetAddress();C.nextMappingCheck=now+1
   for _,r in ipairs(C.rows)do if r[5]then
    local ctx=StaticFindObject('/Game/Inputs/PIE/IMC_'..r[6]..'.IMC_'..r[6]);local action=StaticFindObject('/Game/Inputs/ActionCar/'..r[5]..'.'..r[5])
    if valid(ctx)and valid(action)then
-    local old={};ctx.Mappings:ForEach(function(_,v)local m=v:get();local k=m.Key.KeyName:ToString();if m.Action:GetAddress()==action:GetAddress()and C.keys[k]and k~='None'and #m.Modifiers==0 and #m.Triggers==0 then old[#old+1]=k end end)
+    local old={};local simple,protected=simpleMappings(ctx,action)
+    for k in pairs(simple)do if C.keys[k]and k~='None'and not protected[k]then old[#old+1]=k end end
     if not C.saved[r[1]]and #old>0 then C.values[r[1]]={old[1],old[2]or'None'}end
     if C.saved[r[1]]then
      for _,k in ipairs(old)do ctx:UnmapKey(action,{KeyName=FName(k)})end
-     local added={};for _,k in ipairs(C.values[r[1]])do if k~='None'then ctx:MapKey(action,{KeyName=FName(k)});added[#added+1]=k end end
+     local added={};for _,k in ipairs(C.values[r[1]])do if k~='None'and not protected[k]then ctx:MapKey(action,{KeyName=FName(k)});added[#added+1]=k end end
      C.borrowed[#C.borrowed+1]={ctx=ctx,action=action,old=old,added=added};rebuild(ctx)
     end
-   end
+   else C.mappingPending=true end
   end end
  end
  return C

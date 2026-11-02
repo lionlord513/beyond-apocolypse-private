@@ -16,6 +16,9 @@ return function(M,root,valid,log,H)
   local anchor=H.GetPlayerController();if not valid(anchor)then return end
   local pool=B.pools[d.Id]
   if not pool or not valid(pool.anchor)or pool.anchor:GetAddress()~=anchor:GetAddress()then
+   -- World/boxed rifles do not need decoded shot voices. First equip starts
+   -- the existing gradual import; native audio covers the initial shot.
+   if not valid(a.IsEquipedOn)then return end
    pool={original=LoadAsset('/Game/Sound/Player/Combat/Ak47/Ak_Shot.Ak_Shot'),anchor=anchor,index=0,waves={},holders={},reserved={},selected={}}
    B.pools[d.Id]=pool
   end

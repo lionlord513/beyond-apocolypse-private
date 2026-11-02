@@ -8,9 +8,9 @@ function P.nearLocation(q,players,c)
  for _,p in ipairs(players)do if P.distance(q,p.pos)<=P.loadDistance(p,c)then return true end end
  return false
 end
-function P.safePoint(q,players,c)
+function P.safePoint(q,players,c,minimum)
  for _,p in ipairs(players)do
-  if P.distance(q,p.pos)<c.MinSpawnMeters then return false end
+  if P.distance(q,p.pos)<(minimum or c.MinSpawnMeters)then return false end
   -- Keep all spawns clear of the next 8 seconds of each player's movement.
   local vx,vy=p.velocity.X,p.velocity.Y;local vv=vx*vx+vy*vy
   if vv>10000 then
@@ -22,4 +22,14 @@ function P.safePoint(q,players,c)
  return true
 end
 function P.budget(live,total,night,c)return math.max(0,math.min(c.MaxSpawnsPerPass,(night and c.ModCapNight or c.ModCapDay)-live,c.TotalNearbyCap-total))end
+function P.locationHash(key)local h=5381;for i=1,#key do h=(h*33+key:byte(i))&0xffffffff end;return h end
+function P.infested(key,c)
+ -- Keep the starter house out of the random infestation pool.
+ return not key:lower():find('spawn',1,true)and P.locationHash(key)%100<(c.InfestedBuildingPercent or 15)
+end
+function P.locationTarget(key,night,c,ceiling)
+ local hash=P.locationHash(key);local lo,hi=night and c.NightMin or c.DayMin,night and c.NightMax or c.DayMax
+ local base=not night and P.infested(key,c)and(c.InfestedBuildingMax or 10)or lo+hash%(hi-lo+1)
+ return math.max(1,math.min(ceiling,math.floor(base*ceiling/10+.5)))
+end
 return P

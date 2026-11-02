@@ -22,7 +22,7 @@ return function(H,valid)
   U.hudLabel:SetText(FText(message))
  end
  -- Reuse the flight overlay's lifetime; the gauge cannot survive leaving it.
- return function(message,collective,hover,climb)
+ local function hud(message,collective,hover,climb)
   U.hud(message)
   if not message then U.gauge=nil;return end
   if type(collective)~='number' then
@@ -56,9 +56,20 @@ return function(H,valid)
   local g=U.gauge;collective=math.max(0,math.min(1,collective))
   g.value:SetText(FText(('%.1f%%'):format(collective*100)))
   local canHover=type(hover)=='number'and hover>0 and hover<=1
-  g.needle:SetPosition({X=13,Y=142-104*collective})
+  g.target=collective
+  if not g.display then g.display=collective;g.needle:SetPosition({X=13,Y=142-104*collective})end
   g.hoverLine:SetPosition({X=12,Y=142-104*(canHover and hover or .5)})
   g.hoverLabel:SetText(FText(canHover and ('H %.1f%%'):format(hover*100)or 'HOVER --'))
   g.climb:SetText(FText(('%+.1f m/s'):format(climb or 0)))
  end
+ local function frame(dt,collective)
+  local g=U.gauge
+  if not g or not valid(g.panel)or g.owner~=U.hudWidget then return end
+  -- Read the current flight output between text refreshes. Only the needle
+  -- moves each frame; no widget creation, text formatting or world searches.
+  local target=type(collective)=='number'and math.max(0,math.min(1,collective))or g.target
+  local value=g.display+(target-g.display)*(1-math.exp(-45*math.max(0,math.min(dt or 0,.1))))
+  if math.abs(value-g.display)>.00001 then g.display=value;g.needle:SetPosition({X=13,Y=142-104*value})end
+ end
+ return hud,frame
 end

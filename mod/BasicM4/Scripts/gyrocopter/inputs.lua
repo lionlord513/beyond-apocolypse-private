@@ -4,6 +4,11 @@ return function(G,valid,log)
  local P={hooks={},errors={},nextAttempt=0}
  local base='/Game/AVS_Template/Template/AVS_Template_Vehicle.AVS_Template_Vehicle_C:'
  local groups={{'MoveCar',32,31},{'MoveCar_Controller',18,17},{'MoveCar_Wheel',16,15},{'LiftUp',14,10},{'LiftDown',9,6},{'Boost',5,1}}
+ function P.configure(a)
+  -- The current AVS build can permanently switch air control off after the
+  -- donor rests on its wheels. The Hornet needs cyclic/yaw after takeoff.
+  a.AutoDisableAirControlOnGround=false;a.EnableAirControl=true
+ end
  function P.apply(r)
   if not r or r.failed or not r.result or r.towed or not valid(r.actor)then return end
   local a,x=r.actor,r.result

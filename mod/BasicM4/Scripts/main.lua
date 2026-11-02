@@ -1,13 +1,12 @@
--- Beyond Apocolypse. Stable internal folder preserves old saves.
+-- Beyond Apocalypse. Legacy local records migrate without changing saved IDs.
 local root=debug.getinfo(1,'S').source:sub(2):gsub('\\','/'):match('^(.*)/Scripts/[^/]+$')
-assert(root,'Install as Mods/BasicM4/Scripts/main.lua')
-local configPath=root..'/Scripts/config.lua'
-local configFile=io.open(configPath,'r')
-if configFile then configFile:close()else configPath=root..'/Scripts/default_config.lua'end
+assert(root,'Install as Mods/BeyondApocalypse/Scripts/main.lua')
+local storage=dofile(root..'/Scripts/storage.lua')(root)
+local configPath=storage.config()
 local config=dofile(configPath)
 local release=dofile(root..'/Scripts/release.lua')
 local defs=dofile(root..'/Scripts/weapons/catalog.lua')
-local M={version=release.Version,release=release,active=true,definitions=defs,config=config}
+local M={version=release.Version,release=release,active=true,definitions=defs,config=config,statePath=storage.state}
 local forced,chosen,tracked,filled,errors={},{},{},{},{}
 local geometry,materials={},{ }
 local refreshRetry={}
@@ -31,13 +30,13 @@ local function guid(a)
  return string.format('%08x:%08x:%08x:%08x',g.A&0xffffffff,g.B&0xffffffff,g.C&0xffffffff,g.D&0xffffffff)
 end
 local function readState(file,fn)
- local f=io.open(root..'/state/'..file,'r');if f then for line in f:lines()do fn(line)end;f:close()end
+ local f=io.open(M.statePath(file),'r');if f then for line in f:lines()do fn(line)end;f:close()end
 end
 readState('forced-m4.txt',function(k)if k:match('^%x+:%x+:%x+:%x+$')then forced[k]=true end end)
 readState('rifles.txt',function(line)local k,id=line:match('^(%x+:%x+:%x+:%x+) (%w+)$');if k and (defs[id]or id=='ak')then chosen[k]=id end end)
 local function saveChoice(key,id)
  if chosen[key]==id then return end
- local f=assert(io.open(root..'/state/rifles.txt','a'),'Cannot save rifle identity')
+ local f=assert(io.open(M.statePath('rifles.txt'),'a'),'Cannot save rifle identity')
  f:write(key..' '..id..'\n');f:close();chosen[key]=id
 end
 local function selected(a)
@@ -191,7 +190,7 @@ end
 local firing=dofile(root..'/Scripts/firing.lua')(valid)
 local hazmat=dofile(root..'/Scripts/hazmat.lua')(root,config.Apocalypse,valid,log)
 M.hazmat=hazmat
-local apocalypse=dofile(root..'/Scripts/apocalypse.lua')(root,config.Apocalypse,valid,log,hazmat)
+local apocalypse=dofile(root..'/Scripts/apocalypse.lua')(root,config.Apocalypse,valid,log,hazmat,M.statePath)
 M.apocalypse=apocalypse
 local mechanic=dofile(root..'/Scripts/night_hunter.lua')(root,config.Apocalypse,valid,log);M.mechanic=mechanic
 local actions,scanElapsed={},config.PollMilliseconds
@@ -215,10 +214,12 @@ local hangar=dofile(root..'/Scripts/hangar.lua')(M,root,H,valid,shortcut,log);M.
 local towing=dofile(root..'/Scripts/towing.lua')(M,valid,shortcut,log);M.towing=towing
 M.ammo=dofile(root..'/Scripts/ammo.lua')(M,root,H,valid,shortcut,log)
 local roaming=dofile(root..'/Scripts/zombie_roaming.lua')(M,valid,log);M.roaming=roaming
+M.population=dofile(root..'/Scripts/zombie_population.lua')(M,root,H,valid,log)
+apocalypse.population=M.population;mechanic.population=M.population
 dofile(root..'/Scripts/game_loop.lua')(function()return M.active end,function()
   local ok,e=pcall(function()
    if M.resetRequested then
-    M.resetRequested=false;actions={};tracked={};filled={};materials={};refreshRetry={};akClass=nil;pmcClass=nil;game=nil
+    M.resetRequested=false;M.population.reset();actions={};tracked={};filled={};materials={};refreshRetry={};akClass=nil;pmcClass=nil;game=nil
     motorcycle.reset();M.utility.reset();H.reset();session.reset();performance.reset();firing.reset();apocalypse.reset();hazmat.reset();mechanic.reset();branding.reset();devmenu.reset();backpack.reset();gyrocopter.reset();weaponHandling.reset();weaponHandling.slots.reset();weaponHandling.equipCache=nil;rail.reset();roaming.reset();hangar.reset();towing.reset();M.ammo.reset();M.ballistics.reset()
    end
    session.tick()
@@ -237,9 +238,12 @@ dofile(root..'/Scripts/game_loop.lua')(function()return M.active end,function()
     local now=game:GetTimeSeconds(p)
     if not game:IsGamePaused(p)then
      firing.tick(a,t and t.def,now,not M.utility.opened and not devmenu.ui.opened and not backpack.ui.opened and not p.BP_PlayerStats.IsDead and not p.BP_PlayerStats.IsDying,H.GetPlayerController():IsInputKeyDown({KeyName=FName('LeftMouseButton')}))
-     apocalypse.tick(p,game,now)
-     mechanic.tick(p,game,now)
-     roaming.tick(p,game,now)
+     M.population.tick(p)
+     if not M.population.disabled then
+      apocalypse.tick(p,game,now)
+      mechanic.tick(p,game,now)
+      roaming.tick(p,game,now)
+     end
      gyrocopter.tick(p,now)
      motorcycle.tick(p,now)
     end
@@ -274,6 +278,8 @@ M.akClass=function()initialize();return akClass end
 -- The private launcher test package alone supplies this limited host fixture kit.
 -- Public packages have no spawn-test key bindings.
 RegisterLoadMapPreHook(function()M.features=false;M.resetRequested=true end)
+_G.BeyondApocalypse=M
+-- Compatibility for separately installed tools; these aliases do not load code.
 _G.BasicM4=M;_G.BasicWeaponPack=M;_G.BeyondApocolypse=M
 log(release.Version..' '..release.Channel..' loaded: M4 burst, hunting semi-auto, Enfield bolt cadence; additive apocalypse enabled='..tostring(config.Apocalypse.Enabled))
 return M

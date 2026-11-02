@@ -80,9 +80,13 @@ return function(M,G,T,root,valid,log)
   if now<r.grabAt then return end;r.grabAt=now+.1
   local mesh=p.RootMeshComponent;local handle=p.PhysicsHandle
   if not valid(handle)or not valid(mesh)then return end
+  -- A replaced collision body can leave GetGrabbedComponent pointing at the
+  -- same mesh with a dead constraint. Release once, then let native pickup
+  -- rebuild it; pointer equality alone does not prove that the grip survived.
+  if not r.gripReset then handle:ReleaseComponent();r.gripReset=true end
   local grabbed=handle:GetGrabbedComponent()
   if not T.same(grabbed,mesh)then p:OnRepIsHandleInHand(true,true);grabbed=handle:GetGrabbedComponent()end
-  if T.same(grabbed,mesh)then r.regrab=nil;r.grabAt=nil end
+  if T.same(grabbed,mesh)then r.regrab=nil;r.grabAt=nil;r.gripReset=nil end
  end
  -- Apply the host's rack state to the native pickup mesh as well as its
  -- rendering. A client must never simulate a blade secured by the host.

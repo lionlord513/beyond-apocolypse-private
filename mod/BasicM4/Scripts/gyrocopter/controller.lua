@@ -33,7 +33,7 @@ return function(M,root,H,valid,log)
   local g=s.GuidUnique;if g.A==0 and g.B==0 and g.C==0 and g.D==0 then return end
   return ('%08x:%08x:%08x:%08x'):format(g.A&0xffffffff,g.B&0xffffffff,g.C&0xffffffff,g.D&0xffffffff)
  end
- local file=root..'/state/gyrocopters.txt'
+ local file=M.statePath and M.statePath('gyrocopters.txt')or root..'/state/gyrocopters.txt'
  do local f=io.open(file,'r');if f then for line in f:lines()do
   local garage,legacy=line:match('^airframe (%x+:%x+:%x+:%x+) (%x+:%x+:%x+:%x+)$');if garage then G.airframes[garage]=legacy end
   local kind,key=line:match('^(%w+) (%x+:%x+:%x+:%x+)$')
@@ -74,7 +74,7 @@ return function(M,root,H,valid,log)
   -- main wheels. Attached native consumables still have their own mass.
   a.StabilityControl=false;a.StabilityControlBase=0;a.DriftAssist=false;a.DynamicAirDrag=false
   a.BaseWeight=250;a.BaseLinearDrag=.04;if owns then a:WeightTimerEvent()end
-  a.EnableAirControl=true;a.EnableAutoLevel=false;a.EnableAutopilot=false;a.TwoWheelBalance=false;a.EnableTwoWheelAssist=false
+  inputs.configure(a);a.EnableAutoLevel=false;a.EnableAutopilot=false;a.TwoWheelBalance=false;a.EnableTwoWheelAssist=false
   a.WingLiftCoefficient=0;a.WingDrag=0;a.WingLinearDrag=0;a.WingAoADrag=0;a.AeroLateralGrip=0
   a.WingImbalance=0;a.WingImbalanceStrength=0;a.AirBrakeDrag=0;a.AirBrakeLiftLoss=0;a.MaxAeroSpeed=0
   -- MaxAeroSpeed=0 removes the speed-squared term, not physical speed.
@@ -305,14 +305,14 @@ return function(M,root,H,valid,log)
   G.transport.sync.telemetry(r,now)
   safety.check(r,now)
   if valid(p)and same(a.Driver,p)and c.ShowHUD~=false and now>=(G.hudAt or 0)then
-   G.hudAt=now+.10;G.hudOwned=true
+   G.hudAt=now+.10;G.hudOwned=true;G.hudRecord=r
    local warning=bladeMask~=3 and 'FIT BOTH MAIN BLADES / LEFT CLICK AT ROTOR MAST' or not running and 'START ENGINE / I' or result.lowRotor and 'ROTOR SPOOLING UP' or (r.bladeWarningUntil or 0)>now and 'BLADES NEAR OBSTACLE' or 'MANUAL FLIGHT'
    if M.controls then warning=warning:gsub('START ENGINE / I','START ENGINE / '..M.controls.values.ignition[1])end
    if simple then
     if warning=='MANUAL FLIGHT'then warning='SIMPLE FLIGHT'end
-    M.devmenu.ui.hud(('HORNET\n%s\nROTOR %.0f rpm  |  AIR %.0f km/h\nCLIMB %+.1f m/s\nHold raise / lower to climb / descend\nRelease to auto-hover\nF8: controls and settings'):format(warning,result.rpm,result.airspeed*3.6,v.Z*.01))
+    M.devmenu.ui.hud(('HORNET\n%s\nROTOR %.0f rpm  |  AIR %.0f km/h\nCLIMB %+.1f m/s\nHold raise / lower to climb / descend\nRelease to auto-hover\nF9: controls and settings'):format(warning,result.rpm,result.airspeed*3.6,v.Z*.01))
    else
-    M.devmenu.ui.hud(('HORNET\n%s\nROTOR %.0f rpm  |  AIR %.0f km/h\nCLIMB %+.1f m/s  |  COLLECTIVE %.1f%%\nF8: controls and keybindings\nCollective holds when released\nFlare to slow; lower collective to land'):format(warning,result.rpm,result.airspeed*3.6,v.Z*.01,result.collective*100),result.collective,result.hoverCollective,v.Z*.01)
+    M.devmenu.ui.hud(('HORNET\n%s\nROTOR %.0f rpm  |  AIR %.0f km/h\nCLIMB %+.1f m/s  |  COLLECTIVE %.1f%%\nF9: controls and keybindings\nCollective holds when released\nFlare to slow; lower collective to land'):format(warning,result.rpm,result.airspeed*3.6,v.Z*.01,result.collective*100),result.collective,result.hoverCollective,v.Z*.01)
    end
   end
  end
@@ -374,4 +374,3 @@ return function(M,root,H,valid,log)
  G.transport=dofile(root..'/Scripts/gyrocopter/transport.lua')(M,G,root,H,valid,log)
  return G
 end
-

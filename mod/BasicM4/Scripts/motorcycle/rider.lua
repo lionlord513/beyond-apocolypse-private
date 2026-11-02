@@ -25,7 +25,12 @@ return function(B,valid)
   anim.IsChangingGear=false
   anim.MapSocketVehicle:ForEach(function(key,value)
    local name=key:get():ToString();local d=targets[name];if not d then return end
-   if r.config and d.parent=='steer'then local hand=name:find('Left',1,true)and 'left'or 'right';d={parent='steer',at=r.config.hands[hand],rotation=d.rotation}end
+   if r.config and d.parent=='steer'then
+    local hand=name:find('Left',1,true)and 'left'or 'right';local at=r.config.hands[hand]
+    local offset=r.config.wristOffsets and r.config.wristOffsets[hand]
+    if offset then at={X=at.X+offset.X,Y=at.Y+offset.Y,Z=at.Z+offset.Z}end
+    d={parent='steer',at=at,rotation=d.rotation}
+   end
    if r.config and r.config.feet and d.parent=='frame'then local side=(name:find('Left',1,true)or name:match('L$'))and 'left'or 'right';local foot=side..(name:find('FootBall',1,true)and 'Ball'or '');d={parent='frame',at=r.config.feet[foot],rotation=d.rotation}end
    local world=mathlib:TransformLocation(d.parent=='steer'and steer or frame,d.at)
    local localAt=mathlib:InverseTransformLocation(mesh,world)

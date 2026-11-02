@@ -61,6 +61,7 @@ return function(M,root,H,valid,enqueue,log)
  end
  function V.frame(dt)
   if M.active==false or M.features==false then return end
+  if M.hudFrame then M.hudFrame(dt)end
   V.slots.frame()
   if M.backpack.ui.frame then M.backpack.ui.frame()end
   local a,p,pc,d=V.equipped()

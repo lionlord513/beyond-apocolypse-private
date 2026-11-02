@@ -57,6 +57,7 @@ return function(root,c,valid,log)
   q.Z=q.Z+100;return q
  end
  local function spawn(p,game,gs,q,now)
+  if N.population and N.population.remaining()==0 then return end
   local ready,err=visual.ready(p);assert(ready,err)
   local tr={Translation=q,Rotation={X=0,Y=0,Z=0,W=1},Scale3D={X=1,Y=1,Z=1}}
   local z=game:BeginDeferredActorSpawnFromClass(p,LoadAsset('/Game/BP/Player/Zombies/BP_Zombie_M01.BP_Zombie_M01_C'),tr,2,nil,0)
@@ -81,6 +82,7 @@ return function(root,c,valid,log)
    z:MoveToTarget(150,vec(closest:K2_GetActorLocation()));nextPath=now+.9
   end)
   if not ok then z:K2_DestroyActor();error(e)end
+  if N.population then N.population.track(z)end
   return z
  end
  function N.spawnHere(p,game)

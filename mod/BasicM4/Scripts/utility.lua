@@ -1,9 +1,9 @@
--- Public local settings and personal statistics. No host actions or admin RPCs.
+-- Local preferences, personal statistics, and explicitly host-only world settings.
 return function(M,root,H,valid,enqueue,log)
  local U={opened=false,tab='Settings',settingsTab='Keybinds',buttons={},session=0,total=0};local Ctl=M.controls;local lib,layout,slate
  local game=StaticFindObject('/Script/Engine.Default__GameplayStatics')
  local C={bg={R=.012,G=.014,B=.015,A=.98},panel={R=.025,G=.028,B=.029,A=1},card={R=.049,G=.052,B=.052,A=1},red={R=.34,G=.021,B=.017,A=1},accent={R=.72,G=.19,B=.12,A=1},text={R=.87,G=.86,B=.81,A=1},muted={R=.48,G=.50,B=.47,A=1},gold={R=.68,G=.55,B=.32,A=1}}
- local statsFile=root..'/state/personal-distance.txt'
+ local statsFile=M.statePath and M.statePath('personal-distance.txt')or root..'/state/personal-distance.txt'
  do local f=io.open(statsFile,'r');if f then for line in f:lines()do local n=tonumber(line);if n and n>=0 and n<1e12 then U.total=math.max(U.total,n)end end;f:close()end end
  function U.saveStats()
   if U.total==(U.savedTotal or 0)then return end
@@ -47,13 +47,13 @@ return function(M,root,H,valid,enqueue,log)
    {'Ping',valid(state)and ('%.0f ms'):format(state:GetPingInMilliseconds())or '--'},{'Health',('%.0f'):format(p.BP_PlayerStats.Life)}}
  end
  function U.render()
-  U.canvas:ClearChildren();U.buttons={};U.statCells={}
+  U.canvas:ClearChildren();U.buttons={};U.statCells={};U.zombieSlider=nil;U.zombieLabel=nil
   local vp=layout:GetViewportSize(U.pc);local dpi=layout:GetViewportScale(U.pc)
   U.scale=math.min(vp.X/1440,vp.Y/840)/dpi;U.x=(vp.X/dpi-1440*U.scale)/2;U.y=(vp.Y/dpi-840*U.scale)/2
   rect(0,0,1440,840,'bg');rect(0,0,1440,5,'red');rect(20,132,218,654,'panel')
   text('BEYOND APOCOLYPSE',30,40,1100,48,30);text('PLAYER UTILITY  /  '..M.version,32,92,1000,30,14,'muted')
-  button('CLOSE [F8]',1230,35,184,52,function()U.close()end)
-  for i,name in ipairs({'Settings','Stats'})do button(name:upper(),30,146+(i-1)*63,198,52,function()U.tab=name;U.capture=nil;U.render()end,U.tab==name and 'red'or'panel')end
+  button('CLOSE [F9]',1230,35,184,52,function()U.close()end)
+  for i,name in ipairs({'Settings','Stats','Host'})do button(name:upper(),30,146+(i-1)*63,198,52,function()U.tab=name;U.capture=nil;U.render()end,U.tab==name and 'red'or'panel')end
   if U.tab=='Settings'then
    for i,name in ipairs({'Keybinds','Gameplay'})do button(name:upper(),270+(i-1)*240,145,226,36,function()U.settingsTab=name;U.capture=nil;U.message='';U.render()end,U.settingsTab==name and 'red'or'card')end
    if U.settingsTab=='Gameplay'then
@@ -82,6 +82,24 @@ return function(M,root,H,valid,enqueue,log)
    button('DEFAULTS',270,746,210,48,function()for _,r in ipairs(Ctl.rows)do U.draft[r[1]]={r[3],r[4]}end;U.capture=nil;U.render()end)
    button('APPLY',1170,746,224,48,function()local ok,e=pcall(Ctl.apply,U.draft);U.capture=nil;U.message=ok and 'Controls saved.'or tostring(e):gsub('^.-:%d+: ','');U.render()end,'red')
    end
+  elseif U.tab=='Host'then
+   text('HOST WORLD SETTINGS',270,145,1000,40,25,'gold')
+   local host=M.population and M.population.isHost()
+   text(host and 'These settings affect everyone in your hosted session.'or 'Only the host can change these settings.',270,210,1100,36,18,'muted')
+   text('Zombie population ceiling',286,290,1060,40,23)
+   local value=host and (U.zombieDraft or M.population.limit)or 10
+   U.zombieSlider=new('Slider',U.tree);local slider=U.zombieSlider
+   slider:SetMinValue(2);slider:SetMaxValue(40);slider:SetStepSize(1);slider:SetValue(value)
+   slider:SetIsEnabled(host==true);place(slider,300,368,1050,52)
+   text('2',300,430,100,30,18,'muted');text('40',1300,430,80,30,18,'muted')
+   U.zombieLabel=text(host and ('%d day / %d night & infestations'):format(M.population.dayTarget(value),value)or 'Host only',540,430,740,40,20,'gold')
+   text('Includes native zombies, mod encounters, hazmats and the Mechanic.',286,505,1080,36,17,'muted')
+   text('Default: 5 by day, 10 at night or in an infested building. Slider scales both.',286,550,1080,36,17,'muted')
+   text('Saved on this PC for sessions you host. Clients cannot override the host.',286,595,1080,36,17,'muted')
+   if host then button('APPLY ZOMBIE LIMIT',970,690,424,54,function()
+    local n=math.max(2,math.min(40,math.floor(slider:GetValue()+.5)))
+    local ok,message=pcall(M.population.setLimit,n);U.message=tostring(message):gsub('^.-:%d+: ','');if ok then U.zombieDraft=n end;U.render()
+   end,'red')end
   else
    text('PERSONAL STATS',270,145,1000,40,25,'gold')
    for i,r in ipairs(U.stats())do local y=223+(i-1)*69;rect(270,y,1125,58,'card');text(r[1],290,y+16,590,36,18);U.statCells[i]=text(r[2],970,y+16,410,36,18,'gold')end
@@ -93,7 +111,7 @@ return function(M,root,H,valid,enqueue,log)
   local player=H.GetPlayer();assert(valid(player)and player.IsLoaded,'Join a game first')
   local pc=H.GetPlayerController();if pc.HUD.ChatUI.TypeInChat or H.IsPauseMenu(pc)or M.devmenu.ui.opened or M.backpack.ui.opened then return end
   Ctl.readNative();U.draft=Ctl.copy();U.capture=nil;U.message=''
-  U.tab='Settings'
+  U.tab='Settings';U.zombieDraft=M.population and M.population.limit or 10
   U.pc=H.GetPlayerController();U.pawn=U.pc:K2_GetPawn();U.cursorBefore=U.pc.bShowMouseCursor
   lib=StaticFindObject('/Script/UMG.Default__WidgetBlueprintLibrary');layout=StaticFindObject('/Script/UMG.Default__WidgetLayoutLibrary');slate=StaticFindObject('/Script/UMG.Default__SlateBlueprintLibrary')
   U.widget=lib:Create(U.pc,StaticFindObject('/Script/UMG.UserWidget'),U.pc)
@@ -126,6 +144,10 @@ return function(M,root,H,valid,enqueue,log)
   local pc,p=H.GetPlayerController(),H.GetPlayer()
   if not valid(pc)or not valid(p)or not p.IsLoaded then U.position=nil;if U.opened then U.close()end;return end
   if U.opened and(p.BP_PlayerStats.IsDead or not valid(U.widget))then U.close()end
+  if U.opened and U.tab=='Host'and valid(U.zombieSlider)and M.population and M.population.isHost()then
+   local n=math.max(2,math.min(40,math.floor(U.zombieSlider:GetValue()+.5)))
+   if U.zombieDraft~=n then U.zombieDraft=n;if valid(U.zombieLabel)then U.zombieLabel:SetText(FText(('%d day / %d night & infestations'):format(M.population.dayTarget(n),n)))end end
+  end
   local delta=game:GetWorldDeltaSeconds(p);if delta>0 and delta<1 then U.fps=U.fps and U.fps*.9+.1/delta or 1/delta end
   local now=game:GetTimeSeconds(p)
   if now<(U.nextSample or 0)then return end;U.nextSample=now+.5
@@ -138,7 +160,7 @@ return function(M,root,H,valid,enqueue,log)
   if U.opened and U.tab=='Stats'then for i,row in ipairs(U.stats())do if valid(U.statCells[i])then U.statCells[i]:SetText(FText(row[2]))end end end
  end
  function U.reset()U.close();Ctl.restore();U.position=nil;U.pawnId=nil;U.session=0;U.nextSample=0;U.nextSave=0 end
- RegisterKeyBind(Key.F8,function()enqueue(function()U.toggle()end)end)
+ RegisterKeyBind(Key.F9,function()enqueue(function()U.toggle()end)end)
  for code,key in pairs(Ctl.codes)do local name=key;RegisterKeyBind(code,function()
   if not U.opened then return end
   if U.capture then enqueue(function()U.accept(name)end)

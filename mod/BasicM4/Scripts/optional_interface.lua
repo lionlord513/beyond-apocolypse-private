@@ -1,7 +1,11 @@
 -- Public gameplay keeps its shared HUD without installing developer controls.
 -- The companion is local-only and never included in player/update packages.
 return function(M,root,H,valid,enqueue,log)
- local hud=dofile(root..'/Scripts/hud.lua')(H,valid)
+ local hud,frame=dofile(root..'/Scripts/hud.lua')(H,valid)
+ M.hudFrame=function(dt)
+  local g=M.gyrocopter;local r=g and g.hudOwned and g.hudRecord
+  frame(dt,r and r.result and r.result.collective)
+ end
  local interface={ui={opened=false,hud=hud},tick=function()end,reset=function()hud(nil)end}
  local path=root..'/../BeyondApocolypseDevMenu/Scripts/attach.lua'
  local file=io.open(path,'r')

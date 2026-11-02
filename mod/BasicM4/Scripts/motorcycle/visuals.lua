@@ -1,18 +1,22 @@
 return function(root,valid)
- local V={};local geom,materials={},{}
+ local V={};local geom,materials,textures={},{},{}
  local mathlib=StaticFindObject('/Script/Engine.Default__KismetMathLibrary')
  local system=StaticFindObject('/Script/Engine.Default__KismetSystemLibrary')
  local tireRadius=32.22805 -- measured from both imported tire meshes, centimetres
  local identity={Translation={X=0,Y=0,Z=0},Rotation={X=0,Y=0,Z=0,W=1},Scale3D={X=1,Y=1,Z=1}}
  local pivots={front={X=83.82057,Y=0,Z=-17.14414},rear={X=-72.104,Y=0,Z=-17.14414},steer={X=37.5,Y=0,Z=43.75},frontpaint={X=37.5,Y=0,Z=43.75},body={X=0,Y=0,Z=0},paint={X=0,Y=0,Z=0},rearpaint={X=0,Y=0,Z=0}}
  local function texture(a,file,data)
+  -- All bikes share the same immutable images; only their paint parameters differ.
+  -- ImportFileAsTexture2D otherwise allocates another full texture per vehicle.
+  local key=file..(data and ':data'or ':color')
+  if valid(textures[key])then return textures[key]end
   local render=StaticFindObject('/Script/Engine.Default__KismetRenderingLibrary')
   local t=render:ImportFileAsTexture2D(a,root..'/assets/'..file)
   assert(valid(t),'Missing bike texture '..file)
   if data and t.SRGB==true then t=render:ImportFileAsTexture2D(a,root..'/assets/'..file:gsub('%.png$','-srgb.png'));assert(valid(t),'Missing encoded bike data '..file)end
-  return t
+  textures[key]=t;return t
  end
- local finishes={SuzukiDetail='suzuki/albedo.png',['Llanta.001']='motorcycle/texture0.png',['Cromo.001']='motorcycle/texture1.png',['Cromo.002']='motorcycle/texture2.png',Cromo='motorcycle/steel.png'}
+ local finishes={SuzukiDetail='suzuki/albedo.png',['Llanta.001']='motorcycle/texture0.png',['Cromo.001']='motorcycle/texture1.png',['Cromo.002']='motorcycle/texture2.png',Cromo='motorcycle/steel.png',Leather='motorcycle/leather-detail.png',Stitch='motorcycle/leather-detail.png',Rubber='motorcycle/texture0.png'}
  local function tangents(g)
   if g.tangents then return g.tangents end
   local out={};for i=1,#g.vertices do out[i]={TangentX={X=1,Y=0,Z=0},bFlipTangentY=false}end
@@ -39,7 +43,9 @@ return function(root,valid)
   if valid(materials[key])then return materials[key]end
   if key=='SuzukiDetail'or key=='SuzukiMetal'or key=='Cromo'then
    local suzuki=key=='SuzukiDetail';local suzukiMetal=key=='SuzukiMetal';local folder=suzuki and 'suzuki/'or 'motorcycle/'
-   local m=StaticFindObject('/Script/Engine.Default__KismetMaterialLibrary'):CreateDynamicMaterialInstance(a,a.VehicleMesh:GetMaterial(0).Parent,FName('BA_Bike_'..key),0)
+   local mesh=valid(a.VehicleMesh)and a.VehicleMesh or a.RootMeshComponent
+   local base=mesh:GetMaterial(0);if valid(base.Parent)then base=base.Parent end
+   local m=StaticFindObject('/Script/Engine.Default__KismetMaterialLibrary'):CreateDynamicMaterialInstance(a,base,FName('BA_Bike_'..key),0)
    m:SetTextureParameterValue(FName('TextureColor'),texture(a,folder..(suzuki and 'readable-albedo.png'or 'silver-detail.png')))
    m:SetTextureParameterValue(FName('TextureColorMask'),texture(a,'motorcycle/no-tint-mask.png'))
    m:SetTextureParameterValue(FName('TextureCleanNormal'),texture(a,(suzukiMetal and 'suzuki/render-normal.png'or folder..(suzuki and 'render-normal.png'or 'paint-metal-normal.png')),true))
@@ -51,12 +57,13 @@ return function(root,valid)
   local m=StaticFindObject('/Script/Engine.Default__KismetMaterialLibrary'):CreateDynamicMaterialInstance(a,LoadAsset('/MasterWeapon/Materials/Weapons/MAT_ArK47.MAT_ArK47'),FName('BA_Bike_'..key),0)
   m:SetTextureParameterValue(FName('Diffuse'),texture(a,assert(finishes[key])))
   m:SetTextureParameterValue(FName('NormalMap'),texture(a,key=='SuzukiDetail'and 'suzuki/normal.png'or 'gyrocopter/plastic-normal.png'))
-  m:SetTextureParameterValue(FName('RoughnessMap'),texture(a,key=='SuzukiDetail'and 'suzuki/roughness.png'or key=='Llanta.001'and 'gyrocopter/carrier-roughness.png'or 'gyrocopter/roughness.png'))
-  m:SetTextureParameterValue(FName('MetalMap'),texture(a,key=='SuzukiDetail'and 'suzuki/metal.png'or key=='Llanta.001'and 'rifle-metal.png'or key=='Cromo'and 'gyrocopter/clean-ao.png'or 'gyrocopter/metal.png'))
+  local soft=key=='Leather'or key=='Stitch'or key=='Rubber'or key=='Llanta.001'
+  m:SetTextureParameterValue(FName('RoughnessMap'),texture(a,key=='SuzukiDetail'and 'suzuki/roughness.png'or soft and 'gyrocopter/carrier-roughness.png'or 'gyrocopter/roughness.png'))
+  m:SetTextureParameterValue(FName('MetalMap'),texture(a,key=='SuzukiDetail'and 'suzuki/metal.png'or soft and 'rifle-metal.png'or key=='Cromo'and 'gyrocopter/clean-ao.png'or 'gyrocopter/metal.png'))
   m:SetTextureParameterValue(FName('AOMap'),texture(a,key=='SuzukiDetail'and 'suzuki/ao.png'or 'gyrocopter/clean-ao.png'))
   m:SetScalarParameterValue(FName('AODarkness'),0)
-  m:SetScalarParameterValue(FName('RoughnessBrightness'),key=='Llanta.001'and 1 or .9)
-  m:SetScalarParameterValue(FName('DiffuseBrightness'),1);materials[key]=m;return m
+  m:SetScalarParameterValue(FName('RoughnessBrightness'),soft and 1 or .9)
+  m:SetScalarParameterValue(FName('DiffuseBrightness'),key=='Stitch'and 3 or 1);materials[key]=m;return m
  end
  function V.create(a,frame,variant)
   local cfg=variant=='suzuki'and dofile(root..'/Scripts/motorcycle/suzuki.lua')or nil
@@ -76,6 +83,15 @@ return function(root,valid)
    c:SetCollisionEnabled(0);c:SetCullDistance(45000)
    if painted then c:SetCollisionResponseToAllChannels(0);c:SetCollisionResponseToChannel(3,2);c:SetCollisionEnabled(1);c:SetGenerateOverlapEvents(false);a.MaterialDynComponent:AddDynMaterial(c,'BA_Motorcycle_'..part,paint)end
    v[part]=c
+  end
+  do
+   -- Original lamp geometry follows the removable native headlight.
+   -- Separating its existing triangles preserves the imported model and UVs.
+   local c=a:AddComponentByClass(cls,true,identity,false);v.components[#v.components+1]=c
+   c:K2_AttachToComponent(v.steer,FName('BA_MotorcycleVisual_headlamp'),0,0,0,false);c:SetIsReplicated(false)
+   local key=folder..'/headlamp';geom[key]=geom[key]or dofile(root..'/assets/'..key..'.lua')
+   for i,g in ipairs(geom[key])do c:CreateMeshSection(i-1,g.vertices,g.triangles,g.normals,g.uv,{},tangents(g),false);c:SetMaterial(i-1,material(a,g.material))end
+   c:SetCollisionEnabled(0);c:SetCullDistance(45000);v.headlamp=c
   end
   a.MaterialDynComponent:ProcessDynParam()
   end)
@@ -97,6 +113,14 @@ return function(root,valid)
    local a,b={},{};w:GetWheelRadius(a);other:GetWheelRadius(b)
    if type(a.BrakePressure)=='number'and type(b.BrakePressure)=='number'then
     local radius=(a.BrakePressure+b.BrakePressure)*.5;local nominal=center.Z+tireRadius-radius+(r.frameFitZ or 0)
+    -- The visible bike axle is shorter than the donor's native wheelbase.
+    -- Preserve contact height when acceleration pitches that donor; using its
+    -- local Z alone lifts the rear wheel at the bike's different X position.
+    local frame=r.neutralFrame or r.frame:K2_GetComponentToWorld()
+    local pivot=(r.visual.config and r.visual.config.pivots or pivots)[part]
+    local origin=mathlib:TransformLocation(frame,{X=pivot.X,Y=0,Z=0})
+    local up=mathlib:TransformLocation(frame,{X=pivot.X,Y=0,Z=1}).Z-origin.Z
+    if math.abs(up)>.5 then nominal=((p.Z+q.Z)*.5-radius+tireRadius-origin.Z)/up end
     if refresh and parked and radius>10 and radius<60 then
       local top={X=(p.X+q.X)*.5,Y=(p.Y+q.Y)*.5,Z=(p.Z+q.Z)*.5+45}
       if r.config and r.config.visualScale then local pivot=r.config.pivots[part];local at=mathlib:TransformLocation((r.neutralFrame or r.frame:K2_GetComponentToWorld()),{X=pivot.X,Y=0,Z=nominal});top.X,top.Y=at.X,at.Y end
@@ -166,7 +190,7 @@ return function(root,valid)
   if valid(v.rearpaint)then v.rearpaint:K2_SetRelativeLocation({X=0,Y=0,Z=heights.rear-pivots.rear.Z+2.5*(v.config and v.config.visualScale or 1)},false,{},true)end
   for _,t in ipairs({{'front',fw},{'rear',rw}})do
    local part,w=t[1],t[2];local spin=w:GetWheelAngVelInRadians()
-   if still and math.abs(spin)<.08 then spin=0 end -- filter visible idle wheel creep only
+   if not valid(a.Driver)and speed2<30^2 or still and math.abs(spin)<.08 then spin=0 end -- parked native wheel jitter is not rolling
    r[part..'Spin']=((r[part..'Spin']or 0)-spin*dt*180/math.pi)%360
    v[part]:K2_SetRelativeRotation({Pitch=r[part..'Spin'],Yaw=part=='front'and angle or 0,Roll=0},false,{},true)
    if part=='front'then local rad=angle*math.pi/180;local dx=pivots.front.X-pivots.steer.X
@@ -177,7 +201,25 @@ return function(root,valid)
   end
   v.paintMaterial:SetScalarParameterValue(FName('Rust and wear'),0)
  end
- function V.reset()materials={}end
+ function V.headlampGeometry(variant)
+  local folder=variant=='suzuki'and 'suzuki'or 'motorcycle';local key=folder..'/headlamp'
+  geom[key]=geom[key]or dofile(root..'/assets/'..key..'.lua')
+  local lo={X=math.huge,Y=math.huge,Z=math.huge};local hi={X=-math.huge,Y=-math.huge,Z=-math.huge}
+  for _,g in ipairs(geom[key])do for _,p in ipairs(g.vertices)do for _,axis in ipairs({'X','Y','Z'})do lo[axis]=math.min(lo[axis],p[axis]);hi[axis]=math.max(hi[axis],p[axis])end end end
+  local scale=variant=='suzuki'and .52 or 1;local center,size={},{}
+  for _,axis in ipairs({'X','Y','Z'})do center[axis]=(lo[axis]+hi[axis])*.5;size[axis]=(hi[axis]-lo[axis])*scale end
+  return geom[key],center,size,scale
+ end
+ function V.headlampItem(a,variant,c)
+  local parts,center,size,scale=V.headlampGeometry(variant)
+  c:ClearAllMeshSections()
+  for i,g in ipairs(parts)do
+   local vertices={};for j,p in ipairs(g.vertices)do vertices[j]={X=(p.X-center.X)*scale,Y=(p.Y-center.Y)*scale,Z=(p.Z-center.Z)*scale}end
+   c:CreateMeshSection(i-1,vertices,g.triangles,g.normals,g.uv,{},tangents(g),false);c:SetMaterial(i-1,material(a,g.material))
+  end
+  c:SetCollisionEnabled(0);c:SetCullDistance(45000);return size
+ end
+ function V.reset()materials={};textures={}end
  V.pivots=pivots;V.tangents=tangents;return V
 end
 
