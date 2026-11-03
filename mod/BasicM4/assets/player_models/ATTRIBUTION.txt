@@ -1,0 +1,12 @@
+Free Military Soldier (Rigged) by BAMEN
+https://sketchfab.com/3d-models/free-military-soldier-rigged-e9c56308a67d4a3db62e914fafa4d198
+Creative Commons Attribution 4.0 International (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/
+
+Used as SciFi Soldier in Beyond Apocalypse. Adaptations: fitted mesh and skin
+weights to the game's native body and first-person arm reference poses; isolated
+first-person arms and headless body with an inner liner; smoothed exposed hands;
+generated a material palette and two reduced-detail LODs; converted to glTF.
+Source animations omitted; the game supplies animation. Soldier previews show
+the fitted mesh posed with the native idle animation. The default portrait was
+captured in Drive Beyond Horizons. No endorsement implied.

@@ -207,6 +207,7 @@ local gyrocopter=dofile(root..'/Scripts/gyrocopter/controller.lua')(M,root,H,val
 M.gyrocopter=gyrocopter
 local motorcycle=dofile(root..'/Scripts/motorcycle/controller.lua')(M,root,H,valid,log);M.motorcycle=motorcycle
 M.nitrous=dofile(root..'/Scripts/nitrous/controller.lua')(M,root,H,valid,shortcut,log)
+M.playerModels=dofile(root..'/Scripts/player_models/controller.lua')(M,root,H,valid,shortcut,log)
 M.utility=dofile(root..'/Scripts/utility.lua')(M,root,H,valid,shortcut,log)
 local hangar=dofile(root..'/Scripts/hangar.lua')(M,root,H,valid,shortcut,log);M.hangar=hangar
 local towing=dofile(root..'/Scripts/towing.lua')(M,valid,shortcut,log);M.towing=towing
@@ -218,7 +219,7 @@ dofile(root..'/Scripts/game_loop.lua')(function()return M.active end,function()
   local ok,e=pcall(function()
    if M.resetRequested then
     M.resetRequested=false;M.population.reset();actions={};tracked={};filled={};materials={};refreshRetry={};akClass=nil;pmcClass=nil;game=nil
-    M.nitrous.reset();M.dashboard.reset();motorcycle.reset();M.utility.reset();H.reset();session.reset();performance.reset();firing.reset();apocalypse.reset();hazmat.reset();mechanic.reset();branding.reset();devmenu.reset();backpack.reset();gyrocopter.reset();weaponHandling.reset();weaponHandling.slots.reset();weaponHandling.equipCache=nil;rail.reset();roaming.reset();hangar.reset();towing.reset();M.ammo.reset();M.ballistics.reset()
+    M.playerModels.reset();M.nitrous.reset();M.dashboard.reset();motorcycle.reset();M.utility.reset();H.reset();session.reset();performance.reset();firing.reset();apocalypse.reset();hazmat.reset();mechanic.reset();branding.reset();devmenu.reset();backpack.reset();gyrocopter.reset();weaponHandling.reset();weaponHandling.slots.reset();weaponHandling.equipCache=nil;rail.reset();roaming.reset();hangar.reset();towing.reset();M.ammo.reset();M.ballistics.reset()
    end
    session.tick()
    local pending=actions;actions={};for _,fn in ipairs(pending)do local worked,err=pcall(fn);if not worked then log(tostring(err))end end
@@ -227,6 +228,8 @@ dofile(root..'/Scripts/game_loop.lua')(function()return M.active end,function()
    local perfOK,perfError=pcall(performance.tick)
    if not perfOK and not errors[tostring(perfError)]then errors[tostring(perfError)]=true;log('Graphics settings: '..tostring(perfError))end
    M.utility.tick()
+   local modelsOK,modelsError=pcall(M.playerModels.tick)
+   if not modelsOK and not errors[tostring(modelsError)]then errors[tostring(modelsError)]=true;log('Player models: '..tostring(modelsError))end
    M.dashboard.tick(valid(game)and game:GetTimeSeconds(H.GetPlayerController())or 0)
    if M.features==false then firing.reset();return end
    devmenu.tick();backpack.tick()

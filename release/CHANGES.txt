@@ -1,3 +1,9 @@
+BEYOND APOCALYPSE 1.0.10
+
+- Added a player model selector in F9 with Default and SciFi Soldier appearances.
+- Added matching first-person arms, model previews and saved appearance choices.
+- Soldier appearance stays on in vehicles. Clothing is hidden while using it; your helmet shows in third person and to other players.
+
 BEYOND APOCALYPSE 1.0.9
 
 - Corrected native AK iron-sight alignment using its authored sight socket. Other rifles, hip-fire positioning and optic offsets retain their existing setup.

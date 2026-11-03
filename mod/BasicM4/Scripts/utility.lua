@@ -4,6 +4,7 @@ return function(M,root,H,valid,enqueue,log)
  local game=StaticFindObject('/Script/Engine.Default__GameplayStatics')
  local C={bg={R=.012,G=.014,B=.015,A=.98},panel={R=.025,G=.028,B=.029,A=1},card={R=.049,G=.052,B=.052,A=1},red={R=.34,G=.021,B=.017,A=1},accent={R=.72,G=.19,B=.12,A=1},text={R=.87,G=.86,B=.81,A=1},muted={R=.48,G=.50,B=.47,A=1},gold={R=.68,G=.55,B=.32,A=1}}
  local statsFile=M.statePath and M.statePath('personal-distance.txt')or root..'/state/personal-distance.txt'
+ local modelUI=dofile(root..'/Scripts/player_models/ui.lua')(M,root,valid)
  do local f=io.open(statsFile,'r');if f then for line in f:lines()do local n=tonumber(line);if n and n>=0 and n<1e12 then U.total=math.max(U.total,n)end end;f:close()end end
  function U.saveStats()
   if U.total==(U.savedTotal or 0)then return end
@@ -53,7 +54,7 @@ return function(M,root,H,valid,enqueue,log)
   rect(0,0,1440,840,'bg');rect(0,0,1440,5,'red');rect(20,132,218,654,'panel')
   text('BEYOND APOCOLYPSE',30,40,1100,48,30);text('PLAYER UTILITY  /  '..M.version,32,92,1000,30,14,'muted')
   button('CLOSE [F9]',1230,35,184,52,function()U.close()end)
-  for i,name in ipairs({'Settings','Stats','Host'})do button(name:upper(),30,146+(i-1)*63,198,52,function()U.tab=name;U.capture=nil;U.render()end,U.tab==name and 'red'or'panel')end
+  for i,name in ipairs({'Settings','Models','Stats','Host'})do button(name:upper(),30,146+(i-1)*63,198,52,function()U.tab=name;U.capture=nil;U.render()end,U.tab==name and 'red'or'panel')end
   if U.tab=='Settings'then
    for i,name in ipairs({'Keybinds','Gameplay'})do button(name:upper(),270+(i-1)*240,145,226,36,function()U.settingsTab=name;U.capture=nil;U.message='';U.render()end,U.settingsTab==name and 'red'or'card')end
    if U.settingsTab=='Gameplay'then
@@ -67,8 +68,8 @@ return function(M,root,H,valid,enqueue,log)
      local ok,result,message=pcall(M.performance.setGameplayMode,not M.performance.gameplayMode)
      U.message=ok and (result and(message or 'Performance Mode updated.')or message)or tostring(result):gsub('^.-:%d+: ','');U.render()
     end)
-    text('Scenery target: 160 m. Removes safe decorative grass, bushes and clutter.',286,526,1080,32,17,'muted')
-    text('Saved on this PC. Turn off to restore previous render settings. Roads and interactions stay.',286,570,1080,32,17,'muted')
+    text('Uses native LOD, grass and post-processing settings. No custom visibility sweep.',286,526,1080,32,17,'muted')
+    text('Saved on this PC. Turn off to restore previous render settings.',286,570,1080,32,17,'muted')
    else
    text('GYROCOPTER KEYBINDINGS',270,195,1000,40,25,'gold')
    text('Click a key, then press its replacement. Escape cancels; Backspace clears an alternate.',270,235,1120,28,14,'muted')
@@ -82,6 +83,8 @@ return function(M,root,H,valid,enqueue,log)
    button('DEFAULTS',270,746,210,48,function()for _,r in ipairs(Ctl.rows)do U.draft[r[1]]={r[3],r[4]}end;U.capture=nil;U.render()end)
    button('APPLY',1170,746,224,48,function()local ok,e=pcall(Ctl.apply,U.draft);U.capture=nil;U.message=ok and 'Controls saved.'or tostring(e):gsub('^.-:%d+: ','');U.render()end,'red')
    end
+  elseif U.tab=='Models'then
+   modelUI.render(U,{rect=rect,text=text,button=button,place=place,new=new})
   elseif U.tab=='Host'then
    text('HOST WORLD SETTINGS',270,145,1000,40,25,'gold')
    local host=M.population and M.population.isHost()
@@ -111,7 +114,7 @@ return function(M,root,H,valid,enqueue,log)
   local player=H.GetPlayer();assert(valid(player)and player.IsLoaded,'Join a game first')
   local pc=H.GetPlayerController();if pc.HUD.ChatUI.TypeInChat or H.IsPauseMenu(pc)or M.devmenu.ui.opened or M.backpack.ui.opened then return end
   Ctl.readNative();U.draft=Ctl.copy();U.capture=nil;U.message=''
-  U.tab='Settings';U.zombieDraft=M.population and M.population.limit or 10
+  U.tab='Settings';U.modelChoice=M.playerModels.selected;U.zombieDraft=M.population and M.population.limit or 10
   U.pc=H.GetPlayerController();U.pawn=U.pc:K2_GetPawn();U.cursorBefore=U.pc.bShowMouseCursor
   lib=StaticFindObject('/Script/UMG.Default__WidgetBlueprintLibrary');layout=StaticFindObject('/Script/UMG.Default__WidgetLayoutLibrary');slate=StaticFindObject('/Script/UMG.Default__SlateBlueprintLibrary')
   U.widget=lib:Create(U.pc,StaticFindObject('/Script/UMG.UserWidget'),U.pc)
@@ -144,6 +147,7 @@ return function(M,root,H,valid,enqueue,log)
   local pc,p=H.GetPlayerController(),H.GetPlayer()
   if not valid(pc)or not valid(p)or not p.IsLoaded then U.position=nil;if U.opened then U.close()end;return end
   if U.opened and(p.BP_PlayerStats.IsDead or not valid(U.widget))then U.close()end
+  if U.opened and U.tab=='Models'and U.modelRevision~=M.playerModels.revision then U.message=M.playerModels.status or'';U.render()end
   if U.opened and U.tab=='Host'and valid(U.zombieSlider)and M.population and M.population.isHost()then
    local n=math.max(2,math.min(40,math.floor(U.zombieSlider:GetValue()+.5)))
    if U.zombieDraft~=n then U.zombieDraft=n;if valid(U.zombieLabel)then U.zombieLabel:SetText(FText(('%d day / %d night & infestations'):format(M.population.dayTarget(n),n)))end end

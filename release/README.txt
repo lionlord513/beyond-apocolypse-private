@@ -1,9 +1,9 @@
-BEYOND APOCALYPSE 1.0.9
+BEYOND APOCALYPSE 1.0.10
 Drive Beyond Horizons - Windows / Steam build 26106988
 
 INSTALL
 Close the game before updating and back up your saves.
-Mod Manager: import BeyondApocalypse-1.0.9-public.zip, or use Check for updates.
+Mod Manager: import BeyondApocalypse-1.0.10-public.zip, or use Check for updates.
 Manual installer: extract the public ZIP and run Install.cmd.
 Nexus ZIP: merge its DriveBeyondHorizons folder into the game's main folder
 (Steam > Manage > Browse local files). Do not put it inside a second copy of
@@ -12,6 +12,14 @@ The bundled UE4SS runtime is pinned for the included native helpers. The
 installer checks an existing runtime and preserves other installed mods.
 BasicM4/Scripts/main.lua is an inert migration stub, preventing double loading.
 Everyone in co-op must use the same version and restart after updating.
+
+PLAYER MODELS
+F9 > Models: choose Default or SciFi Soldier, then apply your appearance.
+Your choice is saved on this PC and sent to the host when joining a game.
+The soldier follows normal sitting, grabbing and weapon animations. Equipped
+clothing is hidden until you switch back to Default; its gameplay effects stay.
+The helmet is hidden only in your own first-person view.
+All co-op players, including the host, need 1.0.10 or newer for these appearances.
 
 NITROUS AND DASHBOARD
 Blue Stage I and purple Stage II bottles come in 2, 5 and 10 litre sizes.

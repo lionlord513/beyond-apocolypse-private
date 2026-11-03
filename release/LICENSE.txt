@@ -48,3 +48,6 @@ for the original model, license and adaptation credits.
 
 Nitrous bottle: see assets/nitrous/ATTRIBUTION.txt. Supplied third-party geometry
 and NOS trademarks are excluded from the original-code MIT grant.
+
+SciFi Soldier: Free Military Soldier (Rigged) by BAMEN, CC BY 4.0.
+See assets/player_models/ATTRIBUTION.txt for the original model and adaptations.

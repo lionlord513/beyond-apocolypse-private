@@ -1,3 +1,23 @@
+BEYOND APOCALYPSE 1.0.10 - PLAYER MODELS
+Game: Steam build 26106988, Windows / UE 5.2.1
+
+- Nine Lua regression groups pass, including host-authorized selection,
+  stale/replayed requests, late joins, respawn, vehicle possession with a cleared
+  human PlayerState, clothing notifications and default restoration.
+- Camera regressions cover native inspection disagreeing with IsInFPS,
+  local first-person masking, remote full helmets and duplicate-hand suppression.
+- Native checks confirm reliable server/client RPC flags, a replicated selection
+  component, full remote cosmetic visibility and persistent appearance in a car.
+- Six full selector open/apply/close/default cycles completed without freezing.
+- All three imported meshes have 70 native bones, three detail levels, finite
+  geometry, normalized weights and valid indices. First-person detail is retained.
+- Player visually checked the final appearance changes and reported they look good.
+- A real session on two separate PCs has not been tested here. Automated remote
+  cases and native replication checks are not a substitute for that final co-op test.
+- Public packages exclude personal menus, diagnostic runners and user state.
+
+Previous validation records:
+
 BEYOND APOCALYPSE 1.0.9 - TARGETED PATCH CHECKS
 - All eight Lua regression groups pass; all public Lua sources compile.
 - In Steam build 26106988, the native AK SightAttachmentPoint is at local
