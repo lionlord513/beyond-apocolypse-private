@@ -9,6 +9,7 @@ return function(M,root,H,valid,enqueue,log)
  local rendering=StaticFindObject('/Script/Engine.Default__KismetRenderingLibrary')
  local function texture(a,file)return rendering:ImportFileAsTexture2D(a,root..'/assets/'..file)end
  A.journal=dofile(root..'/Scripts/ammo_journal.lua')(root,M.gyrocopter.transport.journal,valid,log,M.statePath)
+ A.reserves=dofile(root..'/Scripts/ammo_reserves.lua')(M,valid,log)
  local function distance(a,b)return (a.X-b.X)^2+(a.Y-b.Y)^2+(a.Z-b.Z)^2 end
  function A.spawn(context,at,count)
   assert(valid(context)and context:HasAuthority(),'Ammo spawning requires authority')
@@ -125,6 +126,7 @@ return function(M,root,H,valid,enqueue,log)
    end end end
   end
   if now<A.nextScan then return end;A.nextScan=now+1
+  if p:HasAuthority()then A.reserves.load(game:GetGameInstance(p).MainSaveGame);A.reserves.update()end
   if p:HasAuthority()then A.cacheIdentities()end
   local ammo=FindAllOf('AkBullet_C')or{}
   local alive={}
@@ -139,6 +141,7 @@ return function(M,root,H,valid,enqueue,log)
   A.ambient(p,now,ammo)
  end
  function A.reset()
+  A.reserves.reset()
   for _,r in pairs(A.items)do if valid(r.visual)then r.visual:K2_DestroyComponent(r.actor)end;if valid(r.actor)and valid(r.actor.cube)then r.actor.cube:SetVisibility(r.originalVisible,false)end end
   A.items={};A.dead={};A.identities={};A.visualErrors={};A.nextScan=0;A.nextAmbient=0;material=nil;A.journal.reset()
  end

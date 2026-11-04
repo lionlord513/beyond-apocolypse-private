@@ -7,7 +7,9 @@ return function(M,root,H,valid,enqueue,log)
   if M.features==false then return false end
   local pc=H.GetPlayerController();local p=H.GetPlayer()
   if not valid(p)or not p:GetFullName():match('^[MF][a-z]+Character_C ')and not p:GetFullName():match('^PlayerBase_C ')then return false end
-  return valid(pc)and valid(p)and p.IsLoaded and p.IsInitialized and not p.BP_PlayerStats.IsDead and not p.BP_PlayerStats.IsDying
+  if not valid(pc) or not p.IsLoaded or not p.IsInitialized then return false end
+  local stats=p.BP_PlayerStats
+  return valid(stats) and not stats.IsDead and not stats.IsDying
  end
  local function hint(s)
   B.message=s;local pc=H.GetPlayerController();if valid(pc)then StaticFindObject('/Script/Engine.Default__KismetSystemLibrary'):PrintString(pc,s,true,false,{R=.85,G=.7,B=.35,A=1},3,FName('BeyondBackpack'))end
@@ -15,7 +17,8 @@ return function(M,root,H,valid,enqueue,log)
  B.notify=hint
  local function busy()
   if not B.ready()then return true end
-  local pc=H.GetPlayerController();return pc.bShowMouseCursor or pc.HUD.ChatUI.TypeInChat or H.IsPauseMenu(pc)or M.devmenu.ui.opened or valid(pc.Vehicle)
+  local pc=H.GetPlayerController();local hud=pc.HUD
+  return pc.bShowMouseCursor or (valid(hud) and valid(hud.ChatUI) and hud.ChatUI.TypeInChat) or H.IsPauseMenu(pc)or M.devmenu.ui.opened or valid(pc.Vehicle)
  end
  function B.toggle()
   if B.ui.opened then B.ui.close();return end;if busy()then return end

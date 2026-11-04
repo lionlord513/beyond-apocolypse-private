@@ -238,7 +238,7 @@ dofile(root..'/Scripts/game_loop.lua')(function()return M.active end,function()
     local a=p.ItemEquiped;local t=valid(a)and tracked[a:GetFullName()]
     local now=game:GetTimeSeconds(p)
     if not game:IsGamePaused(p)then
-     firing.tick(a,t and t.def,now,not M.utility.opened and not devmenu.ui.opened and not backpack.ui.opened and not p.BP_PlayerStats.IsDead and not p.BP_PlayerStats.IsDying,H.GetPlayerController():IsInputKeyDown({KeyName=FName('LeftMouseButton')}))
+     firing.tick(a,t and t.def,now,not M.utility.opened and not devmenu.ui.opened and not backpack.ui.opened and valid(p.BP_PlayerStats) and not p.BP_PlayerStats.IsDead and not p.BP_PlayerStats.IsDying,H.GetPlayerController():IsInputKeyDown({KeyName=FName('LeftMouseButton')}))
      M.population.tick(p)
      if not M.population.disabled then
       apocalypse.tick(p,game,now)

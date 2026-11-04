@@ -2,9 +2,9 @@
   "schema": 1,
   "id": "beyondapocalypse",
   "name": "Beyond Apocalypse",
-  "version": "1.0.11",
+  "version": "1.1.0",
   "channel": "stable",
-  "description": "Custom player appearances, vehicle dashboards, rifles, backpacks, zombies, the Hornet, motorcycles and Hangar shopping for Drive Beyond Horizons.",
+  "description": "Zombies, rifles, backpacks, motorcycles, a gyrocopter and custom player models.",
   "website": "https://www.nexusmods.com/drivebeyondhorizons/mods/28",
   "update": {
     "Provider": "github",
@@ -16,11 +16,21 @@
   },
   "history": [
     {
+      "version": "1.1.0",
+      "channel": "stable",
+      "released": "2026-11-03",
+      "notes": [
+        "Added the Alien with glowing eyes.",
+        "Added a color wheel for each player model and matte or metallic finishes for the Soldier.",
+        "Fixed reserve ammo decreasing after a reload."
+      ]
+    },
+    {
       "version": "1.0.11",
       "released": "2026-11-03",
       "channel": "stable",
       "notes": [
-        "Nitrous bottles, boost and bottle orders moved to Beyond Tuning 1.2.0. Install it to keep using existing bottles."
+        "Moved nitrous bottles and boost to Beyond Tuning."
       ]
     },
     {
@@ -28,9 +38,7 @@
       "released": "2026-11-02",
       "channel": "stable",
       "notes": [
-        "Added a player model selector in F9 with Default and SciFi Soldier appearances.",
-        "Added matching first-person arms, model previews and saved appearance choices.",
-        "Soldier appearance stays on in vehicles. Clothing is hidden while using it; your helmet shows in third person and to other players."
+        "Added the player model selector and SciFi Soldier."
       ]
     },
     {
@@ -38,10 +46,7 @@
       "released": "2026-11-02",
       "channel": "stable",
       "notes": [
-        "Corrected native AK iron-sight alignment using its authored sight socket. Other rifles, hip-fire positioning and optic offsets retain their existing setup.",
-        "Removed Performance Mode's repeated per-component scenery pass and forced visibility overrides. Native distance culling now remains under the game's control.",
-        "Performance Mode retains native LOD, grass and post-processing reductions, skips unchanged settings, and restores previous values when disabled. Gains depend on existing quality settings and the scene; no minimum FPS is promised.",
-        "Retained the 1.0.8 nitrous, material, motorcycle and inventory fixes. Personal developer tools remain excluded."
+        "Fixed AK iron sights and updated Performance Mode."
       ]
     },
     {
@@ -49,12 +54,7 @@
       "released": "2026-11-02",
       "channel": "stable",
       "notes": [
-        "Corrected indirect lighting on nitrous bottles and custom rifles so their textures remain readable in shade. Normal, roughness and metallic maps now load in the correct colour space.",
-        "Stage II nitrous emits purple exhaust flames; Stage I retains blue flames. Colour changes follow the active bottle stage.",
-        "The native nitrous inspection percentage, fluid name and fill bar use the bottle stage colour: blue or purple.",
-        "Replaced the large donor-barrel physics mesh with a compact bottle-sized collider. Pickup/drop restores the matching bottle scale.",
-        "Nitrous bottles now mount horizontally with their placement origin between the two bracket feet. The valve and fluid-transfer interaction follow the new model orientation.",
-        "Existing boost power, consumption, saved bottle identities, motorcycle setup and personal-menu separation are retained."
+        "Improved rifle and bottle lighting and fixed motorcycle and inventory issues."
       ]
     },
     {
@@ -62,13 +62,7 @@
       "released": "2026-11-02",
       "channel": "stable",
       "notes": [
-        "Added six refillable nitrous bottles: blue Stage I and purple Stage II, each in 2 L, 5 L and 10 L sizes.",
-        "Nitrous is a separate native fluid with normal pouring and transfer controls. Attach bottles to a vehicle using the normal attachment controls, then hold Shift while driving to boost.",
-        "Boost strength tapers at high speed and sharp steering, stops under braking or without engine power, and consumes nitrous. Multiple bottles extend supply without stacking force.",
-        "Blue exhaust effects accompany boost. Bottles appear as uncommon building loot and can be purchased through Hangar.",
-        "Added a compact digital vehicle dashboard with speed, gear, RPM, engine temperature, fluid levels, battery warnings and nitrous supply.",
-        "The Hornet has a dedicated flight dashboard with collective, altitude and vertical speed; its existing Shift/Ctrl flight controls are retained.",
-        "Retained 1.0.6 motorcycle seating, modular headlights, performance controls, weapons, backpacks and other existing fixes. Personal developer tools are excluded."
+        "Added six refillable nitrous bottles."
       ]
     },
     {
@@ -76,13 +70,7 @@
       "released": "2026-11-01",
       "channel": "stable",
       "notes": [
-        "Updated for Drive Beyond Horizons build 26106988 while retaining established vehicle, inventory, input and Hangar fixes.",
-        "F9 opens player settings, statistics and host zombie population controls (2 to 40). Default targets are 5 by day and 10 at night or around an infested building.",
-        "Bounded scenery updates replace repeated world-wide mesh scans; idle input and trailer searches are reduced.",
-        "Both motorcycles retain corrected rider positioning, stable parked wheels and contact-height presentation. Removable bike-shaped headlights use the native car lighting system.",
-        "Hornet pitch, roll and yaw remain enabled after resting on the ground; the manual collective gauge updates smoothly between flight calculations.",
-        "Restored rotor-blade pickup recovery, replicated service-part fitting, Hangar click safeguards and saved control reconciliation.",
-        "Public gameplay files only. Mod Manager is optional; the game can be launched directly through Steam."
+        "Updated for game build 26106988."
       ]
     },
     {
@@ -90,10 +78,7 @@
       "released": "2026-10-07",
       "channel": "beta",
       "notes": [
-        "Refined both motorcycles, rider positioning and removable headlights.",
-        "Improved Hangar purchases, backpack handling and saved keybinds.",
-        "Smoother Performance Mode updates and lighter weapon audio loading.",
-        "Improved engine fitting and rotor-blade pickup."
+        "Refined both motorcycles, rider positioning and removable headlights."
       ]
     },
     {
@@ -101,10 +86,7 @@
       "released": "2026-10-06",
       "channel": "beta",
       "notes": [
-        "Refined the compact Suzuki PV 50 with fitted service parts, corrected grip targets and clearer detailed metal finishes.",
-        "Hold X while riding either motorcycle to gradually raise the front up to 35 degrees; release X to lower it.",
-        "Hangar computer setup now retries while loading, and custom orders use the native Buy callback across computers.",
-        "Includes saved F8 Performance Mode, both rare motorcycle loot variants, all three repaired rifles and the existing 1.0.4 fixes. Everyone in co-op should update and restart."
+        "Refined the compact Suzuki PV 50 with fitted service parts, corrected grip targets and clearer detailed metal finishes."
       ]
     },
     {
@@ -112,11 +94,7 @@
       "released": "2026-10-05",
       "channel": "beta",
       "notes": [
-        "Added editable melee controls in F8, ammo cartons, small zombie ammo drops, and uncommon ammunition near loose rifles.",
-        "Hangar ammunition is 30 rounds for $300; guest orders, parcel safeguards, and the $1,000 radiator are included.",
-        "Improved Hornet towing and rotor-blade pickup.",
-        "Adjusted motorcycle tire alignment and rear skid effects, and improved rifle materials.",
-        "Included performance fixes and published-release history in Launcher 1.2.2."
+        "Added editable melee controls in F8, ammo cartons, small zombie ammo drops, and uncommon ammunition near loose rifles."
       ]
     },
     {
@@ -140,7 +118,7 @@
       "released": "2026-10-03",
       "channel": "beta",
       "notes": [
-        "Optional simple flight and automatic hover; gameplay and keybinding tabs in F8."
+        "Optional simple flight and automatic hover and gameplay and keybinding tabs in F8."
       ]
     },
     {
@@ -148,7 +126,7 @@
       "released": "2026-10-03",
       "channel": "beta",
       "notes": [
-        "Aircraft fitting and rotor blade inventory fixes; F8 settings, bindings and personal stats."
+        "Aircraft fitting and rotor blade inventory fixes and F8 settings, bindings and personal stats."
       ]
     },
     {
@@ -156,7 +134,7 @@
       "released": "2026-10-03",
       "channel": "beta",
       "notes": [
-        "Multiplayer aiming, audio and performance updates; Hangar ammunition and airframe changes."
+        "Multiplayer aiming, audio and performance updates and Hangar ammunition and airframe changes."
       ]
     },
     {
@@ -164,7 +142,7 @@
       "released": "2026-10-03",
       "channel": "beta",
       "notes": [
-        "Sights, rifle sounds and handling updates; Hangar and airframe fixes."
+        "Sights, rifle sounds and handling updates and Hangar and airframe fixes."
       ]
     },
     {
@@ -268,7 +246,7 @@
       "released": "2026-09-30",
       "channel": "beta",
       "notes": [
-        "Backpack removal and guest inventory refresh fixes; docking ownership updates."
+        "Backpack removal and guest inventory refresh fixes and docking ownership updates."
       ]
     },
     {
@@ -292,7 +270,7 @@
       "released": "2026-09-29",
       "channel": "beta",
       "notes": [
-        "Rotor-sync actor work deferred to the game tick to address an RPC callback crash."
+        "Fixed a multiplayer crash while syncing rotor blades."
       ]
     },
     {

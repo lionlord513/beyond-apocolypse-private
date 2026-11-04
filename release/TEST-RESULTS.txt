@@ -1,3 +1,15 @@
+BEYOND APOCALYPSE 1.1.0
+
+Steam build 26106988. Tested with Beyond Tuning and the installed host companion.
+The model pencil, color wheel and Save colors action ran in the native menu.
+The Alien used its original skin material and a tinted copy of the native
+diffuse texture. The Soldier retained its original normal and occlusion maps.
+The owner's native first-person camera hid the Alien head and eyes. Inspection
+and driving restored both. A second actor retained a separate color and full head.
+Replicated markers, late join, controller ownership and respawn passed the Lua
+regression. Two physical multiplayer PCs were not tested.
+The native gun reserve reloaded at 87 rounds in the same saved world.
+
 BEYOND APOCALYPSE 1.0.10 - PLAYER MODELS
 Game: Steam build 26106988, Windows / UE 5.2.1
 

@@ -1,17 +1,15 @@
 # Beyond Apocalypse
 
-Beyond Apocalypse 1.0.11 for Drive Beyond Horizons Steam build 26106988.
+Survive zombie encounters, pack supplies in a backpack and shop for gear at the Hangar. Ride motorcycles, fly the Hornet gyrocopter or choose a custom player model.
 
-[Downloads and release notes](https://github.com/lionlord513/beyond-apocolypse-private/releases/tag/v1.0.11).
-The public ZIP supports Beyond Mod Manager; the Nexus ZIP uses the game-folder layout.
-Mod Manager is optional. Launch the game through Steam.
+## Getting started
 
-Gameplay source and original assets are in `mod/BasicM4`. Packages map that
-source to `Mods/BeyondApocalypse`, with an inert legacy migration stub.
-Installation, controls, credits and validation limits are in `release/`.
-Personal companion tools and local state are excluded from this repository.
+Press F9 and open Models to choose Default, SciFi Soldier or Alien. Click the pencil on a portrait to change its colors. The Soldier also has matte and metallic finishes.
 
-Lua regressions are in `tests/` (Lua 5.4). `build_release.py` assembles and checks
-the distributable archives from the source, pinned runtime and original Hornet source.
-Recovered native helper DLLs are retained unchanged; their original C++ source
-was not available in the recovered source tree.
+Press Tab to open your backpack. Use the Hangar app on an in-game computer to buy gear. Nitrous bottles are available with Beyond Tuning.
+
+## Installation
+
+Close the game. Import the public ZIP into Beyond Mod Manager and select Install, or extract the Nexus ZIP into your Drive Beyond Horizons game folder. Everyone in co-op needs the same version.
+
+[Downloads](https://github.com/lionlord513/beyond-apocolypse-private/releases/latest)

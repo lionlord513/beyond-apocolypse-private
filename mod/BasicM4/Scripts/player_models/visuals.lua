@@ -1,6 +1,8 @@
 -- Cosmetic followers share native animation. Gameplay skeletons are never replaced.
 return function(M,root,H,valid,log)
  local R={records={},cache={}}
+ local paint=dofile(root..'/Scripts/player_models/colors.lua')(root,valid)
+ R.rgb=paint.rgb
  local game=StaticFindObject('/Script/Engine.Default__GameplayStatics')
  local I={Translation={X=0,Y=0,Z=0},Rotation={X=0,Y=0,Z=0,W=1},Scale3D={X=1,Y=1,Z=1}}
  local skinned=StaticFindObject('/Script/Engine.SkeletalMeshComponent')
@@ -60,10 +62,11 @@ return function(M,root,H,valid,log)
   for _,part in ipairs(parts or{})do if valid(part.component)then part.component:SetVisibility(part.visible,false);part.component:SetHiddenInGame(part.hidden,false);part.component:SetCastShadow(part.shadow)end end
  end
  function R.hide(r)
+  if r.id==0 then return end
   hideParts(r.parts);for _,item in pairs(r.wearables or{})do hideParts(item.parts)end
  end
  function R.syncWearables(r)
-  if not r.isPawn then return end
+  if r.id==0 or not r.isPawn then return end
   r.wearables=r.wearables or{};local seen={}
   local attached={};r.actor:GetAttachedActors(attached,true,false)
   local wearable=StaticFindObject('/Game/BP/Items/Master/ItemWearable.ItemWearable_C')
@@ -83,6 +86,7 @@ return function(M,root,H,valid,log)
  end
  local clothing={sleeveless_shirt=true,shirt=true,pants=true,shoes1=true,tie=true,shoes_formal=true,Legs=true,arms_feet=true,Chest=true}
  function R.clothingChanged(r)
+  if r.id==0 then return end
   local old={};for _,part in ipairs(r.parts or{})do old[part.component:GetAddress()]=part end
   R.capture(r)
   for _,part in ipairs(r.parts)do local saved=old[part.component:GetAddress()]
@@ -92,31 +96,65 @@ return function(M,root,H,valid,log)
  function R.restore(r)
   restoreParts(r.parts)
  end
- local function follower(actor,source,kind)
-  local entry=R.load(actor,kind,source)
-  local c=actor:AddComponentByClass(skinned,true,I,false);assert(valid(c),'Cannot attach soldier cosmetic')
+ -- Animate the owner's headless Alien torso from the live full-body pose.
+ -- A leader-pose follower inherits the leader's bone visibility, so hiding a
+ -- bone on that follower does not hide it. Keep this pose local to the viewer.
+ local torsoBones={'pelvis','spine_01','spine_02','spine_03','clavicle_l','clavicle_r','thigh_l','calf_l','foot_l','ball_l','thigh_r','calf_r','foot_r','ball_r'}
+ local function poseTorso(r)
+  local body,full=r.firstBody,r.follower
+  for _,bone in ipairs(torsoBones)do
+   local name=FName(bone);body:SetBoneTransformByName(name,full:GetSocketTransform(name,1),1)
+  end
+ end
+ local function follower(actor,source,kind,id,material)
+  local entry
+  if id==2 then
+   local mesh=kind=='arms' and source:GetSkinnedAsset() or LoadAsset('/Game/Environments/SK/Alien/SK_Alien.SK_Alien')
+   assert(valid(mesh),'Alien mesh unavailable');entry={mesh=mesh}
+  else entry=R.load(actor,kind,source) end
+  local torso=id==2 and kind=='first_body'
+  local class=torso and StaticFindObject('/Script/Engine.PoseableMeshComponent') or skinned
+  local c=actor:AddComponentByClass(class,true,I,false);assert(valid(c),'Cannot attach player model')
   local ok,why=pcall(function()
    c:SetIsReplicated(false);c:SetCollisionEnabled(0);c:K2_AttachToComponent(source,FName('None'),0,0,0,false);c:K2_SetRelativeTransform(I,false,{},true)
-   c:SetSkinnedAssetAndUpdate(entry.mesh,true);c:SetMaterial(0,entry.material);c:SetLeaderPoseComponent(source,true,false)
+   c:SetSkinnedAssetAndUpdate(entry.mesh,true)
+   if material or entry.material then c:SetMaterial(0,material or entry.material)end
+   if torso then
+    c:SetVisibility(false,false);c:SetOnlyOwnerSee(true)
+    for _,bone in ipairs({'neck_01','head','upperarm_l','upperarm_r'})do c:HideBoneByName(FName(bone),0)end
+   else c:SetLeaderPoseComponent(source,true,false)end
    if kind=='arms'or kind=='first_body'then c:SetForcedLOD(1)end
    c:SetCastShadow(kind=='body');if kind=='body'then c:SetCastHiddenShadow(true)end
   end)
   if not ok then c:K2_DestroyComponent(actor);error(why)end
   return c
  end
- function R.apply(actor,source)
+ function R.apply(actor,source,id,palette)
+  id=id or 1;palette=palette or M.playerModels.policy.stock(id)
   local key=actor:GetFullName();local old=R.records[key]
-  if old and same(old.actor,actor)and valid(old.follower)then return old end
+  if old and same(old.actor,actor)and old.id==id and old.palette==palette and (valid(old.follower) or old.id==0)then return old end
+  if old then R.remove(old)end
   source=source or actor.Mesh;assert(valid(source),'Player body unavailable')
-  local r={actor=actor,key=key,source=source,tick=source.VisibilityBasedAnimTickOption,isPawn=actor:IsA(StaticFindObject('/Game/BP/Player/PlayerBase.PlayerBase_C'))}
-  r.follower=follower(actor,source,'body');R.records[key]=r
-  local ok,why=pcall(function()R.capture(r);source.VisibilityBasedAnimTickOption=0;R.syncWearables(r);R.hide(r)end)
+  local r={actor=actor,key=key,id=id,palette=palette,source=source,tick=source.VisibilityBasedAnimTickOption,isPawn=actor:IsA(StaticFindObject('/Game/BP/Player/PlayerBase.PlayerBase_C'))}
+  R.records[key]=r
+  local ok,why=pcall(function()
+   if id==0 then r.band=paint.band(actor,source,palette);return end
+   r.follower=follower(actor,source,'body',id)
+   local material=r.follower:GetMaterial(0)
+   if id==2 then
+    r.material=paint.alien(actor,material,palette);r.eyes=paint.eyes(actor,r.follower,palette)
+   elseif palette~=M.playerModels.policy.stock(1) then r.material=paint.soldier(actor,material,palette)end
+   if r.material then r.follower:SetMaterial(0,r.material)end
+   R.capture(r);source.VisibilityBasedAnimTickOption=0;R.syncWearables(r);R.hide(r)
+  end)
   if not ok then R.remove(r);error(why)end
   return r
  end
  function R.remove(key)
   local r=type(key)=='table'and key or R.records[key];if not r or r.removed then return end;r.removed=true
   if r.ragdoll then R.remove(r.ragdoll)end
+  if valid(r.band)then r.band:K2_DestroyComponent(r.actor)end
+  for _,eye in ipairs(r.eyes or{})do if valid(eye)then eye:K2_DestroyComponent(r.actor)end end
   for _,item in pairs(r.wearables or{})do restoreParts(item.parts)end
   R.restore(r)
   if valid(r.source)then r.source.VisibilityBasedAnimTickOption=r.tick end
@@ -135,30 +173,36 @@ return function(M,root,H,valid,log)
   if valid(actor)and not r.ragdoll then
    local skeleton=r.source:GetSkinnedAsset().Skeleton
    for _,v in ipairs(actor:K2_GetComponentsByClass(skinned))do local source=v:get();local mesh=source:GetSkinnedAsset()
-    if valid(mesh)and same(mesh.Skeleton,skeleton)then r.ragdoll=R.apply(actor,source);break end
+    if valid(mesh)and same(mesh.Skeleton,skeleton)then r.ragdoll=R.apply(actor,source,r.id,r.palette);break end
    end
   end
   if r.ragdoll then R.hide(r.ragdoll)end
  end
  function R.update(r,localPlayer,pc)
+  if r.id==0 then return end
   if not same(r.actor,localPlayer)then
    if r.follower.bOwnerNoSee then r.follower:SetOwnerNoSee(false)end
    if not r.follower.bVisible then r.follower:SetVisibility(true,false)end
-   if r.localOwner then if valid(r.arms)then r.arms:SetVisibility(false,false)end;if valid(r.firstBody)then r.firstBody:SetVisibility(false,false)end;r.localOwner=false end
+   if r.localOwner then for _,eye in ipairs(r.eyes or{})do if valid(eye)then eye:SetOwnerNoSee(false);eye:SetVisibility(true,false)end end;r.fps=nil;if valid(r.arms)then r.arms:SetVisibility(false,false)end;if valid(r.firstBody)then r.firstBody:SetVisibility(false,false)end;r.localOwner=false end
    return
   end
   r.localOwner=true;r.view=r.view or{};pc:IsInCameraFPS(r.view)
-  local fps=r.view.IsFPS==true;R.hide(r)
+  local seated=valid(pc.Vehicle) and same(pc.Vehicle.Driver,localPlayer)
+  local fps=r.view.IsFPS==true and not seated;R.hide(r)
+  if r.eyes and r.fps~=fps then for _,eye in ipairs(r.eyes)do if valid(eye)then eye:SetOwnerNoSee(fps);eye:SetVisibility(not fps,false)end end end
   if r.follower.bOwnerNoSee~=fps then r.follower:SetOwnerNoSee(fps)end
   if r.follower.bVisible==fps then r.follower:SetVisibility(not fps,false)end;r.fps=fps
-  if not valid(r.firstBody)then r.firstBody=follower(localPlayer,r.source,'first_body')end
-  if r.firstBody.bOwnerNoSee then r.firstBody:SetOwnerNoSee(false)end
-  if r.firstBody.bVisible~=fps then r.firstBody:SetVisibility(fps,false)end
+  if fps and not valid(r.firstBody)then r.firstBody=follower(localPlayer,r.source,'first_body',r.id,r.material)end
+  if valid(r.firstBody)then
+   if fps and r.id==2 and os.clock()>=(r.nextTorso or 0)then poseTorso(r);r.nextTorso=os.clock()+.05 end
+   if r.firstBody.bOwnerNoSee then r.firstBody:SetOwnerNoSee(false)end
+   if r.firstBody.bVisible~=fps then r.firstBody:SetVisibility(fps,false)end
+  end
   local src=localPlayer.FpsArm
   if valid(src)and not valid(r.arms)then
-   r.arms=follower(localPlayer,src,'arms');r.armSource=src;r.armMain=src.bRenderInMainPass;r.armDepth=src.bRenderInDepthPass;r.armShadow=src.CastShadow;r.armTick=src.VisibilityBasedAnimTickOption;src.VisibilityBasedAnimTickOption=0
+   r.arms=follower(localPlayer,src,'arms',r.id,r.material);r.armSource=src;r.armMain=src.bRenderInMainPass;r.armDepth=src.bRenderInDepthPass;r.armShadow=src.CastShadow;r.armTick=src.VisibilityBasedAnimTickOption;src.VisibilityBasedAnimTickOption=0
   end
-  if valid(r.arms)then
+  if valid(r.arms) and valid(src) and valid(localPlayer.BP_PlayerStats) then
    -- Native hands are also used for some third-person interactions. Follow the
    -- source visibility instead of making a separate camera-mode assumption.
    local show=not src.bHiddenInGame and not localPlayer.BP_PlayerStats.IsDead

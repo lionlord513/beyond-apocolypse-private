@@ -1,56 +1,15 @@
-BEYOND APOCALYPSE 1.0.11
-Drive Beyond Horizons - Windows / Steam build 26106988
+BEYOND APOCALYPSE 1.1.0
 
-INSTALL
-Close the game before updating and back up your saves.
-Mod Manager: import BeyondApocalypse-1.0.11-public.zip, or use Check for updates.
-Manual installer: extract the public ZIP and run Install.cmd.
-Nexus ZIP: merge its DriveBeyondHorizons folder into the game's main folder
-(Steam > Manage > Browse local files). Do not put it inside a second copy of
-DriveBeyondHorizons. Keep existing state and config.lua files.
-The bundled UE4SS runtime is pinned for the included native helpers. The
-installer checks an existing runtime and preserves other installed mods.
-BasicM4/Scripts/main.lua is an inert migration stub, preventing double loading.
-Everyone in co-op must use the same version and restart after updating.
+Survive zombie encounters, pack supplies in a backpack and shop for gear at the Hangar. Ride motorcycles, fly the Hornet gyrocopter or choose a custom player model.
 
-PLAYER MODELS
-F9 > Models: choose Default or SciFi Soldier, then apply your appearance.
-Your choice is saved on this PC and sent to the host when joining a game.
-The soldier follows normal sitting, grabbing and weapon animations. Equipped
-clothing is hidden until you switch back to Default; its gameplay effects stay.
-The helmet is hidden only in your own first-person view.
-All co-op players, including the host, need 1.0.10 or newer for these appearances.
+Getting started
 
-NITROUS AND DASHBOARD
-Nitrous moved to Beyond Tuning 1.2.0. Buy bottles under Car Tuning > Boost.
-The right-side digital cluster displays vehicle and fluid information. Hornet
-shows collective, altitude above world sea level and vertical speed. Aircraft
-Shift/Ctrl controls are unchanged. Set VehicleDashboard=false in local config.lua
-to hide the dashboard if desired.
+Press F9 and open Models to choose Default, SciFi Soldier or Alien. Click the pencil on a portrait to change its colors. The Soldier also has matte and metallic finishes.
 
-CONTROLS AND FEATURES
-F9: player utility panel, settings, key bindings and statistics.
-Host settings: zombie maximum 2-40. Fresh default 10: ordinary daytime target
-5, nighttime and infested-building ceiling 10. Existing host choices persist.
-Day encounters prefer roads and buildings; nighttime roadside encounters can
-approach closer when stopped. All native and added zombies share the cap.
-Performance Mode is a saved local preference in F9 > Settings > Gameplay.
-It uses native LOD, grass and post-processing settings without a custom
-per-mesh visibility loop. It leaves native view distance and object culling alone.
-Already-low settings may leave little benefit; no minimum frame rate is guaranteed.
+Press Tab to open your backpack. Use the Hangar app on an in-game computer to buy gear. Nitrous bottles are available with Beyond Tuning.
 
-Tab: backpack. B: drop worn backpack. RMB: aim rifle. Middle mouse: drop rifle.
-L: fit/toggle rifle light or optic. Inventory attachment controls are retained.
-I: vehicle ignition. Hornet manual: W/S pitch, A/D roll, Q/E yaw, Shift/Ctrl
-raise/lower collective. Releasing collective holds it. Simple Flight is optional
-in F9. J beside a carrier: dock/stow or unload. Stop rotors before handling blades.
-Both bikes use their original rider layout and a single removable headlamp.
-Park and dismount to fit/remove it. The game's headlight binding controls beams.
-Hold X while riding to raise the front presentation; release to lower it.
-Hangar on in-game computers sells mod vehicles, service parts, rifles and ammo.
-See BACKPACKS.md and TRANSPORT.md for the retained detailed instructions.
+Installation
 
-Mod Manager is optional. Launch through Steam; it can be closed during play.
-This download contains public gameplay only, with no personal menu or user data.
-See TEST-RESULTS.txt for validation scope and LICENSE.txt for asset credits.
-The Hornet model-source companion is a separate optional download on this release.
+Close the game. Import the public ZIP into Beyond Mod Manager and select Install, or extract the Nexus ZIP into your Drive Beyond Horizons game folder. Everyone in co-op needs the same version.
+
+See BACKPACKS.md and TRANSPORT.md for more controls.

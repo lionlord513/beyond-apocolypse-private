@@ -114,7 +114,7 @@ return function(M,root,H,valid,enqueue,log)
   local player=H.GetPlayer();assert(valid(player)and player.IsLoaded,'Join a game first')
   local pc=H.GetPlayerController();if pc.HUD.ChatUI.TypeInChat or H.IsPauseMenu(pc)or M.devmenu.ui.opened or M.backpack.ui.opened then return end
   Ctl.readNative();U.draft=Ctl.copy();U.capture=nil;U.message=''
-  U.tab='Settings';U.modelChoice=M.playerModels.selected;U.zombieDraft=M.population and M.population.limit or 10
+  U.tab='Settings';U.modelEdit=nil;U.modelChoice=M.playerModels.selected;U.zombieDraft=M.population and M.population.limit or 10
   U.pc=H.GetPlayerController();U.pawn=U.pc:K2_GetPawn();U.cursorBefore=U.pc.bShowMouseCursor
   lib=StaticFindObject('/Script/UMG.Default__WidgetBlueprintLibrary');layout=StaticFindObject('/Script/UMG.Default__WidgetLayoutLibrary');slate=StaticFindObject('/Script/UMG.Default__SlateBlueprintLibrary')
   U.widget=lib:Create(U.pc,StaticFindObject('/Script/UMG.UserWidget'),U.pc)
@@ -133,7 +133,7 @@ return function(M,root,H,valid,enqueue,log)
   -- transforms. Do not pass opaque FGeometry through UE4SS's Lua table copier.
   local pixel,q={},{};slate:AbsoluteToViewport(U.pc,layout:GetMousePositionOnPlatform(),pixel,q)
   local x,y=(q.X-U.x)/U.scale,(q.Y-U.y)/U.scale
-  for _,b in ipairs(U.buttons)do if x>=b.x and x<=b.x+b.w and y>=b.y and y<=b.y+b.h then b.fn();return end end
+  for _,b in ipairs(U.buttons)do if x>=b.x and x<=b.x+b.w and y>=b.y and y<=b.y+b.h then if b.xy then b.fn(x,y)else b.fn()end;return end end
  end
 
  function U.accept(key)

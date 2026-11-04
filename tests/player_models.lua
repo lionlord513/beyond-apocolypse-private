@@ -1,7 +1,7 @@
 local root,scratch=assert(arg[1]),assert(arg[2])
 local P=dofile(root..'/player_models/policy.lua')
-assert(#P.catalog==2 and P.catalog[1].id==0 and P.catalog[2].id==1)
-for _,s in ipairs({'BASKIN1|set|0|1','BASKIN1|set|1|2','BASKIN1|set|1|1|other','BASKIN1|set|-1|0','BASKIN1|set|2147483648|0','BASKIN1|ack|1|1',string.rep('x',65)})do assert(not P.parse(s,'set'),s)end
+assert(#P.catalog==3 and P.catalog[1].id==0 and P.catalog[2].id==1)
+for _,s in ipairs({'BASKIN1|set|0|1','BASKIN1|set|1|3','BASKIN1|set|1|1|other','BASKIN1|set|-1|0','BASKIN1|set|2147483648|0','BASKIN1|ack|1|1',string.rep('x',65)})do assert(not P.parse(s,'set'),s)end
 assert(P.parse(P.message('set',21,1),'set')==21)
 local replay={};assert(P.accept(replay,1,1,0));assert(P.accept(replay,1,1,.1));assert(not P.accept(replay,1,0,2));assert(not P.accept(replay,2,0,.1));assert(P.accept(replay,2,0,1));assert(not P.accept(replay,1,1,2))
 assert(P.markerId('BA_PlayerSkin_v1_1')==1 and not P.markerId('BA_PlayerSkin_v1_10'))
@@ -71,9 +71,9 @@ local C=dofile(root..'/player_models/controller.lua')(M,root..'/..',H,valid,enqu
 C.select(1);C.tick();assert(C.selected==1 and not C.pending)
 assert(hostPawn.components[1].bReplicates and #hostPawn.components==1)
 assert(visuals.records[hostPawn:GetFullName()])
-assert(C.server(guest,10,1));assert(guest.ack[1]==10 and guest.ack[2]==1)
-clock=1;C.tick();assert(C.players[remotePawn:GetFullName()].id==1)
-assert(not C.server(guest,9,0));assert(not C.server(guest,11,2))
+local palette='FF20800A0D0B00';assert(C.server(guest,10,2,palette));assert(guest.ack[1]==10 and guest.ack[2]==2 and guest.ack[3]==palette)
+clock=1;C.tick();assert(C.players[remotePawn:GetFullName()].id==2 and C.players[remotePawn:GetFullName()].colors==palette)
+assert(not C.server(guest,9,0));assert(not C.server(guest,11,3))
 guest.PlayerState=hostState;assert(not C.server(guest,11,0));guest.PlayerState=guestState
 M.features=false;assert(not C.server(guest,11,0));M.features=true
 remotePawn.IsLoaded=false;assert(not C.server(guest,11,0));remotePawn.IsLoaded=true
@@ -84,16 +84,16 @@ assert(searches==1,'Steady-state ticks repeated the world discovery')
 local vehicle=object('car');vehicle.IsA=function(_,cls)return cls.path=='/Script/VehicleSystemPlugin.VehicleSystemBase'end;vehicle.Driver=remotePawn
 hostState.PawnPrivate=vehicle;guestState.PawnPrivate=vehicle
 hostPawn.PlayerState=nil;remotePawn.PlayerState=nil
-clock=clock+1;C.tick();assert(C.players[hostPawn:GetFullName()].id==1 and C.players[remotePawn:GetFullName()].id==1,'Vehicle possession removed a custom model')
-assert(C.server(guest,11,1),'Model choice denied during native UnPossess')
+clock=clock+1;C.tick();assert(C.players[hostPawn:GetFullName()].id==1 and C.players[remotePawn:GetFullName()].id==2 and C.players[remotePawn:GetFullName()].colors==palette,'Vehicle possession removed a custom model')
+assert(C.server(guest,11,2,palette),'Model choice denied during native UnPossess')
 -- The same controller retains its selection after the native pawn respawns.
 local replacement=pawn('respawned guest');replacement.PlayerState=guestState;guest.PlayerControlled=replacement;guestState.PawnPrivate=replacement
 remotePawn.dead=true;observed={hostPawn,replacement};notify(replacement);flush()
-clock=clock+1;C.tick();assert(C.players[replacement:GetFullName()].id==1)
+clock=clock+1;C.tick();assert(C.players[replacement:GetFullName()].id==2 and C.players[replacement:GetFullName()].colors==palette)
 assert(not visuals.records[remotePawn:GetFullName()])
 -- A client joining later reads the already replicated marker, without an RPC.
 pc.authority=false;guestState.hideOwner=true;guestState.PawnPrivate=vehicle;vehicle.Driver=replacement;replacement.PlayerState=nil;C.players={};C.humans={};C.states={};C.seeded=false
-clock=clock+1;C.tick();assert(C.players[replacement:GetFullName()].id==1,'Late join lost a seated remote model');pc.authority=true;guestState.hideOwner=false
+clock=clock+1;C.tick();assert(C.players[replacement:GetFullName()].id==2 and C.players[replacement:GetFullName()].colors==palette,'Late join lost a seated remote model');pc.authority=true;guestState.hideOwner=false
 clock=clock+1;assert(C.server(guest,12,0));C.tick();assert(not visuals.records[replacement:GetFullName()])
 -- Blueprint notifications only queue native work, avoiding re-entry from UI.
 local h=hooks['/Game/BP/Player/CustomizablePlayer/MaleCharacter.MaleCharacter_C:SetClothes'][1]
@@ -105,7 +105,7 @@ C.reset();assert(next(visuals.records)==nil)
 dofile=realDofile
 -- Native inspection can report first person in IsInFPS while its active camera
 -- is third person. Only the owning camera may hide the helmet/full body.
-local V=realDofile(root..'/player_models/visuals.lua')({},scratch,{},valid,function()end)
+local V=realDofile(root..'/player_models/visuals.lua')({},root..'/..',{},valid,function()end)
 local function component(name)
  local c=object(name);c.bVisible=true;c.bHiddenInGame=false;c.bOwnerNoSee=false
  c.bRenderInMainPass=true;c.bRenderInDepthPass=true;c.CastShadow=true
@@ -126,7 +126,9 @@ assert(human.FpsArm.bVisible and not human.FpsArm.bHiddenInGame,'Changing native
 assert(not human.FpsArm.bRenderInMainPass and not human.FpsArm.bRenderInDepthPass,'Two sets of hands must not render together')
 cameraFPS=false;V.update(cosmetic,human,camera)
 assert(cosmetic.follower.bVisible and not cosmetic.follower.bOwnerNoSee and not cosmetic.firstBody.bVisible,'Inspection must show the full helmet')
-cameraFPS=true;V.update(cosmetic,human,camera)
+cameraFPS=true;camera.Vehicle=object('occupied car');camera.Vehicle.Driver=human;V.update(cosmetic,human,camera)
+assert(cosmetic.follower.bVisible and not cosmetic.firstBody.bVisible,'Driver model lost its head')
+camera.Vehicle=nil;V.update(cosmetic,human,camera)
 V.update(cosmetic,object('different local player'),camera)
 assert(cosmetic.follower.bVisible and not cosmetic.follower.bOwnerNoSee and not cosmetic.firstBody.bVisible and not cosmetic.arms.bVisible,'Remote players must see a full helmet')
 print('PASS: model choices, strict RPC ownership, stale/rate-limited messages, late discovery, respawn, clothing notification, bounded native arrays and restore')

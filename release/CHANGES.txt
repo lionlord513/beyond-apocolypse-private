@@ -1,46 +1,145 @@
-BEYOND APOCALYPSE 1.0.11
-Nitrous moved to Beyond Tuning 1.2.0. Existing bottle contents stay in the native game save.
+1.1.0
+- Added the Alien with glowing eyes.
+- Added a color wheel for each player model and matte or metallic finishes for the Soldier.
+- Fixed reserve ammo decreasing after a reload.
 
-BEYOND APOCALYPSE 1.0.10
+1.0.11
+- Moved nitrous bottles and boost to Beyond Tuning.
 
-- Added a player model selector in F9 with Default and SciFi Soldier appearances.
-- Added matching first-person arms, model previews and saved appearance choices.
-- Soldier appearance stays on in vehicles. Clothing is hidden while using it; your helmet shows in third person and to other players.
+1.0.10
+- Added the player model selector and SciFi Soldier.
 
-BEYOND APOCALYPSE 1.0.9
+1.0.9
+- Fixed AK iron sights and updated Performance Mode.
 
-- Corrected native AK iron-sight alignment using its authored sight socket. Other rifles, hip-fire positioning and optic offsets retain their existing setup.
-- Removed Performance Mode's repeated per-component scenery pass and forced visibility overrides. Native distance culling now remains under the game's control.
-- Performance Mode retains native LOD, grass and post-processing reductions, skips unchanged settings, and restores previous values when disabled. Gains depend on existing quality settings and the scene; no minimum FPS is promised.
-- Retained the 1.0.8 nitrous, material, motorcycle and inventory fixes. Personal developer tools remain excluded.
+1.0.8
+- Improved rifle and bottle lighting and fixed motorcycle and inventory issues.
 
-BEYOND APOCALYPSE 1.0.8
-2026-11-02
+1.0.7
+- Added six refillable nitrous bottles.
 
-- Corrected indirect lighting on nitrous bottles and custom rifles so their textures remain readable in shade. Normal, roughness and metallic maps now load in the correct colour space.
-- Stage II nitrous emits purple exhaust flames; Stage I retains blue flames. Colour changes follow the active bottle stage.
-- The native nitrous inspection percentage, fluid name and fill bar use the bottle stage colour: blue or purple.
-- Replaced the large donor-barrel physics mesh with a compact bottle-sized collider. Pickup/drop restores the matching bottle scale.
-- Nitrous bottles now mount horizontally with their placement origin between the two bracket feet. The valve and fluid-transfer interaction follow the new model orientation.
-- Existing boost power, consumption, saved bottle identities, motorcycle setup and personal-menu separation are retained.
+1.0.6
+- Updated for game build 26106988.
 
-BEYOND APOCALYPSE 1.0.7
-2026-11-02
+1.0.5
+- Refined both motorcycles, rider positioning and removable headlights.
 
-- Added six refillable nitrous bottles: blue Stage I and purple Stage II, each in 2 L, 5 L and 10 L sizes.
-- Nitrous is a separate native fluid with normal pouring and transfer controls. Attach bottles to a vehicle using the normal attachment controls, then hold Shift while driving to boost.
-- Boost strength tapers at high speed and sharp steering, stops under braking or without engine power, and consumes nitrous. Multiple bottles extend supply without stacking force.
-- Blue exhaust effects accompany boost. Bottles appear as uncommon building loot and can be purchased through Hangar.
-- Added a compact digital vehicle dashboard with speed, gear, RPM, engine temperature, fluid levels, battery warnings and nitrous supply.
-- The Hornet has a dedicated flight dashboard with collective, altitude and vertical speed; its existing Shift/Ctrl flight controls are retained.
-- Retained 1.0.6 motorcycle seating, modular headlights, performance controls, weapons, backpacks and other existing fixes. Personal developer tools are excluded.
+1.0.4
+- Refined the compact Suzuki PV 50 with fitted service parts, corrected grip targets and clearer detailed metal finishes.
 
-BEYOND APOCALYPSE 1.0.6
+1.0.3
+- Added editable melee controls in F8, ammo cartons, small zombie ammo drops, and uncommon ammunition near loose rifles.
 
-- Updated for Drive Beyond Horizons build 26106988 while retaining established vehicle, inventory, input and Hangar fixes.
-- F9 opens player settings, statistics and host zombie population controls (2 to 40). Default targets are 5 by day and 10 at night or around an infested building.
-- Bounded scenery updates replace repeated world-wide mesh scans; idle input and trailer searches are reduced.
-- Both motorcycles retain corrected rider positioning, stable parked wheels and contact-height presentation. Removable bike-shaped headlights use the native car lighting system.
-- Hornet pitch, roll and yaw remain enabled after resting on the ground; the manual collective gauge updates smoothly between flight calculations.
-- Restored rotor-blade pickup recovery, replicated service-part fitting, Hangar click safeguards and saved control reconciliation.
-- Public gameplay files only. Mod Manager is optional; the game can be launched directly through Steam.
+1.0.2
+- Public release on Nexus Mods.
+
+0.13.13
+- Motorcycle update.
+
+0.13.12
+- Optional simple flight and automatic hover and gameplay and keybinding tabs in F8.
+
+0.13.11
+- Aircraft fitting and rotor blade inventory fixes and F8 settings, bindings and personal stats.
+
+0.13.10
+- Multiplayer aiming, audio and performance updates and Hangar ammunition and airframe changes.
+
+0.13.9
+- Sights, rifle sounds and handling updates and Hangar and airframe fixes.
+
+0.13.8
+- Hangar shop update.
+
+0.13.7
+- Rifle controls, universal rotor blades, Hangar parts shop and 2x sights.
+
+0.13.6
+- Graphics presets, weapon hotbar, drop position and flashlight shadow fixes.
+
+0.13.5
+- Sprint aiming fixes, brighter weapon flashlights and zombie patrol movement.
+
+0.13.4
+- Aiming and inventory fixes, brighter weapon lights and idle zombie wandering.
+
+0.13.3
+- Weapon aiming and flashlights, backpack drop fixes and more responsive collective.
+
+0.13.2
+- Smoother flight, collective gauge, backpack storage-drop fix and tougher Mechanic.
+
+0.13.1
+- Slower Mechanic with immediate pursuit and attack recovery.
+
+0.13.0
+- Mechanic night hunter.
+
+0.12.1
+- Flight balance and collective gauge.
+
+0.12.0
+- Manual flight and engine/turbo performance.
+
+0.11.12
+- Mod update with Launcher 1.1.
+
+0.11.11
+- Backpack removal and guest inventory refresh fixes and docking ownership updates.
+
+0.11.10
+- Separated the player release package from development tools.
+
+0.11.9
+- Unloading refits original racked blades and frees the trailer for another Hornet.
+
+0.11.8
+- Fixed a multiplayer crash while syncing rotor blades.
+
+0.11.7
+- Owner-only aircraft simulation, multiplayer aircraft identity and blade fitting updates.
+
+0.11.6
+- Docking collision, delayed attachment and trailer-mass synchronization fixes.
+
+0.11.5
+- Restored the missing heli-trailer landing pad.
+
+0.11.4
+- Guest left-click blade attachment and replicated landing pad collision.
+
+0.11.3
+- Multiplayer aircraft/blade identities and docking synchronization.
+
+0.11.2
+- Landing pad trim and stopped-engine Hornet audio cleanup.
+
+0.11.1
+- Hover docking and native towing force fixes.
+
+0.11.0
+- Native blade removal/refitting and separate Trailer/Heli trailer choices.
+
+0.10.1
+- Blade pickup alignment and native left-click attachment.
+
+0.10.0
+- Hornet carrier deck, removable main blades and docking/rack storage.
+
+0.9.3
+- Hornet radiator and battery mounting positions retained after refitting.
+
+0.9.2
+- Native input conflict fixes for aircraft vertical movement and banking.
+
+0.9.1
+- Assisted vertical flight and restored rotor/propeller visibility.
+
+0.9.0
+- Single-seat Hornet gyrocopter with native servicing and rare airframe spawns.
+
+0.8.0
+- Imported Hazmat zombie variant with distance detail levels.
+
+0.7.2
+- Multiplayer backpack lookup and transfer feedback fixes.

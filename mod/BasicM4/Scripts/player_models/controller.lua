@@ -1,7 +1,7 @@
 return function(M,root,H,valid,enqueue,log)
  local C={selected=0,nonce=0,players={},owners={},humans={},states={},nextAt=0,hooks={},revision=0}
  local P=dofile(root..'/Scripts/player_models/policy.lua');C.policy=P;C.catalog=P.catalog
- local R=dofile(root..'/Scripts/player_models/visuals.lua')(M,root,H,valid,log);C.visuals=R
+ local R=dofile(root..'/Scripts/player_models/visuals.lua')(M,root,H,valid,log);C.visuals=R;C.paintRGB=R.rgb
  local game=StaticFindObject('/Script/Engine.Default__GameplayStatics');local scene=StaticFindObject('/Script/Engine.SceneComponent')
  local pawnClass
  local function isPlayer(p)
@@ -9,7 +9,25 @@ return function(M,root,H,valid,enqueue,log)
   return valid(p)and valid(pawnClass)and p:IsA(pawnClass)and p.IsLoaded==true
  end
  local file=M.statePath and M.statePath('player-model.txt')or root..'/state/player-model.txt'
- do local f=io.open(file,'r');if f then local n=tonumber(f:read('*a'):match('^model=([01])%s*$'));if P.allowed(n)then C.selected=n end;f:close()end end
+ do local f=io.open(file,'r') or io.open(file..'.bak','r');if f then local n=tonumber(f:read('*a'):match('^model=([012])%s*$'));if P.allowed(n)then C.selected=n end;f:close()end end
+ local colorFile=M.statePath and M.statePath('appearance-colors.txt') or root..'/state/appearance-colors.txt'
+ C.profiles={}
+ do local f=io.open(colorFile,'r') or io.open(colorFile..'.bak','r');if f then
+  for line in f:lines()do local id,v=line:match('^([012]) ([%x%-]+)$');id=tonumber(id);if P.validColors(id,v)then C.profiles[id]=v:upper()end end
+  f:close()
+ end end
+ function C.colors(id)return C.profiles[id] or P.stock(id)end
+ local function storeColors(id,v)
+  local tmp=assert(io.open(colorFile..'.tmp','w'))
+  for n=0,2 do assert(tmp:write(n..' '..(n==id and v or C.colors(n))..'\n'))end;assert(tmp:close())
+  local prior=io.open(colorFile,'r');if prior then prior:close();os.remove(colorFile..'.bak');assert(os.rename(colorFile,colorFile..'.bak'))end
+  local ok,e=os.rename(colorFile..'.tmp',colorFile);if not ok then if prior then os.rename(colorFile..'.bak',colorFile)end;error(e)end
+  C.profiles[id]=v
+ end
+ function C.setColors(id,v)
+  assert(P.validColors(id,v),'Invalid appearance colors')
+  if C.selected==id then C.select(id,v)else storeColors(id,v);C.revision=C.revision+1 end
+ end
  local function same(a,b)return valid(a)and valid(b)and a:GetAddress()==b:GetAddress()end
  local function status(s)C.status=s;C.revision=C.revision+1 end
  local function save(id)
@@ -22,11 +40,11 @@ return function(M,root,H,valid,enqueue,log)
   for _,v in ipairs(p:K2_GetComponentsByClass(scene))do local c=v:get();if valid(c)and P.markerId(c.AttachSocketName:ToString())~=nil then return c end end
  end
  local I={Translation={X=0,Y=0,Z=0},Rotation={X=0,Y=0,Z=0,W=1},Scale3D={X=1,Y=1,Z=1}}
- function C.mark(p,id,record)
+ function C.mark(p,id,record,colors)
   assert(p:HasAuthority()and P.allowed(id),'Host owns model selection')
   local c=record and record.marker;if not valid(c)then c=findMarker(p)end
   if not valid(c)then c=p:AddComponentByClass(scene,true,I,false);assert(valid(c),'Model marker unavailable');c:SetVisibility(false,false);c:SetComponentTickEnabled(false)end
-  if P.markerId(c.AttachSocketName:ToString())~=id then c:K2_AttachToComponent(p.Mesh,FName(P.marker..id),0,0,0,false)end
+  local name=P.marker..id..'_'..(colors or P.stock(id));if c.AttachSocketName:ToString():upper()~=name:upper() then c:K2_AttachToComponent(p.Mesh,FName(name),0,0,0,false)end
   if not c.bReplicates then c:SetIsReplicated(true)end
   if record then record.marker=c end;p:FlushNetDormancy();p:ForceNetUpdate();return c
  end
@@ -40,49 +58,49 @@ return function(M,root,H,valid,enqueue,log)
  function C.observe(p)
   if valid(p)and valid(pawnClass)and p:IsA(pawnClass)then C.humans[p:GetFullName()]=p end
  end
- function C.server(pc,nonce,id)
+ function C.server(pc,nonce,id,colors)
   if M.features==false or not valid(pc)or not pc:HasAuthority()or not P.allowed(id)then return false end
   local p=pc.PlayerControlled;local ps=pc.PlayerState
   -- Native UnPossess clears the human's PlayerState while driving. The RPC's
   -- server-owned controller still supplies PlayerControlled and its identity.
   if not isPlayer(p)or not valid(ps)or(valid(p.PlayerState)and not same(p.PlayerState,ps))then return false end
   C.states[p:GetFullName()]=ps
-  local state=owner(pc);if not P.accept(state,nonce,id,os.clock())then return false end
-  local r=record(p);C.mark(p,id,r);state.pawn=p
-  if pc:IsLocalPlayerController()then C.ack(nonce,id)else pc:ClientMessage(P.message('ack',nonce,id),FName(P.kind),0)end
+  local state=owner(pc);if not P.accept(state,nonce,id,os.clock(),colors)then return false end
+  local r=record(p);C.mark(p,id,r,state.colors);state.pawn=p
+  if pc:IsLocalPlayerController()then C.ack(nonce,id,colors)else pc:ClientMessage(P.message('ack',nonce,id,colors),FName(P.kind),0)end
   return true
  end
- function C.ack(nonce,id)
-  local pending=C.pending;if not pending or pending.nonce~=nonce or pending.id~=id then return end
-  local ok,e=pcall(save,id);C.pending=nil;C.sent=true
-  status(ok and(P.catalog[id+1].name..' selected. Saved on this PC.')or('Selected for this session; '..tostring(e):gsub('^.-:%d+: ','')))
+ function C.ack(nonce,id,colors)
+  local pending=C.pending;if not pending or pending.nonce~=nonce or pending.id~=id or pending.colors~=(colors or P.stock(id)) then return end
+  local ok,e=pcall(function()storeColors(id,pending.colors);save(id)end);C.pending=nil;C.sent=true
+  status(ok and(P.catalog[id+1].name..' selected.')or('Selected for this session; '..tostring(e):gsub('^.-:%d+: ','')))
  end
- function C.select(id)
+ function C.select(id,colors)
   assert(P.allowed(id),'Unknown player model');local p,pc=H.GetPlayer(),H.GetPlayerController()
   assert(M.features~=false,'The host must run this version of Beyond Apocalypse')
   assert(isPlayer(p)and valid(pc),'Join a game first')
   if id==1 then R.load(p,'body',p.Mesh);R.load(p,'arms',p.FpsArm);R.load(p,'first_body',p.Mesh)end
-  C.nonce=C.nonce%2147483647+1;C.pending={nonce=C.nonce,id=id,attempts=0,at=0};status('Applying '..P.catalog[id+1].name..'...');C.send()
+  C.nonce=C.nonce%2147483647+1;C.pending={nonce=C.nonce,id=id,colors=colors or C.colors(id),attempts=0,at=0};status('Applying '..P.catalog[id+1].name..'...');C.send()
  end
  function C.send()
   local pending=C.pending;if not pending or os.clock()<pending.at then return end
   if pending.attempts>=5 then C.pending=nil;status('Host did not confirm the choice. Everyone needs the same mod version.');return end
   local pc=H.GetPlayerController();if not valid(pc)then return end
   pending.attempts=pending.attempts+1;pending.at=os.clock()+3
-  if pc:HasAuthority()then C.server(pc,pending.nonce,pending.id)else pc:ServerExecRPC(P.message('set',pending.nonce,pending.id))end
+  if pc:HasAuthority()then C.server(pc,pending.nonce,pending.id,pending.colors)else pc:ServerExecRPC(P.message('set',pending.nonce,pending.id,pending.colors))end
  end
  local function install()
   if C.installed then return end;C.installed=true
   NotifyOnNewObject('/Game/BP/Player/PlayerBase.PlayerBase_C',function(p)enqueue(function()C.observe(p)end)end)
   local function hook(path,before,after)C.hooks[path]={RegisterHook(path,before,after)}end
   hook('/Script/Engine.PlayerController:ServerExecRPC',function(ctx,msg)
-   local ok,s=pcall(function()return msg:get():ToString()end);if not ok then return end;local nonce,id=P.parse(s,'set');if not nonce then return end
-   local pc=ctx:get();enqueue(function()C.server(pc,nonce,id)end)
+   local ok,s=pcall(function()return msg:get():ToString()end);if not ok then return end;local nonce,id,colors=P.parse(s,'set');if not nonce then return end
+   local pc=ctx:get();enqueue(function()C.server(pc,nonce,id,colors)end)
   end)
   hook('/Script/Engine.PlayerController:ClientMessage',function(ctx,msg,kind)
    if kind:get():ToString()~=P.kind then return end
-   local ok,s=pcall(function()return msg:get():ToString()end);if not ok then return end;local nonce,id=P.parse(s,'ack');if not nonce then return end
-   local pc=ctx:get();enqueue(function()if same(pc,H.GetPlayerController())then C.ack(nonce,id)end end)
+   local ok,s=pcall(function()return msg:get():ToString()end);if not ok then return end;local nonce,id,colors=P.parse(s,'ack');if not nonce then return end
+   local pc=ctx:get();enqueue(function()if same(pc,H.GetPlayerController())then C.ack(nonce,id,colors)end end)
   end)
   local path='/Game/BP/Player/CustomizablePlayer/MaleCharacter.MaleCharacter_C:SetClothes'
   -- Blueprint hooks run after the event; their third callback is ignored.
@@ -99,11 +117,12 @@ return function(M,root,H,valid,enqueue,log)
    end)
   end)end
  end
- local function appearance(r,id,p,pc)
-  if r.id~=id then if r.visual then R.remove(r.visual);r.visual=nil end;r.id=id;r.failed=nil end
-  if id==1 and not r.failed then
-   local ok,e=pcall(function()r.visual=R.apply(r.actor);R.syncWearables(r.visual);R.syncRagdoll(r.visual);R.hide(r.visual);R.update(r.visual,p,pc)end)
-   if not ok then R.remove(r.visual or r.key);r.visual=nil;r.failed=tostring(e);log('Player model fallback: '..r.failed);if same(r.actor,p)then status('Soldier appearance unavailable; default retained.')end end
+ local function appearance(r,id,p,pc,colors)
+  colors=colors or P.stock(id)
+  if r.id~=id or r.colors~=colors then if r.visual then R.remove(r.visual);r.visual=nil end;r.id=id;r.colors=colors;r.failed=nil end
+  if (id~=0 or colors~=P.stock(0))and not r.failed then
+   local ok,e=pcall(function()r.visual=R.apply(r.actor,nil,id,colors);R.syncWearables(r.visual);R.syncRagdoll(r.visual);R.hide(r.visual);R.update(r.visual,p,pc)end)
+   if not ok then R.remove(r.visual or r.key);r.visual=nil;r.failed=tostring(e);log('Player model fallback: '..r.failed);if same(r.actor,p)then status('Appearance unavailable.')end end
   end
  end
  function C.tick()
@@ -136,11 +155,11 @@ return function(M,root,H,valid,enqueue,log)
     local r=record(pawn);seen[r.key]=true
     if pc:HasAuthority()then
      local ctl=ps:GetOwner();if valid(ctl)and same(ctl.PlayerControlled,pawn)then local state=owner(ctl)
-      if not same(state.pawn,pawn)or not valid(r.marker)then C.mark(pawn,state.id,r);state.pawn=pawn end
+      if not same(state.pawn,pawn)or not valid(r.marker)then C.mark(pawn,state.id,r,state.colors);state.pawn=pawn end
      end
     end
     if not valid(r.marker)and os.clock()>=r.nextMarker then r.marker=findMarker(pawn);r.nextMarker=os.clock()+1 end
-    local id=valid(r.marker)and P.markerId(r.marker.AttachSocketName:ToString())or 0;appearance(r,id or 0,p,pc)
+    local id,colors;if valid(r.marker)then id,colors=P.markerId(r.marker.AttachSocketName:ToString())end;appearance(r,id or 0,p,pc,colors)
    elseif not valid(pawn)or(valid(ps)and not members[ps:GetAddress()])then C.humans[key]=nil;C.states[key]=nil end
   end
   for key,r in pairs(C.players)do if not seen[key]then if r.visual then R.remove(r.visual)end;C.players[key]=nil end end
