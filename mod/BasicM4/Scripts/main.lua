@@ -206,7 +206,6 @@ M.controls=dofile(root..'/Scripts/controls.lua')(M,root,H,valid)
 local gyrocopter=dofile(root..'/Scripts/gyrocopter/controller.lua')(M,root,H,valid,log)
 M.gyrocopter=gyrocopter
 local motorcycle=dofile(root..'/Scripts/motorcycle/controller.lua')(M,root,H,valid,log);M.motorcycle=motorcycle
-M.nitrous=dofile(root..'/Scripts/nitrous/controller.lua')(M,root,H,valid,shortcut,log)
 M.playerModels=dofile(root..'/Scripts/player_models/controller.lua')(M,root,H,valid,shortcut,log)
 M.utility=dofile(root..'/Scripts/utility.lua')(M,root,H,valid,shortcut,log)
 local hangar=dofile(root..'/Scripts/hangar.lua')(M,root,H,valid,shortcut,log);M.hangar=hangar
@@ -219,7 +218,7 @@ dofile(root..'/Scripts/game_loop.lua')(function()return M.active end,function()
   local ok,e=pcall(function()
    if M.resetRequested then
     M.resetRequested=false;M.population.reset();actions={};tracked={};filled={};materials={};refreshRetry={};akClass=nil;pmcClass=nil;game=nil
-    M.playerModels.reset();M.nitrous.reset();M.dashboard.reset();motorcycle.reset();M.utility.reset();H.reset();session.reset();performance.reset();firing.reset();apocalypse.reset();hazmat.reset();mechanic.reset();branding.reset();devmenu.reset();backpack.reset();gyrocopter.reset();weaponHandling.reset();weaponHandling.slots.reset();weaponHandling.equipCache=nil;rail.reset();roaming.reset();hangar.reset();towing.reset();M.ammo.reset();M.ballistics.reset()
+    M.playerModels.reset();M.dashboard.reset();motorcycle.reset();M.utility.reset();H.reset();session.reset();performance.reset();firing.reset();apocalypse.reset();hazmat.reset();mechanic.reset();branding.reset();devmenu.reset();backpack.reset();gyrocopter.reset();weaponHandling.reset();weaponHandling.slots.reset();weaponHandling.equipCache=nil;rail.reset();roaming.reset();hangar.reset();towing.reset();M.ammo.reset();M.ballistics.reset()
    end
    session.tick()
    local pending=actions;actions={};for _,fn in ipairs(pending)do local worked,err=pcall(fn);if not worked then log(tostring(err))end end
@@ -248,7 +247,6 @@ dofile(root..'/Scripts/game_loop.lua')(function()return M.active end,function()
      end
      gyrocopter.tick(p,now)
      motorcycle.tick(p,now)
-     M.nitrous.tick(p,now)
     end
    else firing.reset()end
   end)
@@ -269,7 +267,6 @@ end
 function M.refreshWeapon(a)if M.features~=false and valid(a)and a:GetFullName():match('^AkWeapon_C ')and initialize()then guardedUpdate(a)end end
 function M.itemName(a)
  if not valid(a)then return 'Item'end
- if M.nitrous then local d=M.nitrous.info(a);if d then return d.name end end
  if M.gyrocopter and M.gyrocopter.transport.blades.info(a)then return 'Universal rotor blade'end
  if M.rail and M.rail.optic.item(a)then return '2x Sight'end
  if a:GetFullName():match('^AkWeapon_C ')then
@@ -286,4 +283,18 @@ _G.BeyondApocalypse=M
 -- Compatibility for separately installed tools; these aliases do not load code.
 _G.BasicM4=M;_G.BasicWeaponPack=M;_G.BeyondApocolypse=M
 log(release.Version..' '..release.Channel..' loaded: M4 burst, hunting semi-auto, Enfield bolt cadence; additive apocalypse enabled='..tostring(config.Apocalypse.Enabled))
+-- BEGIN BEYOND TUNING BACKPACK BRIDGE
+do
+ local ok,err=pcall(function()
+  local scripts=debug.getinfo(1,'S').source:sub(2):gsub('\\','/'):match('^(.*)/[^/]+$')
+  local mods=scripts..'/../..';local tuning=mods..'/BeyondTuning'
+  local enabled=io.open(tuning..'/enabled.txt','r');local active=enabled~=nil;if enabled then enabled:close()end
+  local list=io.open(mods..'/mods.txt','r');if list then for line in list:lines()do local v=line:match('^%s*BeyondTuning%s*:%s*(%d)');if v then active=v=='1'end end;list:close()end
+  if not active then return end
+  local path=tuning..'/Scripts/backpack_bridge.lua';local file=io.open(path,'r');if not file then return end;file:close()
+  dofile(path)(_G.BeyondApocalypse,tuning)
+ end)
+ if not ok then print('[Beyond Tuning] Backpack bridge: '..tostring(err)..'\n')end
+end
+-- END BEYOND TUNING BACKPACK BRIDGE
 return M

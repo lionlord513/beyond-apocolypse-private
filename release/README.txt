@@ -1,9 +1,9 @@
-BEYOND APOCALYPSE 1.0.10
+BEYOND APOCALYPSE 1.0.11
 Drive Beyond Horizons - Windows / Steam build 26106988
 
 INSTALL
 Close the game before updating and back up your saves.
-Mod Manager: import BeyondApocalypse-1.0.10-public.zip, or use Check for updates.
+Mod Manager: import BeyondApocalypse-1.0.11-public.zip, or use Check for updates.
 Manual installer: extract the public ZIP and run Install.cmd.
 Nexus ZIP: merge its DriveBeyondHorizons folder into the game's main folder
 (Steam > Manage > Browse local files). Do not put it inside a second copy of
@@ -22,16 +22,7 @@ The helmet is hidden only in your own first-person view.
 All co-op players, including the host, need 1.0.10 or newer for these appearances.
 
 NITROUS AND DASHBOARD
-Blue Stage I and purple Stage II bottles come in 2, 5 and 10 litre sizes.
-Find uncommon bottles near buildings or order them in Hangar. Open the valve
-and use the game's normal pouring controls to transfer the separate Nitrous fluid.
-Use the normal free-placement attachment controls to fit bottles to your car,
-including to attached vehicle parts. Start the engine, release the handbrake,
-and hold Shift while driving. Release Shift or brake to stop. Stage II is stronger;
-extra bottles add supply, not stacked power. High speed and sharp steering taper
-the force. Boost does not operate in reverse, in the air or without engine power.
-Stage I exhaust flames are blue; Stage II flames are purple. Bottles mount
-horizontally on their brackets using the normal placement controls. Nitrous is not engine gasoline.
+Nitrous moved to Beyond Tuning 1.2.0. Buy bottles under Car Tuning > Boost.
 The right-side digital cluster displays vehicle and fluid information. Hornet
 shows collective, altitude above world sea level and vertical speed. Aircraft
 Shift/Ctrl controls are unchanged. Set VehicleDashboard=false in local config.lua
