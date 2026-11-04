@@ -1,0 +1,25 @@
+{
+  "id": "mixtapemaker",
+  "name": "MixTape Maker",
+  "version": "0.1.0",
+  "description": "Record up to five YouTube tracks on a color-labeled cassette for the garage computer or Tuner laptop.",
+  "update": {
+    "Provider": "github",
+    "SealedRepository": "bmm1.TA3XsCgtKv+/mPABPeyx2Jeykg78HTIDFMZa0vFUZGH2vw610ebLfpMvY/uiNt0h6HyaW71Rf34N0ATYBxGTteBO8EKOPWgWWFmYgnMSQ2NX6c/MAogB+9V9eDdyklVO",
+    "TagPrefix": "v",
+    "AssetPattern": "MixTape-Maker-{version}-beta.zip",
+    "ManifestAsset": "bmm-mod.json",
+    "Sha256Asset": "SHA256SUMS.txt",
+    "Kind": "mod"
+  },
+  "history": [
+    {
+      "Version": "0.1.0",
+      "Channel": "beta",
+      "Released": "2026-11-04",
+      "Notes": [
+        "Adds the in-game tape editor, local track previews, cassette delivery and shared radio playback."
+      ]
+    }
+  ]
+}

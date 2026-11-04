@@ -2,18 +2,17 @@
   "schema": 1,
   "id": "bmm",
   "name": "Beyond Mod Manager",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "notes": [
-    "Launch the game through Steam so it uses the normal launch environment and remains independent of Mod Manager.",
-    "Updated the Beyond Apocalypse catalogue to 1.0.6 with F9 controls and current release notes."
+    "Adds MixTape Maker to the mod catalogue and supports anonymous checks for signed audio-tool updates."
   ],
   "description": "Install and manage Drive Beyond Horizons mods from ZIP files. Keep mod settings, see required support files, and check updates when a mod author provides an update source.",
   "update": {
     "Provider": "github",
-    "Repository": "lionlord513/beyond-apocolypse-private",
     "TagPrefix": "bmm-v",
     "AssetPattern": "Beyond-Mod-Manager-{version}.zip",
     "ManifestAsset": "bmm-update.json",
-    "Kind": "manager"
+    "Kind": "manager",
+    "SealedRepository": "bmm1.UnhuYN0nRWGYpzyNzPQc8y7jPsaGVD6Qdw7NiPFylH6NqlONouOPh82ht3M2DhNY/1VgO8zS6VADwcvgO+opMD9UHyhBjpoCAfUIoUspRgyLo5irQwtF+A1aODmcTUkQ"
   }
 }

@@ -34,14 +34,14 @@ namespace BeyondModManager
 
     public static class Program
     {
-        public const string ManagerVersion = "1.0.7";
+        public const string ManagerVersion = "1.0.8";
         static readonly string DataRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BeyondModManager");
         static readonly JavaScriptSerializer Json = new JavaScriptSerializer { MaxJsonLength = 2 * 1024 * 1024, RecursionLimit = 32 };
         static readonly Dictionary<string, UpdateCandidate> Available = new Dictionary<string, UpdateCandidate>(StringComparer.OrdinalIgnoreCase);
         static readonly Queue<string> Imports = new Queue<string>();
         static readonly StringBuilder Activity = new StringBuilder();
         static Window Window;
-        static PublicCatalog Beyond, Manager;
+        static PublicCatalog Beyond, Manager, MixTape;
         static ManagerPreferences Preferences;
         static ModStore Store;
         static InstallPlan Pending;
@@ -98,6 +98,7 @@ namespace BeyondModManager
         {
             if (tile == null) return null;
             // The built-in public feed also upgrades records saved by older manager versions.
+            if (MixTape != null && SameIdentity(tile.Record.Id, MixTape.Id)) return MixTape.Update;
             if (IsBeyond(tile.Record)) return tile.Catalog || PublicBeyond(tile.Record) ? Beyond.Update : null;
             return tile.Record.Update;
         }
@@ -158,6 +159,7 @@ namespace BeyondModManager
             var selected = Selected; if (selectedId == null && selected != null) selectedId = selected.Record.Id;
             var list = GameReady ? Store.List().Where(ShowMod).Select(x => new ModTile { Record = x }).ToList() : new List<ModTile>();
             if (!list.Any(x => IsBeyond(x.Record))) list.Add(new ModTile { Catalog = true, Record = new ModRecord { Id = "beyondapocalypse", Name = Beyond.Name, Version = Beyond.Version, Update = Beyond.Update } });
+            if (!list.Any(x => SameIdentity(x.Record.Id, MixTape.Id))) list.Add(new ModTile { Catalog = true, Record = new ModRecord { Id = MixTape.Id, Name = MixTape.Name, Version = MixTape.Version, Description = MixTape.Description, Dependencies = new[] { "UE4SS" }, Update = MixTape.Update } });
             list = list.OrderByDescending(x => IsBeyond(x.Record)).ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase).ToList();
             View<ListBox>("ModList").ItemsSource = list;
             View<ListBox>("ModList").SelectedItem = list.FirstOrDefault(x => SameIdentity(x.Record.Id, selectedId)) ?? list.FirstOrDefault();
@@ -188,19 +190,19 @@ namespace BeyondModManager
             var record = tile.Record; bool beyond = IsBeyond(record);
             Text("DetailName", beyond ? Beyond.Name : record.Name);
             Text("DetailType", tile.Catalog ? "FEATURED MOD" : record.Enabled ? "ENABLED" : "DISABLED");
-            Text("DetailVersion", tile.Catalog ? "Public release " + Beyond.Version : Companion(record) ? "" : VersionText(record));
+            Text("DetailVersion", tile.Catalog ? "Public release " + record.Version : Companion(record) ? "" : VersionText(record));
             string description = Companion(record) ? "Separate local add-on. Not included with Beyond Apocalypse or installed by BMM." : beyond ? Beyond.Description : MetadataText(record, "Description");
             Text("DetailDescription", String.IsNullOrWhiteSpace(description) ? "No description included." : description);
             View<Image>("ModLogo").Visibility = beyond ? Visibility.Visible : Visibility.Collapsed;
             View<TextBlock>("ModInitials").Visibility = beyond ? Visibility.Collapsed : Visibility.Visible;
             Text("ModInitials", String.Join("", record.Name.Split(new[] { ' ', '-', '_' }, StringSplitOptions.RemoveEmptyEntries).Take(3).Select(x => x.Substring(0, 1))).ToUpperInvariant());
-            string note = tile.Catalog ? "Download and install Beyond Apocalypse." : !record.Managed && !Companion(record) ? "Add this mod's ZIP to manage it here." : "";
+            string note = tile.Catalog ? "Download and install " + record.Name + "." : !record.Managed && !Companion(record) ? "Add this mod's ZIP to manage it here." : "";
             View<Border>("ManagedNoteBox").Visibility = note.Length == 0 ? Visibility.Collapsed : Visibility.Visible; Text("ManagedNote", note);
             var source = Source(tile); UpdateCandidate candidate;
             Text("UpdateStatus", Available.TryGetValue(record.Id, out candidate) ? "Update ready: " + candidate.Version + "  ·  " + Size(candidate.Size) : source == null ? "Manual updates" : "Updates available");
             View<TextBlock>("UpdateStatus").Visibility = Companion(record) ? Visibility.Collapsed : Visibility.Visible;
             Text("RequirementsText", record.Dependencies.Length > 0 ? "Requires: " + String.Join(", ", record.Dependencies) : tile.Catalog ? "UE4SS support is included if needed." : "");
-            string changes = beyond ? History(Beyond.History) : MetadataText(record, "Changelog");
+            string changes = beyond ? History(Beyond.History) : SameIdentity(record.Id,MixTape.Id) && tile.Catalog ? History(MixTape.History) : MetadataText(record, "Changelog");
             Text("DetailHistory", String.IsNullOrWhiteSpace(changes) ? "No changelog was included in this package." : changes);
             View<TextBlock>("HistoryHeading").Visibility = Companion(record) ? Visibility.Collapsed : Visibility.Visible;
             View<TextBlock>("DetailHistory").Visibility = Companion(record) ? Visibility.Collapsed : Visibility.Visible;
@@ -225,7 +227,7 @@ namespace BeyondModManager
             View<Button>("UninstallModButton").IsEnabled = !Busy && manageable;
             View<Button>("OpenModFolderButton").IsEnabled = !Busy && record != null && !tile.Catalog && !Companion(record) && GameReady;
             View<Button>("UpdateModButton").IsEnabled = !Busy && tile != null && Source(tile) != null && (tile.Catalog || manageable);
-            View<Button>("UpdateModButton").Content = tile != null && tile.Catalog ? "Get Beyond Apocalypse" : record != null && Available.ContainsKey(record.Id) ? "Install update" : "Check for update";
+            View<Button>("UpdateModButton").Content = tile != null && tile.Catalog ? "Get " + tile.Name : record != null && Available.ContainsKey(record.Id) ? "Install update" : "Check for update";
         }
         static async Task Run(Func<Task> operation)
         {
@@ -342,6 +344,21 @@ namespace BeyondModManager
                 ShowPreview(plan);
             });
         }
+        static async void CheckInstalledMixTape(object sender, EventArgs args)
+        {
+            Window.ContentRendered -= CheckInstalledMixTape;
+            if (!GameReady) return;
+            try
+            {
+                var record = Store.List().FirstOrDefault(x => x.Managed && SameIdentity(x.Id, MixTape.Id));
+                if (record == null) return;
+                var candidate = await Updates.QueryModUpdateAsync(MixTape.Update, record.Version, record.ArchiveHash);
+                if (candidate == null) return;
+                Available[record.Id] = candidate;
+                RefreshDetail(); RefreshButtons();
+            }
+            catch (Exception) { /* Offline launch is supported. A manual check reports connection errors. */ }
+        }
         static async Task ToggleSelected()
         {
             var tile = Selected; if (tile == null || !tile.Record.Managed) return;
@@ -426,6 +443,7 @@ namespace BeyondModManager
         static void LoadWindow(bool preview)
         {
             PreviewOnly = preview; Beyond = Json.Deserialize<PublicCatalog>(ResourceText("ba-public.json")); Manager = Json.Deserialize<PublicCatalog>(ResourceText("bmm-public.json"));
+            MixTape = Json.Deserialize<PublicCatalog>(ResourceText("mixtape-public.json")); Updates.ValidateSource(MixTape.Update);
             Updates.ValidateSource(Beyond.Update); Updates.ValidateSource(Manager.Update);
             if (Manager.Version != ManagerVersion) throw new InvalidDataException("Manager metadata version mismatch.");
             using (var stream = Resource("MainWindow.xaml")) Window = (Window)XamlReader.Load(stream);
@@ -442,6 +460,7 @@ namespace BeyondModManager
                 ReadPreferences();
                 try { if (File.Exists(LogFile)) { var lines = File.ReadLines(LogFile).Reverse().Take(120).Reverse(); Activity.Append(String.Join(Environment.NewLine, lines) + Environment.NewLine); View<TextBox>("ActivityText").Text = Activity.ToString(); } } catch { }
                 RefreshList(); if (!GameReady) SelectPage("Settings");
+                Window.ContentRendered += CheckInstalledMixTape;
             }
         }
         static void PopulatePreview()

@@ -28,7 +28,7 @@ refs += ['/reference:' + str(FRAMEWORK / 'WPF' / name) for name in
 exe = DIST / 'Beyond Mod Manager.exe'
 resources = {'MainWindow.xaml': ROOT / 'MainWindow.xaml'}
 resources.update({p.name: p for p in sorted((ROOT / 'Assets').iterdir()) if p.is_file()})
-sources = [ROOT / 'Program.cs', ROOT / 'Core/ModInventory.cs', ROOT / 'Core/Updates.cs', ROOT / 'Tests/UpdatesTests.cs']
+sources = [ROOT / 'Program.cs', ROOT / 'Core/ModInventory.cs', ROOT / 'Core/Updates.cs', ROOT / 'Core/ProtectedFeed.cs', ROOT / 'Tests/UpdatesTests.cs']
 command = [str(FRAMEWORK / 'csc.exe'), '/nologo', '/target:winexe', '/optimize+', '/platform:x64',
            '/main:BeyondModManager.Program', '/win32manifest:' + str(ROOT / 'app.manifest'),
            '/win32icon:' + str(ROOT / 'Assets/bmm-icon.ico'), '/out:' + str(exe)]

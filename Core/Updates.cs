@@ -19,6 +19,10 @@ namespace BeyondModManager
     {
         public string Provider { get; set; }
         public string Repository { get; set; }
+        public string SealedRepository { get; set; }
+        [ScriptIgnore] public string ResolvedRepository {
+            get { return SealedRepository == null ? Repository : ProtectedFeed.Open(SealedRepository); }
+        }
         public string TagPrefix { get; set; }
         public string AssetPattern { get; set; }
         public string ManifestAsset { get; set; }
@@ -113,7 +117,7 @@ namespace BeyondModManager
         {
             if (source == null) throw new InvalidDataException("This mod does not declare automatic updates.");
             if (!String.Equals(source.Provider, "github", StringComparison.OrdinalIgnoreCase) ||
-                source.Repository == null || !RepositoryPattern.IsMatch(source.Repository) || source.Repository.Contains(".."))
+                source.ResolvedRepository == null || !RepositoryPattern.IsMatch(source.ResolvedRepository) || source.ResolvedRepository.Contains(".."))
                 throw new InvalidDataException("A valid GitHub update repository is required.");
             if (source.TagPrefix != null && !Regex.IsMatch(source.TagPrefix, @"^[A-Za-z0-9_-]{0,32}$"))
                 throw new InvalidDataException("Invalid release tag prefix.");
@@ -180,7 +184,7 @@ namespace BeyondModManager
         internal static string AssetUrl(GitHubUpdateAsset asset, UpdateSource source, GitHubUpdateRelease release, string verifiedHash = null)
         {
             var value = asset.browser_download_url ?? asset.url;
-            if (!IsReleaseAssetUrl(value, source.Repository, release.tag_name))
+            if (!IsReleaseAssetUrl(value, source.ResolvedRepository, release.tag_name))
                 throw new InvalidDataException("The release asset URL does not belong to its declared GitHub repository.");
             var hash = NormalizeHash(asset.digest) ?? NormalizeHash(verifiedHash);
             string revision = hash != null ? "sha256-" + hash : asset.id > 0 ? "id-" + asset.id.ToString(System.Globalization.CultureInfo.InvariantCulture) : null;
@@ -233,7 +237,7 @@ namespace BeyondModManager
             if (name == null && manifest != null) name = manifest.asset;
             if (name == null && manifest != null && manifest.url != null)
             {
-                if (!IsReleaseAssetUrl(manifest.url, source.Repository, release.tag_name))
+                if (!IsReleaseAssetUrl(manifest.url, source.ResolvedRepository, release.tag_name))
                     throw new InvalidDataException("Manifest URL is outside the declared release.");
                 var match = assets.Where(a => a.url == manifest.url || a.browser_download_url == manifest.url).ToArray();
                 if (match.Length == 1) name = match[0].name;
@@ -260,7 +264,7 @@ namespace BeyondModManager
             }
             if (hash == null) throw new InvalidDataException("No verifiable SHA-256 digest is published for this update.");
             return new UpdateCandidate { Version = version, Url = AssetUrl(asset, source, release, hash), Sha256 = hash,
-                Size = asset.size, AssetName = name, Repository = source.Repository, Tag = release.tag_name,
+                Size = asset.size, AssetName = name, Repository = source.ResolvedRepository, Tag = release.tag_name,
                 Kind = source.Kind ?? "mod", Notes = manifest == null ? (release.body ?? "") : String.Join(Environment.NewLine, manifest.notes ?? new string[0]) };
         }
 
@@ -338,7 +342,7 @@ namespace BeyondModManager
             if (source == null) return null;
             ValidateSource(source);
             var current = String.IsNullOrEmpty(installedVersion) ? new Version(0, 0, 0, 0) : ParseVersion(installedVersion);
-            var json = await ReadText("https://api.github.com/repos/" + source.Repository + "/releases?per_page=100", true).ConfigureAwait(false);
+            var json = await ReadText("https://api.github.com/repos/" + source.ResolvedRepository + "/releases?per_page=100", true).ConfigureAwait(false);
             var releases = Serializer().Deserialize<GitHubUpdateRelease[]>(json) ?? new GitHubUpdateRelease[0];
             var ordered = releases.Where(IsPublicRelease).Where(r => VersionFromTag(source, r.tag_name) != null)
                 .OrderByDescending(r => ParseVersion(VersionFromTag(source, r.tag_name)));

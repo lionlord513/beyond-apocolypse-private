@@ -184,13 +184,14 @@ namespace BeyondModManager {
       if(target==null&&source.IndexOf('/')<0&&Regex.IsMatch(source,@"^ZodMenu\.(pak|utoc|ucas|sig)$",RegexOptions.IgnoreCase))target=GameInstallation.PaksRoot+"/LogicMods/"+source;
      }
      if(target==null){skipped++;continue;}target=Canonical(target);
-     if(!ManagedPath(target)||Executable(target))throw new InvalidDataException("Unsupported executable or destination in package: "+source);
+     if(!ManagedPath(target))throw new InvalidDataException("Unsupported executable or destination in package: "+source);
      if(Prefix(target,GameInstallation.PaksRoot)){
       if(!new[]{".pak",".utoc",".ucas",".sig"}.Contains(System.IO.Path.GetExtension(target),Compare))throw new InvalidDataException("Only Unreal package files belong in the mod package directory.");
       if(target.EndsWith(".pak",StringComparison.OrdinalIgnoreCase))pakNames.Add(System.IO.Path.GetFileNameWithoutExtension(target));
      }
      if(!destinations.Add(target))throw new InvalidDataException("Multiple files map to the same game path.");
      string hash;using(var h=SHA256.Create())using(var s=pair.Value.Open())hash=Hex(h.ComputeHash(s));
+     if(Executable(target)&&!ProtectedFeed.AllowsTool(target,source,hash,files))throw new InvalidDataException("Unsupported executable in package: "+source);
      var preserve=!Prefix(target,GameInstallation.PaksRoot)&&(UserData(target)||(meta.Preserve??new string[0]).Any(p=>Compare.Equals(target,Canonical(p))||Prefix(target,Canonical(p))));
      plan.Files.Add(new ModFile{Path=target,Source=source,Hash=hash,Bytes=pair.Value.Length,Preserve=preserve,Shared=shared});
     }

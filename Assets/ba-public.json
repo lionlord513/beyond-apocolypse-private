@@ -8,11 +8,11 @@
   "website": "https://www.nexusmods.com/drivebeyondhorizons/mods/28",
   "update": {
     "Provider": "github",
-    "Repository": "lionlord513/beyond-apocolypse-private",
     "TagPrefix": "v",
     "AssetPattern": "BeyondApocalypse-{version}-public.zip",
     "ManifestAsset": "bmm-mod.json",
-    "Kind": "beyond-apocolypse"
+    "Kind": "beyond-apocolypse",
+    "SealedRepository": "bmm1.y1utErcq1T1SiQwCTAsTVWz/mlbzTNP9McHT2chkvd3Uk4oYevwYeHA1gM3ZbaaBVWe7ayEQz/SK/aS4NoyeiivWpHqnPsqJ/bKBAvKLEwfXZKodb0MMVOUtNtiRV27A"
   },
   "history": [
     {
