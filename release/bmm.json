@@ -2,7 +2,7 @@
   "schema": 1,
   "id": "beyondapocalypse",
   "name": "Beyond Apocalypse",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "channel": "stable",
   "description": "Zombies, rifles, backpacks, motorcycles, a gyrocopter and custom player models.",
   "website": "https://www.nexusmods.com/drivebeyondhorizons/mods/28",
@@ -15,6 +15,17 @@
     "Kind": "beyond-apocolypse"
   },
   "history": [
+    {
+      "version": "1.1.1",
+      "channel": "stable",
+      "released": "2026-11-03",
+      "notes": [
+        "Fixed the Alien\u2019s eyes and added glowing irises.",
+        "Fixed the Alien head appearing in first person.",
+        "Alien skin paint now leaves toenails unchanged.",
+        "Added native clothing support for the Alien, including shirts, pants and shoes."
+      ]
+    },
     {
       "version": "1.1.0",
       "channel": "stable",

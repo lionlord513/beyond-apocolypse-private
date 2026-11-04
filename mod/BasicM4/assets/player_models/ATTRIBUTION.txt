@@ -10,3 +10,5 @@ generated a material palette and two reduced-detail LODs; converted to glTF.
 Source animations omitted; the game supplies animation. Soldier previews show
 the fitted mesh posed with the native idle animation. The default portrait was
 captured in Drive Beyond Horizons. No endorsement implied.
+
+Alien character and original surface textures from Drive Beyond Horizons. The fitted first-person meshes, clothing sections and textured emissive lenses are part of this mod.

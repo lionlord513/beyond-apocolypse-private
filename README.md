@@ -4,7 +4,7 @@ Survive zombie encounters, pack supplies in a backpack and shop for gear at the 
 
 ## Getting started
 
-Press F9 and open Models to choose Default, SciFi Soldier or Alien. Click the pencil on a portrait to change its colors. The Soldier also has matte and metallic finishes.
+Press F9 and open Models to choose Default, SciFi Soldier or Alien. Click the pencil on a portrait to change its colors. The Alien can wear your clothes. The Soldier has matte and metallic finishes.
 
 Press Tab to open your backpack. Use the Hangar app on an in-game computer to buy gear. Nitrous bottles are available with Beyond Tuning.
 

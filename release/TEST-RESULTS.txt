@@ -1,3 +1,12 @@
+BEYOND APOCALYPSE 1.1.1
+
+The Alien uses separate first-person torso and arm meshes on the same native
+animation rigs as the Soldier. Its third-person mesh retains all 16,802 triangles
+at full detail. Checked the owner camera looking down, the native shirt and
+pants together, and the front-facing three-eye render in build 26106988.
+Native SetClothes controls which clothing is visible. Skin sections under the
+clothes are hidden on each viewer. Separate-PC multiplayer was not exercised.
+
 BEYOND APOCALYPSE 1.1.0
 
 Steam build 26106988. Tested with Beyond Tuning and the installed host companion.

@@ -1,3 +1,9 @@
+1.1.1
+- Fixed the Alien’s eyes and added glowing irises.
+- Fixed the Alien head appearing in first person.
+- Alien skin paint now leaves toenails unchanged.
+- Added native clothing support for the Alien, including shirts, pants and shoes.
+
 1.1.0
 - Added the Alien with glowing eyes.
 - Added a color wheel for each player model and matte or metallic finishes for the Soldier.

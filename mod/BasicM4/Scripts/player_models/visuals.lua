@@ -9,14 +9,15 @@ return function(M,root,H,valid,log)
  local function same(a,b)return valid(a)and valid(b)and a:GetAddress()==b:GetAddress()end
  local function offset(o,name)local value;o:ForEachProperty(function(p)if p:GetFName():ToString()==name then value=p:GetOffset_Internal()end end);assert(value,'Missing player-model field '..name);return value end
  local function find(kind,address)for _,o in ipairs(FindAllOf(kind)or{})do if valid(o)and o:GetAddress()==address then return o end end end
- function R.load(context,kind,source)
-  local entry=R.cache[kind];if entry and valid(entry.holder)and valid(entry.mesh)then return entry end
+ function R.load(context,kind,source,id)
+  local prefix=id==2 and 'alien' or 'soldier';local key=prefix..'-'..kind
+  local entry=R.cache[key];if entry and valid(entry.holder)and valid(entry.mesh)then return entry end
   local read=assert(package.loadlib(root..'/assets/native/BeyondImports.dll','ba_load_asset'))
   local build=assert(package.loadlib(root..'/assets/native/BeyondImports.dll','ba_load_lods'))
   local lib=StaticFindObject('/Script/glTFRuntime.Default__glTFRuntimeFunctionLibrary')
   local fn=StaticFindObject('/Script/glTFRuntime.glTFRuntimeFunctionLibrary:glTFLoadAssetFromFilename')
   local cfg=StaticFindObject('/Script/glTFRuntime.glTFRuntimeConfig')
-  local address,why=read(lib:GetAddress(),fn:GetAddress(),offset(fn,'LoaderConfig'),offset(fn,'ReturnValue'),root..'/assets/player_models/soldier-'..kind..'.glb',offset(cfg,'SceneScale'),offset(cfg,'TransformBaseType'))
+  local address,why=read(lib:GetAddress(),fn:GetAddress(),offset(fn,'LoaderConfig'),offset(fn,'ReturnValue'),root..'/assets/player_models/'..key..'.glb',offset(cfg,'SceneScale'),offset(cfg,'TransformBaseType'))
   assert(address and address~=0,why or 'Soldier import failed')
   local asset=assert(find('glTFRuntimeAsset',address),'Soldier asset unavailable')
   local native=source:GetSkinnedAsset();assert(valid(native),'Native animation rig unavailable')
@@ -28,7 +29,8 @@ return function(M,root,H,valid,log)
   assert(valid(holder),'Player-model cache unavailable');game:FinishSpawningActor(holder,I,0)
   holder:SetReplicates(false);holder:SetActorHiddenInGame(true);holder:SetActorEnableCollision(false);holder:SetActorTickEnabled(false)
   holder.SkeletalMeshComponent:SetSkinnedAssetAndUpdate(mesh,true);holder.SkeletalMeshComponent:SetComponentTickEnabled(false)
-  entry={holder=holder,mesh=mesh};R.cache[kind]=entry
+  entry={holder=holder,mesh=mesh};R.cache[key]=entry
+  if id==2 then entry.material=LoadAsset('/Game/Environments/SK/Alien/MI_CharaAlien.MI_CharaAlien');return entry end
   local material=StaticFindObject('/Script/Engine.Default__KismetMaterialLibrary'):CreateDynamicMaterialInstance(holder,LoadAsset('/MasterWeapon/Materials/Weapons/MAT_ArK47.MAT_ArK47'),FName('BA_Soldier_'..kind),0)
   assert(valid(material),'Soldier material unavailable')
   local images=dofile(root..'/Scripts/weapons/pbr_images.lua')(root,valid)('assets/player_models/textures.gltf',128)
@@ -39,13 +41,18 @@ return function(M,root,H,valid,log)
   return entry
  end
  local faceParts={LeftEye=true,RightEye=true,TearDuct=true,eyelashes=true,Brows=true,EyeOcclusion=true}
+ -- Clothing components remain under the native SetClothes and wearable systems.
+ -- Chest, Legs and arms_feet are sections of the human body, not garments.
+ local garments={sleeveless_shirt=true,shirt=true,pants=true,shoes1=true,tie=true,shoes_formal=true}
  function R.capture(r)
   r.parts={};local skeleton=r.source:GetSkinnedAsset().Skeleton
   local fps=r.isPawn and r.actor.FpsArm or nil
   for _,v in ipairs(r.actor:K2_GetComponentsByClass(StaticFindObject('/Script/Engine.MeshComponent')))do
    local c=v:get();local name=c:GetFName():ToString();local take=faceParts[name]==true
    if c:IsA(skinned)and not same(c,r.arms)and not same(c,r.firstBody)and not same(c,r.follower)and not same(c,fps)then
-    local asset=c:GetSkinnedAsset();take=valid(asset)and same(asset.Skeleton,skeleton)or take
+    local asset=c:GetSkinnedAsset()
+    local garment=r.id==2 and (garments[name] or valid(asset) and asset:GetFullName():lower():find('/clothes/',1,true))
+    take=not garment and valid(asset) and same(asset.Skeleton,skeleton) or take
     if name:find('man_Edit_Man_',1,true)then take=true end
    end
    if take then r.parts[#r.parts+1]={component=c,visible=c.bVisible,hidden=c.bHiddenInGame,shadow=c.CastShadow}end
@@ -65,8 +72,22 @@ return function(M,root,H,valid,log)
   if r.id==0 then return end
   hideParts(r.parts);for _,item in pairs(r.wearables or{})do hideParts(item.parts)end
  end
+ local sections={body={'head','hands','sleeves','feet','legs','waist','torso','collar'},first_body={'feet','legs','waist','torso'},arms={'hands','sleeves'}}
+ local function cover(r,c,kind)
+  if not valid(c)then return end
+  local hidden={torso=r.top,waist=r.pants,legs=r.pants,feet=r.shoes,sleeves=r.sleeves}
+  for lod=0,2 do for index,name in ipairs(sections[kind])do c:ShowMaterialSection(lod*#sections[kind]+index-1,index-1,not hidden[name],lod)end end
+ end
+ local function wardrobe(r)
+  local a=r.actor;local function worn(c)return valid(c) and c.bVisible and not c.bHiddenInGame end
+  local top=worn(a.shirt) or worn(a.sleeveless_shirt);local pants=worn(a.pants);local shoes=worn(a.shoes1) or worn(a.shoes_formal);local sleeves=worn(a.shirt)
+  if r.top==top and r.pants==pants and r.shoes==shoes and r.sleeves==sleeves then return end
+  r.top=top;r.pants=pants;r.shoes=shoes;r.sleeves=sleeves
+  cover(r,r.follower,'body');cover(r,r.firstBody,'first_body');cover(r,r.arms,'arms')
+ end
  function R.syncWearables(r)
-  if r.id==0 or not r.isPawn then return end
+  if r.id==2 and r.isPawn then wardrobe(r);return end
+  if r.id~=1 or not r.isPawn then return end
   r.wearables=r.wearables or{};local seen={}
   local attached={};r.actor:GetAttachedActors(attached,true,false)
   local wearable=StaticFindObject('/Game/BP/Items/Master/ItemWearable.ItemWearable_C')
@@ -96,33 +117,14 @@ return function(M,root,H,valid,log)
  function R.restore(r)
   restoreParts(r.parts)
  end
- -- Animate the owner's headless Alien torso from the live full-body pose.
- -- A leader-pose follower inherits the leader's bone visibility, so hiding a
- -- bone on that follower does not hide it. Keep this pose local to the viewer.
- local torsoBones={'pelvis','spine_01','spine_02','spine_03','clavicle_l','clavicle_r','thigh_l','calf_l','foot_l','ball_l','thigh_r','calf_r','foot_r','ball_r'}
- local function poseTorso(r)
-  local body,full=r.firstBody,r.follower
-  for _,bone in ipairs(torsoBones)do
-   local name=FName(bone);body:SetBoneTransformByName(name,full:GetSocketTransform(name,1),1)
-  end
- end
  local function follower(actor,source,kind,id,material)
-  local entry
-  if id==2 then
-   local mesh=kind=='arms' and source:GetSkinnedAsset() or LoadAsset('/Game/Environments/SK/Alien/SK_Alien.SK_Alien')
-   assert(valid(mesh),'Alien mesh unavailable');entry={mesh=mesh}
-  else entry=R.load(actor,kind,source) end
-  local torso=id==2 and kind=='first_body'
-  local class=torso and StaticFindObject('/Script/Engine.PoseableMeshComponent') or skinned
-  local c=actor:AddComponentByClass(class,true,I,false);assert(valid(c),'Cannot attach player model')
+  local entry=R.load(actor,kind,source,id)
+  local c=actor:AddComponentByClass(skinned,true,I,false);assert(valid(c),'Cannot attach player model')
   local ok,why=pcall(function()
    c:SetIsReplicated(false);c:SetCollisionEnabled(0);c:K2_AttachToComponent(source,FName('None'),0,0,0,false);c:K2_SetRelativeTransform(I,false,{},true)
    c:SetSkinnedAssetAndUpdate(entry.mesh,true)
-   if material or entry.material then c:SetMaterial(0,material or entry.material)end
-   if torso then
-    c:SetVisibility(false,false);c:SetOnlyOwnerSee(true)
-    for _,bone in ipairs({'neck_01','head','upperarm_l','upperarm_r'})do c:HideBoneByName(FName(bone),0)end
-   else c:SetLeaderPoseComponent(source,true,false)end
+   for slot=0,c:GetNumMaterials()-1 do c:SetMaterial(slot,material or entry.material)end
+   c:SetLeaderPoseComponent(source,true,false)
    if kind=='arms'or kind=='first_body'then c:SetForcedLOD(1)end
    c:SetCastShadow(kind=='body');if kind=='body'then c:SetCastHiddenShadow(true)end
   end)
@@ -144,7 +146,7 @@ return function(M,root,H,valid,log)
    if id==2 then
     r.material=paint.alien(actor,material,palette);r.eyes=paint.eyes(actor,r.follower,palette)
    elseif palette~=M.playerModels.policy.stock(1) then r.material=paint.soldier(actor,material,palette)end
-   if r.material then r.follower:SetMaterial(0,r.material)end
+   if r.material then for slot=0,r.follower:GetNumMaterials()-1 do r.follower:SetMaterial(slot,r.material)end end
    R.capture(r);source.VisibilityBasedAnimTickOption=0;R.syncWearables(r);R.hide(r)
   end)
   if not ok then R.remove(r);error(why)end
@@ -192,15 +194,14 @@ return function(M,root,H,valid,log)
   if r.eyes and r.fps~=fps then for _,eye in ipairs(r.eyes)do if valid(eye)then eye:SetOwnerNoSee(fps);eye:SetVisibility(not fps,false)end end end
   if r.follower.bOwnerNoSee~=fps then r.follower:SetOwnerNoSee(fps)end
   if r.follower.bVisible==fps then r.follower:SetVisibility(not fps,false)end;r.fps=fps
-  if fps and not valid(r.firstBody)then r.firstBody=follower(localPlayer,r.source,'first_body',r.id,r.material)end
+  if fps and not valid(r.firstBody)then r.firstBody=follower(localPlayer,r.source,'first_body',r.id,r.material);if r.id==2 then cover(r,r.firstBody,'first_body')end end
   if valid(r.firstBody)then
-   if fps and r.id==2 and os.clock()>=(r.nextTorso or 0)then poseTorso(r);r.nextTorso=os.clock()+.05 end
    if r.firstBody.bOwnerNoSee then r.firstBody:SetOwnerNoSee(false)end
    if r.firstBody.bVisible~=fps then r.firstBody:SetVisibility(fps,false)end
   end
   local src=localPlayer.FpsArm
   if valid(src)and not valid(r.arms)then
-   r.arms=follower(localPlayer,src,'arms',r.id,r.material);r.armSource=src;r.armMain=src.bRenderInMainPass;r.armDepth=src.bRenderInDepthPass;r.armShadow=src.CastShadow;r.armTick=src.VisibilityBasedAnimTickOption;src.VisibilityBasedAnimTickOption=0
+   r.arms=follower(localPlayer,src,'arms',r.id,r.material);if r.id==2 then cover(r,r.arms,'arms')end;r.armSource=src;r.armMain=src.bRenderInMainPass;r.armDepth=src.bRenderInDepthPass;r.armShadow=src.CastShadow;r.armTick=src.VisibilityBasedAnimTickOption;src.VisibilityBasedAnimTickOption=0
   end
   if valid(r.arms) and valid(src) and valid(localPlayer.BP_PlayerStats) then
    -- Native hands are also used for some third-person interactions. Follow the

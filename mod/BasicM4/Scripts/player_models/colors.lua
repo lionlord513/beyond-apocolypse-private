@@ -57,6 +57,26 @@ return function(root,valid)
   if finishes then m:SetTextureParameterValue(FName('RoughnessMap'),texture(actor,rough));m:SetTextureParameterValue(FName('MetalMap'),texture(actor,metal))end
   return m
  end
+ local nailTriangles=dofile(root..'/Scripts/player_models/nails.lua')
+ local paintJob
+ function C.restoreNails(actor,target,brush,w,h)
+  if not C.paintHook then
+   C.paintHook={RegisterHook('/Script/Engine.KismetRenderingLibrary:BeginDrawCanvasToRenderTarget',function()end,function(_,world,rt,canvas,_,context)
+    local job=paintJob;if not job or rt:get():GetAddress()~=job.target then return end
+    paintJob=nil
+    local ok,e=pcall(function()canvas:get():K2_DrawMaterialTriangle(job.brush,job.triangles)end)
+    renderer:EndDrawCanvasToRenderTarget(world:get(),context:get());job.done=true;job.error=not ok and e or nil
+   end)}
+  end
+  local triangles={};local white={R=1,G=1,B=1,A=1}
+  for _,t in ipairs(nailTriangles)do local row={};for v=0,2 do
+   local u,y=t[v*2+1],t[v*2+2];local key='V'..v
+   row[key..'_Pos']={X=u*w,Y=y*h};row[key..'_UV']={X=u,Y=y};row[key..'_Color']=white
+  end;triangles[#triangles+1]=row end
+  local job={target=target:GetAddress(),brush=brush,triangles=triangles};paintJob=job
+  renderer:BeginDrawCanvasToRenderTarget(actor,target,{},{},{});paintJob=nil
+  assert(job.done and not job.error,job.error or 'Could not restore nail texture')
+ end
  function C.alien(actor,base,pal)
   local skin=C.part(pal,2)
   if skin=='------' then return base end
@@ -71,6 +91,10 @@ return function(root,valid)
   brush:SetVectorParameterValue(FName('TintColorAndOpacity'),tint)
   local target=renderer:CreateRenderTarget2D(actor,diffuse:Blueprint_GetSizeX(),diffuse:Blueprint_GetSizeY(),3,{R=0,G=0,B=0,A=1},false,false)
   renderer:DrawMaterialToRenderTarget(actor,target,brush)
+  -- The two nail islands have their original UVs and color, even for black skin.
+  brush:SetVectorParameterValue(FName('TintColorAndOpacity'),{R=1,G=1,B=1,A=1})
+  local w,h=diffuse:Blueprint_GetSizeX(),diffuse:Blueprint_GetSizeY()
+  C.restoreNails(actor,target,brush,w,h)
   m:SetTextureParameterValue(FName('Diff'),target)
   return m
  end
@@ -87,23 +111,34 @@ return function(root,valid)
   c:SetRelativeScale3D({X=.074,Y=.061,Z=.023});c:K2_SetRelativeRotation({Pitch=90,Yaw=0,Roll=0},false,{},true)
   c:K2_SetRelativeLocation({X=-2,Y=0,Z=0},false,{},true);return c
  end
+ local lensData
  function C.eyes(actor,mesh,pal)
-  local value=C.part(pal,1);local rgb=C.rgb(value=='------'and '41FFE6' or value)
-  local shader=LoadAsset('/Engine/EngineMaterials/Widget3DPassThrough_Opaque.Widget3DPassThrough_Opaque')
-  local mat=K:CreateDynamicMaterialInstance(actor,shader,FName('None'),0)
-  local white=LoadAsset('/Engine/EngineResources/WhiteSquareTexture.WhiteSquareTexture')
-  assert(valid(white),'Eye texture unavailable')
-  mat:SetTextureParameterValue(FName('SlateUI'),white)
-  mat:SetVectorParameterValue(FName('TintColorAndOpacity'),{R=rgb.R*24,G=rgb.G*24,B=rgb.B*24,A=1})
-  local eyes={}
-  for _,side in ipairs({-1,1})do
-   local c=part(actor,mesh,'head','Sphere',mat)
-   local key=side<0 and 'left' or 'right'
-   c:K2_SetRelativeTransform(C.eyeFit[key],false,{},true)
-   eyes[#eyes+1]=c
+  if not lensData then
+   lensData=dofile(root..'/assets/player_models/alien-lenses.lua')
+   local verts,uvs={},{}
+   for i,p in ipairs(lensData.positions)do verts[i]={X=p[1],Y=p[2],Z=p[3]}end
+   for i,uv in ipairs(lensData.uv)do uvs[i]={X=uv[1],Y=uv[2]}end
+   local normal={};for i,v in ipairs(lensData.normals)do normal[i]={X=v[1],Y=v[2],Z=v[3]}end
+   lensData.positions=verts;lensData.uv=uvs;lensData.normals=normal
   end
-  return eyes
+  local lens=actor:AddComponentByClass(StaticFindObject('/Script/ProceduralMeshComponent.ProceduralMeshComponent'),true,I,false)
+  lens:SetIsReplicated(false);lens:SetCollisionEnabled(0);lens:SetGenerateOverlapEvents(false);lens:SetComponentTickEnabled(false);lens:SetCastShadow(false)
+  lens:K2_AttachToComponent(mesh,FName('head'),0,0,0,false);lens:K2_SetRelativeTransform(I,false,{},true)
+  local g=lensData
+  lens:CreateMeshSection(0,g.positions,g.indices,g.normals,g.uv,{},{},false)
+  local shell=K:CreateDynamicMaterialInstance(actor,LoadAsset('/MasterWeapon/Materials/Weapons/MAT_ArK47.MAT_ArK47'),FName('None'),0)
+  local body=renderer:ImportFileAsTexture2D(actor,root..'/assets/player_models/alien-cornea.png')
+  shell:SetTextureParameterValue(FName('Diffuse'),body);shell:SetScalarParameterValue(FName('RoughnessBrightness'),.18)
+  shell:SetScalarParameterValue(FName('DiffuseBrightness'),1);lens:SetMaterial(0,shell)
+  local shader=LoadAsset('/Engine/EngineMaterials/Widget3DPassThrough_Translucent_OneSided.Widget3DPassThrough_Translucent_OneSided')
+  local glow=K:CreateDynamicMaterialInstance(actor,shader,FName('None'),0)
+  local iris=renderer:ImportFileAsTexture2D(actor,root..'/assets/player_models/alien-iris.png')
+  glow:SetTextureParameterValue(FName('SlateUI'),iris)
+  local value=C.part(pal,1);local rgb=C.rgb(value=='------' and '41FFE6' or value)
+  glow:SetVectorParameterValue(FName('TintColorAndOpacity'),{R=rgb.R*50,G=rgb.G*50,B=rgb.B*50,A=1})
+  local raised={};for i,v in ipairs(g.positions)do local n=g.normals[i];raised[i]={X=v.X+n.X*.018,Y=v.Y+n.Y*.018,Z=v.Z+n.Z*.018}end
+  lens:CreateMeshSection(1,raised,g.indices,g.normals,g.uv,{},{},false);lens:SetMaterial(1,glow)
+  return {lens}
  end
- C.eyeFit=dofile(root..'/Scripts/player_models/eye_fit.lua')
  return C
 end
