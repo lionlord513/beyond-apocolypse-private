@@ -1,4 +1,4 @@
-BEYOND APOCALYPSE 1.1.2
+BEYOND APOCALYPSE 1.1.3
 
 Survive zombie encounters, pack supplies in a backpack and shop for gear at the Hangar. Ride motorcycles, fly the Hornet gyrocopter or choose a custom player model.
 
@@ -10,6 +10,6 @@ Press Tab to open your backpack. Use the Hangar app on an in-game computer to bu
 
 Installation
 
-Close the game. Import the public ZIP into Beyond Mod Manager and select Install, or extract the Nexus ZIP into your Drive Beyond Horizons game folder. Everyone in co-op needs the same version.
+Close the game. Import either ZIP into Beyond Mod Manager and select Install, or extract it into your Drive Beyond Horizons game folder. Everyone in co-op needs the same version.
 
 See BACKPACKS.md and TRANSPORT.md for more controls.

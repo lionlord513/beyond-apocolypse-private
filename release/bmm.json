@@ -2,7 +2,7 @@
   "schema": 1,
   "id": "beyondapocalypse",
   "name": "Beyond Apocalypse",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "channel": "stable",
   "description": "Zombies, rifles, backpacks, motorcycles, a gyrocopter and custom player models.",
   "website": "https://www.nexusmods.com/drivebeyondhorizons/mods/28",
@@ -15,6 +15,15 @@
     "Kind": "beyond-apocolypse"
   },
   "history": [
+    {
+      "version": "1.1.3",
+      "channel": "stable",
+      "released": "2026-11-04",
+      "notes": [
+        "Matched the Nexus and mod manager downloads.",
+        "Fixed repeated update prompts after installing from Nexus."
+      ]
+    },
     {
       "version": "1.1.2",
       "channel": "stable",
@@ -32,7 +41,7 @@
       "channel": "stable",
       "released": "2026-11-03",
       "notes": [
-        "Fixed the Alien\u2019s eyes and added glowing irises.",
+        "Fixed the Alien’s eyes and added glowing irises.",
         "Fixed the Alien head appearing in first person.",
         "Alien skin paint now leaves toenails unchanged.",
         "Added native clothing support for the Alien, including shirts, pants and shoes."
@@ -425,5 +434,5 @@
       ]
     }
   ],
-  "changelog": "Updated for Drive Beyond Horizons build 26106988 while retaining established vehicle, inventory, input and Hangar fixes.\nF9 opens player settings, statistics and host zombie population controls (2 to 40). Default targets are 5 by day and 10 at night or around an infested building.\nBounded scenery updates replace repeated world-wide mesh scans; idle input and trailer searches are reduced.\nBoth motorcycles retain corrected rider positioning, stable parked wheels and contact-height presentation. Removable bike-shaped headlights use the native car lighting system.\nHornet pitch, roll and yaw remain enabled after resting on the ground; the manual collective gauge updates smoothly between flight calculations.\nRestored rotor-blade pickup recovery, replicated service-part fitting, Hangar click safeguards and saved control reconciliation.\nPublic gameplay files only. Mod Manager is optional; the game can be launched directly through Steam."
+  "changelog": "Matched the Nexus and mod manager downloads.\nFixed repeated update prompts after installing from Nexus."
 }

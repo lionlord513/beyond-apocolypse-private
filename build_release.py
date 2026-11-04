@@ -8,7 +8,7 @@ parser.add_argument('--runtime',type=Path,required=True,help='Recovered Win64 di
 parser.add_argument('--model-source',type=Path,required=True)
 parser.add_argument('--output',type=Path,required=True)
 args=parser.parse_args();out=args.output.resolve();out.mkdir(parents=True,exist_ok=True)
-version='1.1.2';binroot='DriveBeyondHorizons/Binaries/Win64';mods=binroot+'/ue4ss/Mods'
+version='1.1.3';binroot='DriveBeyondHorizons/Binaries/Win64';mods=binroot+'/ue4ss/Mods'
 sha=lambda data:hashlib.sha256(data).hexdigest()
 def payload(path):return {p.relative_to(path).as_posix():p.read_bytes() for p in sorted(path.rglob('*'))if p.is_file()}
 mod=payload(root/'mod/BasicM4')
@@ -18,15 +18,13 @@ for name,data in mod.items():
  assert not name.startswith('state/')or name=='state/KEEP THIS FOLDER.txt',name
  if name.endswith(('.lua','.txt')):
   assert not any(s in data.lower()for s in (b'baaudit',b'c:/users/',b'c:\\users\\',b'live-audit',b'work/private-companion')),name
-assert b"Version='1.1.2',Channel='stable'"in mod['Scripts/release.lua']
+assert b"Version='1.1.3',Channel='stable'"in mod['Scripts/release.lua']
 runtime={}
 for name in ['dwmapi.dll','ue4ss/UE4SS.dll','ue4ss/UE4SS-settings.ini','ue4ss/LICENSE','ue4ss/Mods/shared/UEHelpers/UEHelpers.lua']:
  runtime[name]=(args.runtime/name).read_bytes()
 assert sha(runtime['ue4ss/UE4SS.dll'])=='e14657eec1c3fb08d1d0e4d5b24f69a9343cd06359e1af27ae6c9c84c5f010cf'
 docs=payload(root/'release');shim=docs.pop('legacy-main.lua')
 assert shim.startswith(b'-- BeyondApocalypse legacy migration shim v1')
-public={**{'BeyondApocalypse/'+k:v for k,v in mod.items()},**{'runtime/'+k:v for k,v in runtime.items()},**docs,
- 'BasicM4/Scripts/main.lua':shim,'BasicM4/Scripts/release.lua':mod['Scripts/release.lua']}
 nexus={**{mods+'/BeyondApocalypse/'+k:v for k,v in mod.items()},**{binroot+'/'+k:v for k,v in runtime.items()},
  mods+'/BasicM4/Scripts/main.lua':shim,mods+'/BasicM4/Scripts/release.lua':mod['Scripts/release.lua'],
  'READ ME FIRST.txt':docs['README.txt'],'bmm.json':docs['bmm.json']}
@@ -45,21 +43,24 @@ def archive(name,files):
   assert all('DevMenu/'not in n and '/Scripts/devmenu/'not in n for n in z.namelist())
  print('BUILT',p.name,p.stat().st_size,flush=True)
  return p
-pub=archive('BeyondApocalypse-1.1.2-public.zip',public)
-nex=archive('BeyondApocolypse-1.1.2-Nexus.zip',nexus)
-legacy=out/'BeyondApocolypse-1.1.2-beta.zip';shutil.copyfile(pub,legacy)
+# Both delivery channels use one canonical package, including the loader.
+# Hash-based same-version checks therefore recognize a Nexus install as current.
+nex=archive('BeyondApocolypse-1.1.3-Nexus.zip',nexus)
+pub=out/'BeyondApocalypse-1.1.3-public.zip';shutil.copyfile(nex,pub)
+assert pub.read_bytes()==nex.read_bytes()
+legacy=out/'BeyondApocolypse-1.1.3-beta.zip';shutil.copyfile(pub,legacy)
 with zipfile.ZipFile(args.model_source)as z:
  source={n:z.read(n)for n in z.namelist()if not n.endswith('/')}
 assert any(n.endswith(('.ac','.blend','.gltf'))for n in source),'Original editable model is missing'
 for k,v in mod.items():
- if k.startswith('assets/gyrocopter/'):source['Beyond-Apocalypse-1.1.2-current/'+k]=v
-source['Beyond-Apocalypse-1.1.2-current/README.txt']=b'Original source/converter retained. Current imported Hornet assets are included under assets/gyrocopter. See its ATTRIBUTION.txt and COPYING.txt.\n'
-model=archive('BeyondApocolypse-1.1.2-Hornet-Model-Source.zip',source)
+ if k.startswith('assets/gyrocopter/'):source['Beyond-Apocalypse-1.1.3-current/'+k]=v
+source['Beyond-Apocalypse-1.1.3-current/README.txt']=b'Original source/converter retained. Current imported Hornet assets are included under assets/gyrocopter. See its ATTRIBUTION.txt and COPYING.txt.\n'
+model=archive('BeyondApocolypse-1.1.3-Hornet-Model-Source.zip',source)
 meta=json.loads(docs['bmm.json']);notes=meta['history'][0]['notes']
-def manifest(p):return {'schema':1,'version':version,'released':'2026-11-04','channel':'stable','origin':'GitHub','asset':p.name,'size':p.stat().st_size,'sha256':sha(p.read_bytes()),'url':'https://github.com/lionlord513/beyond-apocolypse-private/releases/download/v1.1.2/'+p.name,'notes':notes,'history':meta['history'][1:]}
+def manifest(p):return {'schema':1,'version':version,'released':'2026-11-04','channel':'stable','origin':'GitHub','asset':p.name,'size':p.stat().st_size,'sha256':sha(p.read_bytes()),'url':'https://github.com/lionlord513/beyond-apocolypse-private/releases/download/v1.1.3/'+p.name,'notes':notes,'history':meta['history'][1:]}
 for name,p in [('bmm-mod.json',pub),('release.json',legacy)]:
  (out/name).write_text(json.dumps(manifest(p),indent=2)+'\n',encoding='utf-8')
 files=[pub,nex,legacy,model,out/'bmm-mod.json',out/'release.json']
 (out/'SHA256SUMS.txt').write_text(''.join(sha(p.read_bytes())+'  '+p.name+'\n'for p in files),encoding='utf-8')
-report={'version':version,'publicFiles':len(public),'nexusFiles':len(nexus),'personalMenuIncluded':False,'files':[{'name':p.name,'size':p.stat().st_size,'sha256':sha(p.read_bytes())}for p in files]}
+report={'version':version,'publicFiles':len(nexus),'nexusFiles':len(nexus),'personalMenuIncluded':False,'files':[{'name':p.name,'size':p.stat().st_size,'sha256':sha(p.read_bytes())}for p in files]}
 (out/'package-verification.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
