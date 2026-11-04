@@ -14,7 +14,7 @@ end
 StaticFindObject=function()return sys end
 FindAllOf=function()error('Performance Mode scanned native objects')end
 NotifyOnNewObject=function()error('Performance Mode registered a component observer')end
-local M={root=root..'/..',config={PerformancePatch=false},statePath=function(name)return scratch..'/'..name end}
+local M={root=root..'/..',statePath=function(name)return scratch..'/'..name end}
 local H={GetPlayerController=function()return pc end}
 local F=dofile(root..'/performance.lua')(M,H,function(x)return x~=nil end,function()end)
 assert(F.setGameplayMode(true,true));assert(values['r.StaticMeshLODDistanceScale']==4 and values['grass.DensityScale']==0 and values['sg.PostProcessQuality']==0)
@@ -22,4 +22,7 @@ assert(values['r.ViewDistanceScale']==.8 and not F.scene)
 local count=commands;for _=1,10000 do F.tick()end;assert(commands==count,'Idle mode rewrote render settings')
 assert(F.setGameplayMode(false,true));for k,v in pairs(initial)do assert(values[k]==v,'Setting not restored: '..k)end
 assert(F.setGameplayMode(false,true));assert(F.setGameplayMode(true,true));F.reset();for k,v in pairs(initial)do assert(values[k]==v)end
+values['sg.PostProcessQuality']=3;F.tick();assert(values['sg.PostProcessQuality']==3)
+assert(F.setGameplayMode(true,true));values['sg.PostProcessQuality']=1;F.nextAt=0;F.tick()
+assert(values['sg.PostProcessQuality']==0);F.setGameplayMode(false,true);assert(values['sg.PostProcessQuality']==1)
 print('PASS: native AK sight alignment; scan-free performance mode, idle settings and exact restoration')

@@ -119,7 +119,7 @@ local function component(name)
 end
 local human=object('local cosmetic');human.FpsArm=component('native hands');human.BP_PlayerStats={IsDead=false}
 local cameraFPS=true;local camera={IsInFPS=true,IsInCameraFPS=function(_,out)out.IsFPS=cameraFPS end}
-local cosmetic={actor=human,follower=component('full soldier'),firstBody=component('headless body'),arms=component('soldier hands'),parts={}}
+local cosmetic={actor=human,follower=component('full soldier'),firstBody=component('headless body'),driverBody=component('driver limbs'),arms=component('soldier hands'),parts={}}
 V.update(cosmetic,human,camera)
 assert(not cosmetic.follower.bVisible and cosmetic.firstBody.bVisible)
 assert(human.FpsArm.bVisible and not human.FpsArm.bHiddenInGame,'Changing native animation inputs causes flicker')
@@ -127,7 +127,10 @@ assert(not human.FpsArm.bRenderInMainPass and not human.FpsArm.bRenderInDepthPas
 cameraFPS=false;V.update(cosmetic,human,camera)
 assert(cosmetic.follower.bVisible and not cosmetic.follower.bOwnerNoSee and not cosmetic.firstBody.bVisible,'Inspection must show the full helmet')
 cameraFPS=true;camera.Vehicle=object('occupied car');camera.Vehicle.Driver=human;V.update(cosmetic,human,camera)
-assert(cosmetic.follower.bVisible and not cosmetic.firstBody.bVisible,'Driver model lost its head')
+assert(not cosmetic.follower.bVisible and not cosmetic.firstBody.bVisible and cosmetic.driverBody.bVisible and not cosmetic.arms.bVisible,'The cockpit must use native seated limbs')
+cameraFPS=false;V.update(cosmetic,human,camera)
+assert(cosmetic.follower.bVisible and not cosmetic.firstBody.bVisible and not cosmetic.driverBody.bVisible,'Exterior camera lost the full model')
+cameraFPS=true
 camera.Vehicle=nil;V.update(cosmetic,human,camera)
 V.update(cosmetic,object('different local player'),camera)
 assert(cosmetic.follower.bVisible and not cosmetic.follower.bOwnerNoSee and not cosmetic.firstBody.bVisible and not cosmetic.arms.bVisible,'Remote players must see a full helmet')

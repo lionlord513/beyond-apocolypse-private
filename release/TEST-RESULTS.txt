@@ -1,3 +1,7 @@
+BEYOND APOCALYPSE 1.1.2
+
+Checked the driver and exterior cameras in build 26437602. Both models use the seated character animation for their hands and legs. Checked the owner camera on foot and in inspection view. Separate-PC multiplayer was not exercised.
+
 BEYOND APOCALYPSE 1.1.1
 
 The Alien uses separate first-person torso and arm meshes on the same native

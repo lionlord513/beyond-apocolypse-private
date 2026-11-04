@@ -49,7 +49,7 @@ return function(M,root,H,valid,log)
   local fps=r.isPawn and r.actor.FpsArm or nil
   for _,v in ipairs(r.actor:K2_GetComponentsByClass(StaticFindObject('/Script/Engine.MeshComponent')))do
    local c=v:get();local name=c:GetFName():ToString();local take=faceParts[name]==true
-   if c:IsA(skinned)and not same(c,r.arms)and not same(c,r.firstBody)and not same(c,r.follower)and not same(c,fps)then
+   if c:IsA(skinned)and not same(c,r.arms)and not same(c,r.firstBody)and not same(c,r.driverBody)and not same(c,r.follower)and not same(c,fps)then
     local asset=c:GetSkinnedAsset()
     local garment=r.id==2 and (garments[name] or valid(asset) and asset:GetFullName():lower():find('/clothes/',1,true))
     take=not garment and valid(asset) and same(asset.Skeleton,skeleton) or take
@@ -72,18 +72,22 @@ return function(M,root,H,valid,log)
   if r.id==0 then return end
   hideParts(r.parts);for _,item in pairs(r.wearables or{})do hideParts(item.parts)end
  end
- local sections={body={'head','hands','sleeves','feet','legs','waist','torso','collar'},first_body={'feet','legs','waist','torso'},arms={'hands','sleeves'}}
+ local sections={body={'head','hands','sleeves','feet','legs','waist','torso','collar'},first_body={'hands','sleeves','feet','legs','waist','torso','collar'},arms={'hands','sleeves'},driver={'hands','sleeves','feet','legs'}}
  local function cover(r,c,kind)
   if not valid(c)then return end
   local hidden={torso=r.top,waist=r.pants,legs=r.pants,feet=r.shoes,sleeves=r.sleeves}
+  if kind=='first_body' and r.useActionArms then hidden.hands=true;hidden.sleeves=true end
   for lod=0,2 do for index,name in ipairs(sections[kind])do c:ShowMaterialSection(lod*#sections[kind]+index-1,index-1,not hidden[name],lod)end end
  end
  local function wardrobe(r)
   local a=r.actor;local function worn(c)return valid(c) and c.bVisible and not c.bHiddenInGame end
   local top=worn(a.shirt) or worn(a.sleeveless_shirt);local pants=worn(a.pants);local shoes=worn(a.shoes1) or worn(a.shoes_formal);local sleeves=worn(a.shirt)
+  local equipped=a.MapWearableItem
+  local function has(slot)return equipped:Contains(slot)and valid(equipped:Find(slot):get())end
+  top=top or has(3);pants=pants or has(2);shoes=shoes or has(4)
   if r.top==top and r.pants==pants and r.shoes==shoes and r.sleeves==sleeves then return end
   r.top=top;r.pants=pants;r.shoes=shoes;r.sleeves=sleeves
-  cover(r,r.follower,'body');cover(r,r.firstBody,'first_body');cover(r,r.arms,'arms')
+  cover(r,r.follower,'body');cover(r,r.firstBody,'first_body');cover(r,r.arms,'arms');cover(r,r.driverBody,'driver')
  end
  function R.syncWearables(r)
   if r.id==2 and r.isPawn then wardrobe(r);return end
@@ -125,7 +129,7 @@ return function(M,root,H,valid,log)
    c:SetSkinnedAssetAndUpdate(entry.mesh,true)
    for slot=0,c:GetNumMaterials()-1 do c:SetMaterial(slot,material or entry.material)end
    c:SetLeaderPoseComponent(source,true,false)
-   if kind=='arms'or kind=='first_body'then c:SetForcedLOD(1)end
+   if kind~='body'then c:SetForcedLOD(1)end
    c:SetCastShadow(kind=='body');if kind=='body'then c:SetCastHiddenShadow(true)end
   end)
   if not ok then c:K2_DestroyComponent(actor);error(why)end
@@ -166,6 +170,7 @@ return function(M,root,H,valid,log)
   if valid(r.follower)then r.follower:K2_DestroyComponent(r.actor)end
   if valid(r.arms)then r.arms:K2_DestroyComponent(r.actor)end
   if valid(r.firstBody)then r.firstBody:K2_DestroyComponent(r.actor)end
+  if valid(r.driverBody)then r.driverBody:K2_DestroyComponent(r.actor)end
   R.records[r.key]=nil
  end
  function R.syncRagdoll(r)
@@ -185,19 +190,27 @@ return function(M,root,H,valid,log)
   if not same(r.actor,localPlayer)then
    if r.follower.bOwnerNoSee then r.follower:SetOwnerNoSee(false)end
    if not r.follower.bVisible then r.follower:SetVisibility(true,false)end
-   if r.localOwner then for _,eye in ipairs(r.eyes or{})do if valid(eye)then eye:SetOwnerNoSee(false);eye:SetVisibility(true,false)end end;r.fps=nil;if valid(r.arms)then r.arms:SetVisibility(false,false)end;if valid(r.firstBody)then r.firstBody:SetVisibility(false,false)end;r.localOwner=false end
+   if r.localOwner then for _,eye in ipairs(r.eyes or{})do if valid(eye)then eye:SetOwnerNoSee(false);eye:SetVisibility(true,false)end end;r.fps=nil;if valid(r.arms)then r.arms:SetVisibility(false,false)end;if valid(r.firstBody)then r.firstBody:SetVisibility(false,false)end;if valid(r.driverBody)then r.driverBody:SetVisibility(false,false)end;r.localOwner=false end
    return
   end
   r.localOwner=true;r.view=r.view or{};pc:IsInCameraFPS(r.view)
-  local seated=valid(pc.Vehicle) and same(pc.Vehicle.Driver,localPlayer)
-  local fps=r.view.IsFPS==true and not seated;R.hide(r)
+  local fps=r.view.IsFPS==true;R.hide(r)
   if r.eyes and r.fps~=fps then for _,eye in ipairs(r.eyes)do if valid(eye)then eye:SetOwnerNoSee(fps);eye:SetVisibility(not fps,false)end end end
   if r.follower.bOwnerNoSee~=fps then r.follower:SetOwnerNoSee(fps)end
   if r.follower.bVisible==fps then r.follower:SetVisibility(not fps,false)end;r.fps=fps
-  if fps and not valid(r.firstBody)then r.firstBody=follower(localPlayer,r.source,'first_body',r.id,r.material);if r.id==2 then cover(r,r.firstBody,'first_body')end end
+  -- The wheel animation runs on the pawn's body rig. The game parks FpsArm
+  -- outside the vehicle and hides it while driving.
+  local driving=fps and valid(pc.Vehicle)and same(pc.Vehicle.Driver,localPlayer)
+  local onFoot=fps and not driving
+  if driving and not valid(r.driverBody)then
+   r.driverBody=follower(localPlayer,r.source,'driver',r.id,r.material)
+   if r.id==2 then cover(r,r.driverBody,'driver')end
+  end
+  if valid(r.driverBody)and r.driverBody.bVisible~=driving then r.driverBody:SetVisibility(driving,false)end
+  if onFoot and not valid(r.firstBody)then r.firstBody=follower(localPlayer,r.source,'first_body',r.id,r.material);if r.id==2 then cover(r,r.firstBody,'first_body')end end
   if valid(r.firstBody)then
    if r.firstBody.bOwnerNoSee then r.firstBody:SetOwnerNoSee(false)end
-   if r.firstBody.bVisible~=fps then r.firstBody:SetVisibility(fps,false)end
+   if r.firstBody.bVisible~=onFoot then r.firstBody:SetVisibility(onFoot,false)end
   end
   local src=localPlayer.FpsArm
   if valid(src)and not valid(r.arms)then
@@ -206,7 +219,10 @@ return function(M,root,H,valid,log)
   if valid(r.arms) and valid(src) and valid(localPlayer.BP_PlayerStats) then
    -- Native hands are also used for some third-person interactions. Follow the
    -- source visibility instead of making a separate camera-mode assumption.
-   local show=not src.bHiddenInGame and not localPlayer.BP_PlayerStats.IsDead
+   local show=not driving and not src.bHiddenInGame and not localPlayer.BP_PlayerStats.IsDead
+   if r.id==2 and r.useActionArms~=show then
+    r.useActionArms=show;cover(r,r.firstBody,'first_body')
+   end
    if r.showArms~=show then r.arms:SetVisibility(show,false);r.arms:SetHiddenInGame(not show,false);r.showArms=show end
    -- The game toggles native visibility while handling guns. Keep those flags
    -- as its animation/interaction inputs, and suppress only the original draw.

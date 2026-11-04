@@ -1,3 +1,10 @@
+1.1.2
+- Fixed the Alien and Soldier blocking the driver's view.
+- Restored visible arms while driving in first person.
+- Restored the Alien's arms and chest in first person.
+- Improved Alien finger movement.
+- Updated graphics settings support for the November 4 hotfix.
+
 1.1.1
 - Fixed the Alien’s eyes and added glowing irises.
 - Fixed the Alien head appearing in first person.

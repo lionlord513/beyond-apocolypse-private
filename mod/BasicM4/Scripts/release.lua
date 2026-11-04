@@ -1,1 +1,1 @@
-return {Name='Beyond Apocalypse',Version='1.1.1',Channel='stable',Package='BeyondApocalypse-1.1.1-public'}
+return {Name='Beyond Apocalypse',Version='1.1.2',Channel='stable',Package='BeyondApocalypse-1.1.2-public'}
