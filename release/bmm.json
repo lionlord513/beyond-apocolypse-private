@@ -23,6 +23,7 @@
         "Move the dashboard from F9 Settings > Gameplay. Restore the shared nitrous gauge and boost status with Beyond Tuning.",
         "Keep native rifle visibility during streaming and build the host-selected variant for each peer.",
         "Commit wild Hornet sites after successful delivery. Retry blocked sites.",
+        "Suspend Hornet flight forces while the native hitch shows another vehicle towing it.",
         "Restore transport, ammo and weapon attachments after save initialization and preserve them through native Save As.",
         "Hangar guest orders charge the buyer. Preserve individual ammo reserves when a Steam identity is unavailable.",
         "Reset session state on travel and keep the optional local testing menu separate from gameplay."

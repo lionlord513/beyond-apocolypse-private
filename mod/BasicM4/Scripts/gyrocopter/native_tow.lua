@@ -5,8 +5,12 @@ return function(G,valid)
  local function same(a,b)return valid(a)and valid(b)and a:GetAddress()==b:GetAddress()end
  function N.active(a)
   for _,name in ipairs({'Vehicle_Hitch_Front','Vehicle_Hitch_Back'})do local h=a[name]
-   if valid(h)and h.isHitched and same(h.TrailerHitch,h)and valid(h.TowHitch)and
-    valid(h.TowHitch.ParentVehicle)and not same(h.TowHitch.ParentVehicle,a)then return true end
+   if valid(h)and h.isHitched then
+    local tow=h.TowHitch
+    -- AVS can store the trailer end on the towing vehicle's component only.
+    if valid(tow)and (same(h.TrailerHitch,h)or same(tow.TrailerHitch,h))and
+     valid(tow.ParentVehicle)and not same(tow.ParentVehicle,a)then return true end
+   end
   end
   return false
  end

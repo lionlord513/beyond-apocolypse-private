@@ -40,4 +40,14 @@ local actor={AutoDisableAirControlOnGround=true,EnableAirControl=false};P.config
 assert(actor.EnableAirControl and not actor.AutoDisableAirControlOnGround,'Ground gate can disable the Hornet')
 P.apply({actor=actor,result=x});assert(actor.AirPitchInput<0 and actor.AirRollInput>0 and actor.AirYawInput>0)
 local before=actor.AirPitchInput;P.apply({actor=actor,result={pitch=0},towed=true});assert(actor.AirPitchInput==before,'Docked aircraft received control writes')
+local function identified(id)return {GetAddress=function()return id end}end
+local plane,car=identified(1),identified(2)
+local front,back=identified(3),identified(4)
+plane.Vehicle_Hitch_Front=front;car.Vehicle_Hitch_Back=back
+front.isHitched=true;back.isHitched=true;front.TowHitch=back
+back.TowHitch=back;back.TrailerHitch=front;back.ParentVehicle=car
+local tow=dofile(root..'/gyrocopter/native_tow.lua')({},valid)
+assert(tow.active(plane)and not tow.active(car),'Follow the actual trailer from either native hitch record')
+front.isHitched=false
+assert(not tow.active(plane),'Manual release must restore flight')
 print('PASS: idle/hidden/simple HUD lifetime, frame-smooth collective, manual collective hold, three axes, grounded air-control gate, tow guard')
