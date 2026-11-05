@@ -3,6 +3,37 @@ return function(M,H,valid)
  local D={nextAt=0,cache={},bars={},segments={}};local game=StaticFindObject('/Script/Engine.Default__GameplayStatics')
  local colors={bg={R=.012,G=.019,B=.029,A=.91},line={R=.13,G=.19,B=.25,A=1},text={R=.90,G=.95,B=1,A=1},muted={R=.39,G=.50,B=.61,A=1},blue={R=.12,G=.57,B=1,A=1},purple={R=.65,G=.28,B=1,A=1},red={R=1,G=.20,B=.15,A=1},amber={R=1,G=.62,B=.15,A=1},green={R=.24,G=.85,B=.63,A=1}}
  local function clamp(x)return math.max(0,math.min(1,x))end
+ local path=M.statePath and M.statePath('dashboard-position.txt')
+ if path then
+  local f=io.open(path,'r')or io.open(path..'.bak','r')
+  if f then
+   local x,y=f:read('*n','*n');f:close()
+   if x and y and x>=0 and x<=1 and y>=0 and y<=1 then D.savedX=x;D.savedY=y end
+  end
+ end
+ local function position(x,y)
+  D.x=math.max(0,math.min(D.maxX,x));D.y=math.max(0,math.min(D.maxY,y))
+  D.slot:SetPosition({X=D.x,Y=D.y})
+ end
+ function D.place(width,height,scale)
+  D.maxX=math.max(0,width-304*scale);D.maxY=math.max(0,height-D.height*scale)
+  position(D.savedX and D.savedX*D.maxX or D.maxX-30,D.savedY and D.savedY*D.maxY or height*.52-D.height*scale/2)
+ end
+ function D.press(q)
+  if not valid(D.widget)or not D.scale or q.X<D.x or q.X>D.x+304*D.scale or q.Y<D.y or q.Y>D.y+D.height*D.scale then return end
+  D.drag={x=q.X-D.x,y=q.Y-D.y};return true
+ end
+ function D.move(q)if D.drag then position(q.X-D.drag.x,q.Y-D.drag.y)end end
+ function D.release(q)
+  if not D.drag then return end
+  D.move(q);D.drag=nil
+  local x=D.x/math.max(1,D.maxX);local y=D.y/math.max(1,D.maxY)
+  local f=assert(io.open(path..'.tmp','w'),'Cannot save dashboard position')
+  assert(f:write(('%.8f %.8f\n'):format(x,y)));assert(f:close())
+  local old=io.open(path,'r');if old then old:close();os.remove(path..'.bak');assert(os.rename(path,path..'.bak'))end
+  local ok,e=os.rename(path..'.tmp',path);if not ok then if old then os.rename(path..'.bak',path)end;error(e)end
+  D.savedX=x;D.savedY=y;return true
+ end
  local function new(k,outer)return StaticConstructObject(StaticFindObject('/Script/UMG.'..k),outer)end
  local function text(id,value)
   if D.cache[id]~=value then D.cache[id]=value;D[id]:SetText(FText(value))end
@@ -10,14 +41,14 @@ return function(M,H,valid)
  local function tint(o,c)o:SetColorAndOpacity({SpecifiedColor=c,ColorUseRule=0})end
  local function color(id,c)if D.cache[id..'Color']~=c then D.cache[id..'Color']=c;tint(D[id],c)end end
  function D.hide()
-  if valid(D.widget)then D.widget:RemoveFromParent()end;D.widget=nil;D.bars={};D.cache={};D.segments={};D.vehicle=nil
+  if valid(D.widget)then D.widget:RemoveFromParent()end;D.widget=nil;D.drag=nil;D.bars={};D.cache={};D.segments={};D.vehicle=nil
  end
  local function build(pc,flight)
   D.hide();D.rpmCount=nil;D.batteryColor=nil;D.scale=nil;local w=StaticFindObject('/Script/UMG.Default__WidgetBlueprintLibrary'):Create(pc,StaticFindObject('/Script/UMG.UserWidget'),pc)
   local tree=w.WidgetTree;if not valid(tree)then tree=new('WidgetTree',w);w.WidgetTree=tree end
   local canvas=new('CanvasPanel',tree);tree.RootWidget=canvas
   local panel=new('CanvasPanel',tree);local slot=canvas:AddChildToCanvas(panel)
-  slot:SetAnchors({Minimum={X=1,Y=.52},Maximum={X=1,Y=.52}});slot:SetAlignment({X=1,Y=.5});slot:SetPosition({X=-30,Y=0})
+  slot:SetAnchors({Minimum={X=0,Y=0},Maximum={X=0,Y=0}});slot:SetAlignment({X=0,Y=0})
   local height=flight and 426 or 342;slot:SetSize({X=304,Y=height});D.panel=panel;D.slot=slot
   local function box(x,y,width,height,c,round)
    local o=new('Image',tree)
@@ -48,10 +79,10 @@ return function(M,H,valid)
    box(20,260,264,5,colors.line);local o,s=box(20,260,0,5,colors.blue);D.bars.collective={image=o,slot=s,width=264,height=5,target=0,display=0}
    local _,hover=box(20,257,2,11,colors.amber);D.hover=hover;base=282
   end
-  local rows={'fuel','oil','coolant','battery'}
+  local rows=flight and {'fuel','oil','coolant','battery'}or {'fuel','oil','coolant','battery','nitrous'}
   for i,key in ipairs(rows)do
    local y=base+(i-1)*26
-   label(key..'Label',20,y,76,15,9,colors.muted);text(key..'Label',({fuel='FUEL',oil='OIL',coolant='COOLANT',battery='BATTERY'})[key])
+   label(key..'Label',20,y,76,15,9,colors.muted);text(key..'Label',key:upper())
    label(key..'Value',184,y-1,100,17,10,colors.text,2)
    box(99,y+5,77,4,colors.line);local o,s=box(99,y+5,0,4,colors.blue);D.bars[key]={image=o,slot=s,width=77,height=4,target=0,display=0}
   end
@@ -67,7 +98,7 @@ return function(M,H,valid)
   local bar=D.bars[key];if not bar then return end
   local has=type(qty)=='number'and type(capacity)=='number'and capacity>0
   local percent=has and clamp(qty/capacity)or 0;bar.target=percent
-  local c=not has and colors.muted or percent<.1 and colors.red or percent<.25 and colors.amber or colors.blue
+  local c=not has and colors.muted or percent<.1 and colors.red or percent<.25 and colors.amber or key=='nitrous'and D.nitrousColor or colors.blue
   if bar.color~=c then bar.color=c;bar.image:SetColorAndOpacity(c)end
   text(key..'Value',not has and '--'or unit=='%'and ('%.0f%%'):format(percent*100)or ('%.1f / %.0f L'):format(qty,capacity))
  end
@@ -79,7 +110,12 @@ return function(M,H,valid)
   local key=a:GetFullName();local r=M.gyrocopter and M.gyrocopter.tracked[key];local flight=r~=nil
   if not valid(D.widget)or D.flightMode~=flight or D.vehicle~=key then build(pc,flight);D.vehicle=key end
   local layout=StaticFindObject('/Script/UMG.Default__WidgetLayoutLibrary');local viewport=layout:GetViewportSize(pc);local dpi=layout:GetViewportScale(pc)
-  local scale=math.min(1,viewport.Y/dpi/720);if D.scale~=scale then D.scale=scale;D.panel:SetRenderTransformPivot({X=1,Y=.5});D.panel:SetRenderScale({X=scale,Y=scale})end
+  if dpi<=0 or viewport.X<=0 or viewport.Y<=0 then return end
+  local width,height=viewport.X/dpi,viewport.Y/dpi
+  local scale=math.min(1,height/720,width/304)
+  if D.scale~=scale or D.width~=width or D.vh~=height then
+   D.width=width;D.vh=height;D.scale=scale;D.panel:SetRenderTransformPivot({X=0,Y=0});D.panel:SetRenderScale({X=scale,Y=scale});D.place(width,height,scale)
+  end
   local v=a.VehicleMesh:GetPhysicsLinearVelocity(FName('None'));local speed=math.sqrt(v.X*v.X+v.Y*v.Y+v.Z*v.Z)*.036
   text('speed',('%03d'):format(math.floor(speed+.5)))
   local bike=M.motorcycle and M.motorcycle.tracked[key]
@@ -106,8 +142,14 @@ return function(M,H,valid)
    local hover=x.hoverCollective or D.flightHover;D.hover:SetPosition({X=20+264*clamp(hover or .5),Y=257})
    text('status',not r.running and 'START ENGINE / '..(M.controls and M.controls.values.ignition[1]or 'I')or x.lowRotor and 'ROTOR SPOOLING UP'or M.controls and M.controls.simpleFlight and 'SIMPLE FLIGHT / AUTO HOVER'or 'MANUAL FLIGHT / F9 CONTROLS')
   else
-   local status=badBattery and 'BATTERY / LOW OR MISSING'or not valid(motor)and 'ENGINE MISSING'or motor.IsHeatLimit and 'ENGINE OVERHEATING'or not a.EngineRunning and 'ENGINE OFF'or fq and fq<.1 and 'FUEL EMPTY'or 'SYSTEMS READY'
-   text('status',status);color('status',badBattery and colors.red or colors.muted)
+   local data=ModRef:GetSharedVariable('BT_DashboardNitrous');local qty,cap,tier,active
+   if type(data)=='string'then
+    local car,q,c,t,on=data:match('^(%d+)|([%d.]+)|([%d.]+)|([012])|([01])$')
+    if car==tostring(a:GetAddress())then qty,cap,tier,active=tonumber(q),tonumber(c),tonumber(t),on=='1' end
+   end
+   D.nitrousColor=tier==2 and colors.purple or colors.blue;gauge('nitrous',qty,cap)
+   local status=badBattery and 'BATTERY / LOW OR MISSING'or not valid(motor)and 'ENGINE MISSING'or motor.IsHeatLimit and 'ENGINE OVERHEATING'or not a.EngineRunning and 'ENGINE OFF'or fq and fq<.1 and 'FUEL EMPTY'or active and ('NITROUS / STAGE '..(tier==2 and 'II'or 'I'))or qty and (qty>.001 and 'HOLD SHIFT / NITROUS'or 'NITROUS EMPTY')or 'SYSTEMS READY'
+   text('status',status);color('status',badBattery and colors.red or active and D.nitrousColor or colors.muted)
   end
  end
  function D.frame(dt)

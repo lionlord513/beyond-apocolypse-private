@@ -88,5 +88,6 @@ return function(M,valid,log)
   local J=M.gyrocopter.transport.journal;J.writable();local id=assert(M.guid(box));J.state.parcel[id]={assert(M.guid(part)),({blade=1,sight=2,tank=3,radiator=3,ammo=3,m4=4,hunting=5,enfield=6})[kind]or error('Unknown parcel kind')}
   suppress(box)
  end
+ function P.reset()P.requests={};P.delivered={};P.restored={};P.nextAt=0 end
  return P
 end

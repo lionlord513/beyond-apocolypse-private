@@ -56,7 +56,7 @@ return function(M,root,H,valid,enqueue,log)
  end
  function V.hudFrame()
   local a,p,pc=V.equipped()
-  local ready=a and pc.IsInFPS and not pc.bShowMouseCursor and not pc.HUD.ChatUI.TypeInChat and not H.IsPauseMenu(pc)and not M.backpack.ui.opened and not M.devmenu.ui.opened
+  local ready=a and pc.IsInFPS and not pc.bShowMouseCursor and not pc.HUD.ChatUI.TypeInChat and not H.IsPauseMenu(pc)and not M.backpack.ui.opened and not M.overlayCapturesInput()
   local aim=ready and pc:IsInputKeyDown({KeyName=FName('RightMouseButton')})
   local hud=pc and pc.HUD
   opacity(hud and hud.CursorOverlay,aim,'cursor');opacity(hud and hud.StaticCursorAk,aim,'ak');opacity(hud and hud.StaticCursorItem,aim,'item')
@@ -69,7 +69,7 @@ return function(M,root,H,valid,enqueue,log)
   V.slots.frame()
   if M.backpack.ui.frame then M.backpack.ui.frame()end
   local a,p,pc,d=V.equipped()
-  if not a or not pc.IsInFPS or pc.bShowMouseCursor or pc.HUD.ChatUI.TypeInChat or H.IsPauseMenu(pc)or M.backpack.ui.opened or M.devmenu.ui.opened then
+  if not a or not pc.IsInFPS or pc.bShowMouseCursor or pc.HUD.ChatUI.TypeInChat or H.IsPauseMenu(pc)or M.backpack.ui.opened or M.overlayCapturesInput() then
    if V.gun then V.reset()end;return
   end
   if not valid(p.FpsArm)or not same(a.RootComponent.AttachParent,p.FpsArm)then if V.gun then V.reset()end;return end

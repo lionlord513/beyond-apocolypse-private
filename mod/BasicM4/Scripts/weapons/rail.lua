@@ -118,7 +118,7 @@ return function(M,root,H,valid,enqueue,log)
  function R.request(op,slot)
   local gun,p,pc=M.weaponHandling.equipped();if not gun or pc.bShowMouseCursor or pc.HUD.ChatUI.TypeInChat or H.IsPauseMenu(pc)then return end
   local source='-'
-  if op=='slot'then if M.backpack.ui.opened or M.devmenu.ui.opened then return end;source=tostring(slot)end
+  if op=='slot'then if M.backpack.ui.opened or M.overlayCapturesInput() then return end;source=tostring(slot)end
   if op=='light'then local lamp=R.target(pc)
    if lamp and(R.optic.item(lamp)and not R.optic.has(gun)or R.flash(lamp)and not R.has(gun))then op='mount';source=assert(N.actor(lamp),'Flashlight still syncing')
    else op='toggle';local c=findMarker(gun);assert(c,'Look at a loose flashlight and press L');source=c.AttachSocketName:ToString()==marker..'on'and'2'or'1'end

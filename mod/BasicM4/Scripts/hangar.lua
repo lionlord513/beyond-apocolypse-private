@@ -52,7 +52,7 @@ return function(M,root,H,valid,enqueue,log)
   if not ok then box:K2_DestroyActor();error(why)end
   part:K2_DestroyActor();return box
  end
- function A.purchase(pc,id)
+ function A.purchase(pc,id,complete)
   assert(M.features~=false and pc:HasAuthority(),'Host owns purchases')
   local p=pc.PlayerControlled;assert(valid(p)and p.IsLoaded and not p.BP_PlayerStats.IsDead and not p.BP_PlayerStats.IsDying and not valid(pc.Vehicle),'Player unavailable')
   assert(not game:GetGameInstance(pc).IsSaving,'Wait for the save to finish')
@@ -65,13 +65,22 @@ return function(M,root,H,valid,enqueue,log)
   end;if at then break end end
   assert(at,'Clear level ground around the terminal before ordering')
   else local q,f=p:K2_GetActorLocation(),p:GetActorForwardVector();at={X=q.X+f.X*100,Y=q.Y+f.Y*100,Z=q.Z-40}end
-  local paid={};pc:TryPurchase(item.price,false,paid);assert(paid.Success,'Not enough money')
+  if not complete then
+   assert(pc:IsLocalPlayerController(),'Both players need the updated Hangar to use the buyer wallet')
+   local paid={};pc:TryPurchase(item.price,false,paid);assert(paid.Success,'Not enough money')
+  end
+  local function failed()
+   if complete then complete(false,'Delivery failed')
+   elseif valid(pc)then pc:AddMoney(item.price);pc:ClientMessage('Delivery failed; purchase refunded.',FName('Hangar'),5)end
+  end
+  local function delivered()if complete then complete(true,item.name..' delivered')end end
+  local deferred=false
   local created
   local ok,e=pcall(function()
-   if id=='chassis'then local pending;created,pending=M.gyrocopter.create(p,true,at,false);pending.bare=true;pending.onFailure=function()if valid(pc)then pc:AddMoney(item.price);pc:ClientMessage('Airframe delivery failed; purchase refunded.',FName('Hangar'),5)end end;return end
+   if id=='chassis'then local pending;created,pending=M.gyrocopter.create(p,true,at,false);pending.bare=true;pending.onFailure=failed;pending.onReady=delivered;deferred=true;return end
    if id=='bikeframe'or id=='suzukiframe'then
-    created=M.motorcycle.spawn(p,function()if valid(pc)then pc:AddMoney(item.price);pc:ClientMessage('Motorcycle delivery failed; purchase refunded.',FName('Hangar'),5)end end,id=='suzukiframe'and 'suzuki'or 'classic')
-    return
+    local pending;created,pending=M.motorcycle.spawn(p,failed,id=='suzukiframe'and 'suzuki'or 'classic')
+    pending.onReady=delivered;deferred=true;return
    end
    if id=='trailer'then local _;_,created=M.gyrocopter.transport.create(p,true,at);return end
    local path=id=='radiator'and '/Game/BP/CarsV2/System/Actors/Radiator/Radiator6L.Radiator6L_C'or id=='ammo'and '/Game/BP/Items/Movable/Bullets/AkBullet.AkBullet_C'or M.definitions[id]and M.definitions[id].BaseClass or id=='tank'and '/Game/BP/CarsV2/System/Actors/Lada/LadaTank.LadaTank_C'or id=='blade'and '/Game/BP/CarsV2/System/Actors/GTR/BP_GTR_Light_HL.BP_GTR_Light_HL_C'or '/Game/BP/Items/Movable/Binocular/Binocular.Binocular_C'
@@ -83,7 +92,8 @@ return function(M,root,H,valid,enqueue,log)
    elseif id=='sight'then M.rail.journal.writable();M.rail.optic.markItem(created)elseif M.definitions[id]then M.force(created,id)end
    created=A.parcel(p,created,item,at)
   end)
-  if not ok then if valid(created)then created:K2_DestroyActor()end;pc:AddMoney(item.price);error(e)end
+  if not ok then if valid(created)then created:K2_DestroyActor()end;if not complete then pc:AddMoney(item.price)end;error(e)end
+  if not deferred then delivered()end
   return item.name..' ordered'
  end
  function A.buy(index)
@@ -96,14 +106,18 @@ return function(M,root,H,valid,enqueue,log)
    e.HUDREF:RsCarBuyButton(b);b:RemoveFromParent();A.purchaseButton=b
   elseif pc:HasAuthority()then A.ui.status(A.purchase(pc,item.id))
   else
-   assert(not A.pending,'Order pending; wait for the server response')
-   A.seq=A.seq+1;A.pending={seq=A.seq,at=os.clock()};A.ui.status('Ordering '..item.name..'...')
-   pc:ServerExecRPC('BAHG2|'..A.seq..'|'..item.id)
+   A.orders.order(item.id)
   end
  end
  local ui=dofile(root..'/Scripts/hangar_ui.lua')(A,M,root,valid,enqueue);A.ui=ui
+ A.orders=dofile(root..'/Scripts/owner_shop.lua')({
+  protocol='BAOrder1',valid=valid,game=game,pc=H.GetPlayerController,path=M.statePath,note=ui.status,
+  price=function(id)for _,row in ipairs(items)do if row.id==id and not row.key then return row.price end end end,
+  deliver=A.purchase
+ })
  function A.tick()
   if M.features==false then ui.reset();return end
+  A.orders.tick(H.GetPlayerController())
   if not A.pcHook then A.pcHook={RegisterHook('/Game/BP/EbaySystem/AC_EbaySystem.AC_EbaySystem_C:Open PC',function(ctx,arg)
    local e=ctx:get();local terminal=arg:get();local p=valid(e)and e:GetOwner();local pc=valid(p)and p:GetController()
    if valid(pc)and valid(terminal)then
@@ -156,6 +170,6 @@ return function(M,root,H,valid,enqueue,log)
   end
   ui.tick(hud,pc)
  end
- function A.reset()ui.reset();A.last={};A.pending=nil;A.nextAt=0;A.terminals={} end
+ function A.reset()A.orders.reset();parcels.reset();ui.reset();A.queue=0;A.last={};A.pending=nil;A.nextAt=0;A.terminals={} end
  return A
 end

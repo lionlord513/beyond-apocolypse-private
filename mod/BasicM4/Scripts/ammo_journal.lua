@@ -1,5 +1,6 @@
 -- Separate, revision-bound ammo records; native actor/item bytes stay native.
 return function(root,T,valid,log,statePath)
+ local snapshot=dofile(root..'/Scripts/save_snapshot.lua')
  local J={ready=false,state={kill={},site={}}}
  local function path(key)local name='ammo-'..key..'.txt';return statePath and statePath(name)or root..'/state/'..name end
  function J.encode(state)
@@ -17,11 +18,11 @@ return function(root,T,valid,log,statePath)
  end
  function J.load(save)
   if J.ready then return end
-  J.ready=true;J.state={kill={},site={}};J.error=nil
   if not valid(save)then return end
-  local key,world=T.key(save.SaveGameMetadata);J.world=world;if not key then return end
-  local f=io.open(path(key),'rb');if not f then return end
-  local bytes=f:read('*a');f:close();local ok,state=pcall(J.decode,bytes)
+  local key,world=T.key(save.SaveGameMetadata);if not world then return end
+  J.ready=true;J.state={kill={},site={}};J.error=nil;J.world=world;if not key then return end
+  local bytes=snapshot.read(path(key));if not bytes then return end
+  local ok,state=pcall(J.decode,bytes)
   if ok then J.state=state else J.error=tostring(state);log('Ammo snapshot rejected: '..J.error)end
  end
  function J.writable()
@@ -30,11 +31,10 @@ return function(root,T,valid,log,statePath)
  end
  function J.capture(save)
   if not J.ready or not valid(save)or not save:IsA(StaticFindObject('/Script/DriveBeyondHorizons.DBHSaveGame'))then return end
-  assert(not J.error,J.error);local key,world=T.key(save.SaveGameMetadata);assert(key,'Native save has no revision identity')
-  if J.world and J.world~=world then return end;J.world=world
-  local target=path(key);local bytes=J.encode(J.state);local old=io.open(target,'rb')
-  if old then local previous=old:read('*a');old:close();assert(previous==bytes,'Native save reused an ammo revision');return end
-  local f=assert(io.open(target..'.tmp','wb'));assert(f:write(bytes));assert(f:close());assert(os.rename(target..'.tmp',target))
+  assert(not J.error,J.error);local key,world=T.key(save.SaveGameMetadata);if not key then return end
+  if J.world and J.world~=world and not snapshot.active(save)then return end;J.world=world
+  local target=path(key);local bytes=J.encode(J.state)
+  snapshot.commit(target,key,bytes);J.savedKey=key
  end
  J.hooks={RegisterHook('/Script/DriveBeyondHorizons.DBHHelper:SaveGameToSlotAsyncReal',function(_,save)
   local ok,e=pcall(J.capture,save:get());if not ok then J.error=tostring(e);log('Ammo save error: '..J.error)end

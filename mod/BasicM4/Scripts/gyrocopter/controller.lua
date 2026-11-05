@@ -211,7 +211,7 @@ return function(M,root,H,valid,log)
   local pc=H.GetPlayerController();local p=H.GetPlayer()
   if not valid(pc)or not same(a.Driver,p)then return 0,0,0,0 end
   if p.BP_PlayerStats.IsDead or p.BP_PlayerStats.IsDying then return 0,0,0,-1 end
-  if pc.HUD.ChatUI.TypeInChat or H.IsPauseMenu(pc)or M.devmenu.ui.opened or M.backpack.ui.opened or(M.utility and M.utility.opened) then return 0,0,0,0 end
+  if pc.HUD.ChatUI.TypeInChat or H.IsPauseMenu(pc)or M.overlayCapturesInput() or M.backpack.ui.opened or(M.utility and M.utility.opened) then return 0,0,0,0 end
   if M.controls then local d=function(id)return M.controls.down(pc,id)and 1 or 0 end;return d('pitchBack')-d('pitchForward'),d('rollRight')-d('rollLeft'),d('yawRight')-d('yawLeft'),d('collectiveUp')-d('collectiveDown')end
   local pitch=((down(pc,'S')or down(pc,'Down'))and 1 or 0)-((down(pc,'W')or down(pc,'Up'))and 1 or 0)
   local roll=((down(pc,'D')or down(pc,'Right'))and 1 or 0)-((down(pc,'A')or down(pc,'Left'))and 1 or 0)
@@ -310,9 +310,9 @@ return function(M,root,H,valid,log)
    if M.controls then warning=warning:gsub('START ENGINE / I','START ENGINE / '..M.controls.values.ignition[1])end
    if simple then
     if warning=='MANUAL FLIGHT'then warning='SIMPLE FLIGHT'end
-    M.devmenu.ui.hud(('HORNET\n%s\nROTOR %.0f rpm  |  AIR %.0f km/h\nCLIMB %+.1f m/s\nHold raise / lower to climb / descend\nRelease to auto-hover\nF9: controls and settings'):format(warning,result.rpm,result.airspeed*3.6,v.Z*.01))
+    M.dashboard.flight(('HORNET\n%s\nROTOR %.0f rpm  |  AIR %.0f km/h\nCLIMB %+.1f m/s\nHold raise / lower to climb / descend\nRelease to auto-hover\nF9: controls and settings'):format(warning,result.rpm,result.airspeed*3.6,v.Z*.01))
    else
-    M.devmenu.ui.hud(('HORNET\n%s\nROTOR %.0f rpm  |  AIR %.0f km/h\nCLIMB %+.1f m/s  |  COLLECTIVE %.1f%%\nF9: controls and keybindings\nCollective holds when released\nFlare to slow; lower collective to land'):format(warning,result.rpm,result.airspeed*3.6,v.Z*.01,result.collective*100),result.collective,result.hoverCollective,v.Z*.01)
+    M.dashboard.flight(('HORNET\n%s\nROTOR %.0f rpm  |  AIR %.0f km/h\nCLIMB %+.1f m/s  |  COLLECTIVE %.1f%%\nF9: controls and keybindings\nCollective holds when released\nFlare to slow; lower collective to land'):format(warning,result.rpm,result.airspeed*3.6,v.Z*.01,result.collective*100),result.collective,result.hoverCollective,v.Z*.01)
    end
   end
  end
@@ -336,13 +336,13 @@ return function(M,root,H,valid,log)
     if not r.failed then local ok,e=pcall(G.update,r,now);if not ok then r.failed=true;pcall(G.nativeTow.restore,r);log('Gyrocopter: '..tostring(e));r.actor.RotorInput=0;r.actor.BoostInput=0 end end
    end
   end
-  if G.hudOwned then local pc=H.GetPlayerController();if not valid(pc)or not valid(pc.Vehicle)or not G.tracked[pc.Vehicle:GetFullName()]then M.devmenu.ui.hud(nil);G.hudOwned=false end end
+  if G.hudOwned then local pc=H.GetPlayerController();if not valid(pc)or not valid(pc.Vehicle)or not G.tracked[pc.Vehicle:GetFullName()]then M.dashboard.flight(nil);G.hudOwned=false end end
   if now<G.nextScan then return end;G.nextScan=now+1
   for i=#G.pending,1,-1 do
    local r=G.pending[i]
    if not valid(r.actor)then table.remove(G.pending,i);if r.onFailure then r.onFailure()end
    elseif now>r.expires then r.actor:K2_DestroyActor();table.remove(G.pending,i);if r.onFailure then r.onFailure()end;log('Aircraft spawn cancelled: native parts did not initialize')
-   elseif now>=r.readyAt and id(r.actor)then G.mark(r.actor,r.missing);local ar=adopt(r.actor);if ar then ar.newAirframe=true;ar.worldSpawn=r.worldSpawn;newFinish(ar.actor,r.worldSpawn and not r.bare);if r.bare then G.stripPurchase(ar)end;table.remove(G.pending,i)end
+   elseif now>=r.readyAt and id(r.actor)then G.mark(r.actor,r.missing);local ar=adopt(r.actor);if ar then ar.newAirframe=true;ar.worldSpawn=r.worldSpawn;newFinish(ar.actor,r.worldSpawn and not r.bare);if r.bare then G.stripPurchase(ar)end;table.remove(G.pending,i);if r.onReady then r.onReady()end end
    end
   end
   for _,a in ipairs(FindAllOf('CaddieCar_C')or{})do
@@ -366,7 +366,7 @@ return function(M,root,H,valid,log)
   G.damaged[key]=nil;G.propDamaged[key]=nil;r.flight.damage=0;r.flight.propDamage=false;r.flight.rpm=0;r.flight.collective=0
   r.mark:SetRelativeScale3D(vec(1,1,1));r.actor:FlushNetDormancy();r.actor:ForceNetUpdate()
  end
- function G.reset()for _,r in pairs(G.tracked)do G.nativeTow.restore(r);if valid(r.motor)and r.motorPop~=nil then r.motor.CanPopAndBang=r.motorPop end end;G.service.reset();G.tracked={};G.pending={};G.nextScan=0;G.nextWorld=0;G.hudOwned=false;G.hudAt=0;V.reset();world.reset();if G.transport then G.transport.reset()end end
+ function G.reset()for _,r in pairs(G.tracked)do G.nativeTow.restore(r);if valid(r.motor)and r.motorPop~=nil then r.motor.CanPopAndBang=r.motorPop end end;G.service.reset();G.seats.reset();G.hudRecord=nil;G.tracked={};G.pending={};G.nextScan=0;G.nextWorld=0;G.hudOwned=false;G.hudAt=0;V.reset();world.reset();if G.transport then G.transport.reset()end end
  G.service=dofile(root..'/Scripts/gyrocopter/service.lua')(M,G,valid,log)
  G.seats=dofile(root..'/Scripts/gyrocopter/seats.lua')(M,G,H,valid,log)
  G.id=id;G.adopt=adopt;G.flight=F;G.inputs=inputs;G.visuals=V;G.audio=audio

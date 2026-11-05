@@ -25,7 +25,7 @@ for _,scale in ipairs({1,.52})do
  end
 end
 function RegisterHook()return 1,2 end
-local J=dofile(scripts..'/gyrocopter/journal.lua')('',valid,function()end)
+local J=dofile(scripts..'/gyrocopter/journal.lua')(scripts..'/..',valid,function()end)
 local a='00000001:00000002:00000003:00000004';local b='00000005:00000006:00000007:00000008'
 local state=J.empty();state.lampClassic[a]=true;state.lampSuzuki[b]=true;state.blade[b]={a,2}
 local restored=J.decode(J.encode(state));assert(restored.lampClassic[a]and restored.lampSuzuki[b]and restored.blade[b][2]==2)

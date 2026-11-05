@@ -9,10 +9,12 @@ return function(M,valid,log)
  local amount='NbBullet_7_9635697947FC4A8ADC5190856DA85E1C'
  local function owner(pc)
   if pc:IsLocalPlayerController() then return 'host' end
-  if not valid(pc.PlayerState) then return end
-  local value=steam:BreakSteamID(steam:GetSteamIdFromPlayerState(pc.PlayerState))
-  local id=type(value)=='string' and value or value:ToString()
-  if id:match('^%d+$') and #id>=15 and #id<=20 then return 'steam-'..id end
+  if valid(pc.PlayerState)and valid(steam)then
+   local value=steam:BreakSteamID(steam:GetSteamIdFromPlayerState(pc.PlayerState))
+   local id=type(value)=='string'and value or value and value:ToString()
+   if id and id:match('^%d+$')and #id>=15 and #id<=20 and not id:match('^0+$')then return 'steam-'..id end
+  end
+  return M.session.offlineOwner(pc)
  end
  local function inventory(p)
   local counts={}
@@ -45,7 +47,8 @@ return function(M,valid,log)
   for line in bytes:sub(6):gmatch('[^\n]+')do
    local id,t,n=line:match('^([%w%-]+) (%d+) (%d+)$')
    id=id or line:match('^([%w%-]+)$')
-   assert(id=='host' or (id and id:match('^steam%-%d+$')),'Invalid reserve owner')
+   local offline=id and id:match('^offline%-(%x+)$')
+   assert(id=='host' or (id and id:match('^steam%-%d+$'))or(offline and #offline==32),'Invalid reserve owner')
    players[id]=players[id] or {}
    if t then t,n=tonumber(t),tonumber(n);assert(t<=254 and n<=2147483647);players[id][t]=n end
   end
@@ -79,7 +82,7 @@ return function(M,valid,log)
  end
  function R.capture(save)
   if not R.world or not valid(save)or not save:IsA(StaticFindObject('/Script/DriveBeyondHorizons.DBHSaveGame'))then return end
-  local key,world=journal.key(save.SaveGameMetadata);if not key or world~=R.world then return end
+  local key,world=journal.key(save.SaveGameMetadata);if not key or (world~=R.world and not journal.activeSave(save))then return end;R.world=world
   R.update()
   local p=path(key);local bytes=encode();local old=io.open(p,'rb')
   if old then local previous=old:read('*a');old:close();if bytes==previous then return end end

@@ -4,6 +4,14 @@ assert(root,'Install as Mods/BeyondApocalypse/Scripts/main.lua')
 local storage=dofile(root..'/Scripts/storage.lua')(root)
 local configPath=storage.config()
 local config=dofile(configPath)
+-- A player upgrade may retain a config from before a feature existed.
+local function inherit(settings,defaults)
+ for key,value in pairs(defaults)do
+  if settings[key]==nil then settings[key]=value
+  elseif type(value)=='table'and type(settings[key])=='table'then inherit(settings[key],value)end
+ end
+end
+inherit(config,dofile(root..'/Scripts/default_config.lua'))
 local release=dofile(root..'/Scripts/release.lua')
 local defs=dofile(root..'/Scripts/weapons/catalog.lua')
 local M={version=release.Version,release=release,active=true,definitions=defs,config=config,statePath=storage.state}
@@ -18,10 +26,11 @@ M.root=root
 local performance=dofile(root..'/Scripts/performance.lua')(M,H,valid,log);M.performance=performance
 local branding=dofile(root..'/Scripts/menu_branding.lua')(root,release,H,valid)
 M.branding=branding
+local playerClass
 local function player()
  local p=H.GetPlayer();if not valid(p)then return end
- local kind=p:GetFullName():match('^(%S+)')
- if kind~='PlayerBase_C' and kind~='MaleCharacter_C' and kind~='FemaleCharacter_C' then return end
+ if not valid(playerClass)then playerClass=StaticFindObject('/Game/BP/Player/PlayerBase.PlayerBase_C')end
+ if not valid(playerClass)or not p:IsA(playerClass)then return end
  if p.IsInitialized and p.IsLoaded then return p end
 end
 local function guid(a)
@@ -97,7 +106,7 @@ local function fill(a,c,d)
  c:CreateMeshSection(0,data.vertices,data.triangles,data.normals,data.uv,{},data.tangents or {},false)
  c:SetMaterial(0,getMaterial(a,d))
  if data.ironTriangles then c:CreateMeshSection(1,data.vertices,data.ironTriangles,data.normals,data.uv,{},data.tangents or{},false);c:SetMaterial(1,getMaterial(a,d))end
- if a:HasAuthority()then
+ do
   local tr=d.Transform()
   if part=='magazine'then tr=StaticFindObject('/Script/Engine.Default__KismetMathLibrary'):MakeRelativeTransform(tr,a.SkeletalMesh:GetSocketTransform(FName(d.MagazineSocket),2))end
   c:K2_SetRelativeTransform(tr,false,{},true)
@@ -112,17 +121,56 @@ local function create(a,d)
    if part=='magazine'then tr=StaticFindObject('/Script/Engine.Default__KismetMathLibrary'):MakeRelativeTransform(tr,mesh:GetSocketTransform(FName(socket),2))end
    local c=a:AddComponentByClass(pmcClass,true,tr,false);assert(valid(c),'Mesh creation failed')
    made[#made+1]=c;c:K2_AttachToComponent(mesh,FName(socket),0,0,0,false);c:K2_SetRelativeTransform(tr,false,{},true)
-   fill(a,c,d);c:SetIsReplicated(true)
+   fill(a,c,d)
   end
-  a:FlushNetDormancy();a:ForceNetUpdate()
+  if a:HasAuthority()then a:FlushNetDormancy();a:ForceNetUpdate()end
  end)
  if not ok then for _,c in ipairs(made)do if valid(c)then c:K2_DestroyComponent(a)end end;error(e)end
  return made
 end
+local identitySockets={ba_nativeak='ak',ba_rifle_m4='m4',ba_rifle_hunting='hunting',ba_rifle_enfield='enfield'}
+local function rifleMarker(a)
+ local scene=StaticFindObject('/Script/Engine.SceneComponent')
+ for _,entry in ipairs(a:K2_GetComponentsByClass(scene))do
+  local c=entry:get()
+  if valid(c)then
+   local id=identitySockets[c.AttachSocketName:ToString():lower()]
+   if id then return c,id end
+  end
+ end
+end
+local function setMarker(a,marker,id)
+ if not valid(marker)then
+  local tr={Translation={X=0,Y=0,Z=0},Rotation={X=0,Y=0,Z=0,W=1},Scale3D={X=1,Y=1,Z=1}}
+  marker=a:AddComponentByClass(StaticFindObject('/Script/Engine.SceneComponent'),true,tr,false)
+  assert(valid(marker),'Rifle identity component unavailable')
+ end
+ local socket=id=='ak' and 'BA_NativeAK' or ('BA_Rifle_'..id)
+ marker:K2_AttachToComponent(a.SkeletalMesh,FName(socket),0,0,0,false)
+ marker:SetIsReplicated(true);a:FlushNetDormancy();a:ForceNetUpdate()
+end
 local function update(a)
  if not valid(a)or not valid(a.SkeletalMesh)then return end
- local meshes=components(a);local d=identify(meshes)
- if #meshes==0 and a:HasAuthority()then d=selected(a);if d then meshes=create(a,d)end end
+ local meshes=components(a);local rendered=identify(meshes)
+ local marker,id=rifleMarker(a)
+ if a:HasAuthority()then
+  local key=guid(a)
+  if not key then return end
+  -- Preserve previously saved models when upgrading an existing world.
+  if not chosen[key]and rendered then saveChoice(key,rendered.Id)end
+  selected(a)
+  if id~=chosen[key]then id=chosen[key];setMarker(a,marker,id)end
+ elseif not id then
+  -- Identity may arrive after the actor. Keep a visible donor in the meantime.
+  if not rendered then a.SkeletalMesh:SetVisibility(true,false);return end
+  id=rendered.Id
+ end
+ local d=defs[id]
+ if #meshes>0 and rendered~=d then
+  for _,c in ipairs(meshes)do c:K2_DestroyComponent(a)end
+  meshes={};tracked[a:GetFullName()]=nil
+ end
+ if d and #meshes==0 then a.SkeletalMesh:SetVisibility(true,false);meshes=create(a,d)end
  if d then
   for _,c in ipairs(meshes)do fill(a,c,d)end
   a.SkeletalMesh.VisibilityBasedAnimTickOption=0;a.SkeletalMesh:SetVisibility(false,false)
@@ -132,17 +180,11 @@ local function update(a)
   local scope=M.rail and M.rail.optic.has(a)
   for _,c in ipairs(meshes)do if c:GetNumSections()>1 then c:SetMeshSectionVisible(1,not scope)end end
   tracked[a:GetFullName()]={actor=a,def=d}
- elseif #meshes==0 then
-  local known=a:HasAuthority()
-  local scene=StaticFindObject('/Script/Engine.SceneComponent');local mark
-  for _,v in ipairs(a:K2_GetComponentsByClass(scene))do local c=v:get();if valid(c)and c.AttachSocketName:ToString()=='BA_NativeAK'then mark=c;known=true;break end end
-  if a:HasAuthority()then
-   a.IsAutomatic=true;a.CanBeAutomatic=true
-   if not mark then local tr={Translation={X=0,Y=0,Z=0},Rotation={X=0,Y=0,Z=0,W=1},Scale3D={X=1,Y=1,Z=1}};mark=a:AddComponentByClass(scene,true,tr,false);mark:K2_AttachToComponent(a.SkeletalMesh,FName('BA_NativeAK'),0,0,0,false);mark:SetIsReplicated(true);a:ForceNetUpdate()end
-  end
-  a.SkeletalMesh:SetVisibility(known,false)
-  if known and M.rail then M.rail.update(a,M.nativeRifle)end
- else a.SkeletalMesh:SetVisibility(false,false)end
+ else
+  a.SkeletalMesh:SetVisibility(true,false)
+  if a:HasAuthority()then a.IsAutomatic=true;a.CanBeAutomatic=true end
+  if M.rail then M.rail.update(a,M.nativeRifle)end
+ end
 end
 local function guardedUpdate(a)
  local key=a:GetFullName();local now=os.time()
@@ -178,8 +220,9 @@ function M.spawn(id)
 end
 function M.scan()
  if M.features==false or not player()or not initialize()then return end
+ local world=H.GetWorld();if not valid(world)then return end
  local seen={}
- for _,a in ipairs(FindAllOf('AkWeapon_C')or{})do if valid(a)then seen[a:GetFullName()]=true;guardedUpdate(a)end end
+ for _,a in ipairs(FindAllOf('AkWeapon_C')or{})do if valid(a)and a:GetWorld():GetAddress()==world:GetAddress()then seen[a:GetFullName()]=true;guardedUpdate(a)end end
  for k,t in pairs(tracked)do if not valid(t.actor)then tracked[k]=nil end end
  for k,c in pairs(filled)do if not valid(c)then filled[k]=nil end end
  for k in pairs(refreshRetry)do if not seen[k]then refreshRetry[k]=nil end end
@@ -191,10 +234,17 @@ local apocalypse=dofile(root..'/Scripts/apocalypse.lua')(root,config.Apocalypse,
 M.apocalypse=apocalypse
 local mechanic=dofile(root..'/Scripts/night_hunter.lua')(root,config.Apocalypse,valid,log);M.mechanic=mechanic
 local actions,scanElapsed={},config.PollMilliseconds
-local function shortcut(fn)actions[#actions+1]=fn end
+local function shortcut(fn)if not M.travelling then actions[#actions+1]=fn end end
 local session=dofile(root..'/Scripts/session.lua')(M,H,valid,shortcut);M.session=session
-local devmenu=dofile(root..'/Scripts/optional_interface.lua')(M,root,H,valid,shortcut,log)
-M.devmenu=devmenu
+M.dashboard=dofile(root..'/Scripts/dashboard.lua')(M,H,valid)
+M.hudFrame=M.dashboard.frame
+local companion
+function M.overlayCapturesInput()return companion and companion.ui.opened or false end
+local function companionCall(method)
+ if not companion then return end
+ local ok,err=pcall(companion[method])
+ if not ok and not errors[err]then errors[err]=true;log('Test menu: '..tostring(err))end
+end
 M.guid=guid
 local backpack=dofile(root..'/Scripts/backpack/controller.lua')(M,root,H,valid,shortcut,log)
 M.backpack=backpack
@@ -216,10 +266,7 @@ M.population=dofile(root..'/Scripts/zombie_population.lua')(M,root,H,valid,log)
 apocalypse.population=M.population;mechanic.population=M.population
 dofile(root..'/Scripts/game_loop.lua')(function()return M.active end,function()
   local ok,e=pcall(function()
-   if M.resetRequested then
-    M.resetRequested=false;M.population.reset();actions={};tracked={};filled={};materials={};refreshRetry={};akClass=nil;pmcClass=nil;game=nil
-    M.playerModels.reset();M.dashboard.reset();motorcycle.reset();M.utility.reset();H.reset();session.reset();performance.reset();firing.reset();apocalypse.reset();hazmat.reset();mechanic.reset();branding.reset();devmenu.reset();backpack.reset();gyrocopter.reset();weaponHandling.reset();weaponHandling.slots.reset();weaponHandling.equipCache=nil;rail.reset();roaming.reset();hangar.reset();towing.reset();M.ammo.reset();M.ballistics.reset()
-   end
+   if M.travelling then return end
    session.tick()
    local pending=actions;actions={};for _,fn in ipairs(pending)do local worked,err=pcall(fn);if not worked then log(tostring(err))end end
    scanElapsed=scanElapsed+50
@@ -231,14 +278,14 @@ dofile(root..'/Scripts/game_loop.lua')(function()return M.active end,function()
    if not modelsOK and not errors[tostring(modelsError)]then errors[tostring(modelsError)]=true;log('Player models: '..tostring(modelsError))end
    M.dashboard.tick(valid(game)and game:GetTimeSeconds(H.GetPlayerController())or 0)
    if M.features==false then firing.reset();return end
-   devmenu.tick();backpack.tick()
+   companionCall('tick');backpack.tick()
    local p=player()
    if p and valid(game)then
     rpg.install();M.ballistics.install();M.ballistics.tick();hangar.tick();towing.tick();weaponHandling.tick();rail.tick(p);M.ammo.tick(p,game:GetTimeSeconds(p))
     local a=p.ItemEquiped;local t=valid(a)and tracked[a:GetFullName()]
     local now=game:GetTimeSeconds(p)
     if not game:IsGamePaused(p)then
-     firing.tick(a,t and t.def,now,not M.utility.opened and not devmenu.ui.opened and not backpack.ui.opened and valid(p.BP_PlayerStats) and not p.BP_PlayerStats.IsDead and not p.BP_PlayerStats.IsDying,H.GetPlayerController():IsInputKeyDown({KeyName=FName('LeftMouseButton')}))
+     firing.tick(a,t and t.def,now,not M.utility.opened and not M.overlayCapturesInput() and not backpack.ui.opened and valid(p.BP_PlayerStats) and not p.BP_PlayerStats.IsDead and not p.BP_PlayerStats.IsDying,H.GetPlayerController():IsInputKeyDown({KeyName=FName('LeftMouseButton')}))
      M.population.tick(p)
      if not M.population.disabled then
       apocalypse.tick(p,game,now)
@@ -252,12 +299,12 @@ dofile(root..'/Scripts/game_loop.lua')(function()return M.active end,function()
   end)
   if not ok and not errors[tostring(e)]then errors[tostring(e)]=true;log(tostring(e))end
 end,log)
-RegisterKeyBind(Key.ESCAPE,function()shortcut(function()if M.utility.opened then if M.utility.capture then M.utility.capture=nil;M.utility.render()else M.utility.close()end end;if devmenu.ui.opened then devmenu.ui.close()end;if backpack.ui.opened then backpack.ui.close()end end)end)
+RegisterKeyBind(Key.ESCAPE,function()shortcut(function()if M.utility.opened then if M.utility.capture then M.utility.capture=nil;M.utility.render()else M.utility.close()end end;if M.overlayCapturesInput()then companion.ui.close()end;if backpack.ui.opened then backpack.ui.close()end end)end)
 RegisterKeyBind(Key.MIDDLE_MOUSE_BUTTON,function()shortcut(function()rail.request('drop')end)end)
 RegisterKeyBind(Key.L,function()shortcut(function()rail.request('light')end)end)
 RegisterKeyBind(Key.TAB,function()shortcut(function()backpack.toggle()end)end)
 RegisterKeyBind(Key.B,function()shortcut(function()backpack.unequip()end)end)
-RegisterKeyBind(Key.RIGHT_MOUSE_BUTTON,function()if devmenu.ui.opened and devmenu.ui.rightClick then shortcut(function()devmenu.ui.rightClick()end);return end;local intended=backpack.storeTarget;shortcut(function()backpack.store(intended)end)end)
+RegisterKeyBind(Key.RIGHT_MOUSE_BUTTON,function()if M.overlayCapturesInput()and companion.ui.rightClick then shortcut(function()companion.ui.rightClick()end);return end;local intended=backpack.storeTarget;shortcut(function()backpack.store(intended)end)end)
 M.guid=guid;M.components=components;M.identify=identify;M.firing=firing
 M.nativeRifle={Id='ak',Name='AK-47',Mode='auto',Transform=function()return {Translation={X=0,Y=0,Z=0},Rotation={X=0,Y=0,Z=.70710678118655,W=.70710678118655},Scale3D={X=1,Y=1,Z=1}}end}
 function M.weaponDefinition(a)
@@ -278,7 +325,14 @@ end
 M.akClass=function()initialize();return akClass end
 -- The private launcher test package alone supplies this limited host fixture kit.
 -- Public packages have no spawn-test key bindings.
-RegisterLoadMapPreHook(function()M.features=false;M.resetRequested=true end)
+RegisterLoadMapPreHook(function()
+ M.travelling=true;M.features=false
+ M.population.reset();actions={};tracked={};filled={};materials={};refreshRetry={};akClass=nil;pmcClass=nil;game=nil
+    M.playerModels.reset();M.dashboard.reset();motorcycle.reset();M.utility.reset();H.reset();session.reset();performance.reset();firing.reset();apocalypse.reset();hazmat.reset();mechanic.reset();branding.reset();companionCall('reset');backpack.reset();gyrocopter.reset();weaponHandling.reset();weaponHandling.slots.reset();weaponHandling.equipCache=nil;rail.reset();roaming.reset();hangar.reset();towing.reset();M.ammo.reset();M.ballistics.reset()
+end)
+RegisterLoadMapPostHook(function()actions={};M.travelling=false end)
+companion=dofile(root..'/Scripts/optional_interface.lua')(M,root,H,valid,shortcut,log)
+M.devmenu=companion -- Compatibility for separately installed test tools.
 _G.BeyondApocalypse=M
 -- Compatibility for separately installed tools; these aliases do not load code.
 _G.BasicM4=M;_G.BasicWeaponPack=M;_G.BeyondApocolypse=M

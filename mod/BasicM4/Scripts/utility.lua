@@ -27,6 +27,10 @@ return function(M,root,H,valid,enqueue,log)
   U.buttons[#U.buttons+1]={x=x,y=y,w=w,h=h,fn=fn}
  end
  function U.close()
+  if U.dashboardEdit then
+   U.dashboardEdit=nil;U.dashboardSurface=nil;M.dashboard.drag=nil
+   if valid(M.dashboard.widget)and M.dashboard.width then M.dashboard.place(M.dashboard.width,M.dashboard.vh,M.dashboard.scale)end
+  end
   U.opened=false;U.capture=nil;if U.saveStats then U.saveStats()end
   if valid(U.child)then U.child:RemoveFromParent()end;U.child=nil
   if valid(U.widget)then U.widget:RemoveFromParent()end
@@ -38,6 +42,33 @@ return function(M,root,H,valid,enqueue,log)
    lib:SetInputMode_GameOnly(U.pc,true)
   end
   U.blocked=false;U.widget=nil;U.tree=nil;U.canvas=nil;U.buttons={};U.fields={}
+ end
+
+ local function dashboardEditor()
+  U.dashboardEdit=true;U.canvas:ClearChildren();U.buttons={}
+  text('Drag the speedometer, then release to save. Esc cancels.',30,30,1100,48,20)
+  local surface=lib:Create(U.pc,LoadAsset('/Game/BP/Garage/PaintStation/UI/ColorElement.ColorElement_C'),U.pc)
+  U.dashboardSurface=surface;surface.SelfBaseReference=surface
+  local s=U.canvas:AddChildToCanvas(surface);s:SetAnchors({Minimum={X=0,Y=0},Maximum={X=1,Y=1}});s:SetOffsets({Left=0,Top=0,Right=0,Bottom=0})
+  surface:SetRenderOpacity(.001);surface:SetVisibility(0);surface.Border_47:SetVisibility(0);surface.Border_160:SetVisibility(0)
+  if U.dashboardHooks then return end;U.dashboardHooks={}
+  for _,event in ipairs({'OnMouseButtonDown','OnMouseButtonUp'})do
+   local path='/Game/BP/Garage/PaintStation/UI/ColorElement.ColorElement_C:'..event
+   U.dashboardHooks[#U.dashboardHooks+1]={RegisterHook(path,function(ctx,geometry,mouse)
+    if not U.dashboardEdit or not valid(U.dashboardSurface)or ctx:get():GetAddress()~=U.dashboardSurface:GetAddress()then return end
+    local input=StaticFindObject('/Script/Engine.Default__KismetInputLibrary')
+    if input:PointerEvent_GetEffectingButton(mouse:get()).KeyName:ToString()~='LeftMouseButton'then return lib:Handled()end
+    local q={};slate:AbsoluteToViewport(U.pc,input:PointerEvent_GetScreenSpacePosition(mouse:get()),{},q)
+    if event=='OnMouseButtonDown'then
+     if M.dashboard.press(q)then return lib:CaptureMouse(lib:Handled(),U.dashboardSurface)end
+    elseif M.dashboard.drag then
+     local ok,e=pcall(M.dashboard.release,q)
+     enqueue(function()if ok then U.close()else U.dashboardEdit=nil;U.message=tostring(e);U.render()end end)
+     return lib:ReleaseMouseCapture(lib:Handled())
+    end
+    return lib:Handled()
+   end)}
+  end
  end
 
  function U.stats()
@@ -70,6 +101,9 @@ return function(M,root,H,valid,enqueue,log)
     end)
     text('Uses native LOD, grass and post-processing settings. No custom visibility sweep.',286,526,1080,32,17,'muted')
     text('Saved on this PC. Turn off to restore previous render settings.',286,570,1080,32,17,'muted')
+    button('Move dashboard',270,628,520,54,function()
+     if valid(M.dashboard.widget)then dashboardEditor()else U.message='Enter a vehicle to move its dashboard.';U.render()end
+    end)
    else
    text('GYROCOPTER KEYBINDINGS',270,195,1000,40,25,'gold')
    text('Click a key, then press its replacement. Escape cancels; Backspace clears an alternate.',270,235,1120,28,14,'muted')
@@ -112,7 +146,7 @@ return function(M,root,H,valid,enqueue,log)
  end
  function U.open()
   local player=H.GetPlayer();assert(valid(player)and player.IsLoaded,'Join a game first')
-  local pc=H.GetPlayerController();if pc.HUD.ChatUI.TypeInChat or H.IsPauseMenu(pc)or M.devmenu.ui.opened or M.backpack.ui.opened then return end
+  local pc=H.GetPlayerController();if pc.HUD.ChatUI.TypeInChat or H.IsPauseMenu(pc)or M.overlayCapturesInput() or M.backpack.ui.opened then return end
   Ctl.readNative();U.draft=Ctl.copy();U.capture=nil;U.message=''
   U.tab='Settings';U.modelEdit=nil;U.modelChoice=M.playerModels.selected;U.zombieDraft=M.population and M.population.limit or 10
   U.pc=H.GetPlayerController();U.pawn=U.pc:K2_GetPawn();U.cursorBefore=U.pc.bShowMouseCursor
@@ -147,6 +181,11 @@ return function(M,root,H,valid,enqueue,log)
   local pc,p=H.GetPlayerController(),H.GetPlayer()
   if not valid(pc)or not valid(p)or not p.IsLoaded then U.position=nil;if U.opened then U.close()end;return end
   if U.opened and(p.BP_PlayerStats.IsDead or not valid(U.widget))then U.close()end
+  if U.dashboardEdit then
+   if not valid(M.dashboard.widget)then U.close()
+   elseif M.dashboard.drag then local q={};slate:AbsoluteToViewport(pc,layout:GetMousePositionOnPlatform(),{},q);M.dashboard.move(q)end
+   return
+  end
   if U.opened and U.tab=='Models'and U.modelRevision~=M.playerModels.revision then U.message=M.playerModels.status or'';U.render()end
   if U.opened and U.tab=='Host'and valid(U.zombieSlider)and M.population and M.population.isHost()then
    local n=math.max(2,math.min(40,math.floor(U.zombieSlider:GetValue()+.5)))

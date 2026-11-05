@@ -19,7 +19,7 @@ return function(M,H,valid,enqueue)
     for _,b in ipairs(S.bindings)do if owner:IsInputKeyDown({KeyName=FName(b.key)})then return end end
    end
   end
-  if not gun or pc.bShowMouseCursor or pc.HUD.ChatUI.TypeInChat or H.IsPauseMenu(pc)or M.backpack.ui.opened or M.devmenu.ui.opened then if #S.bindings>0 then S.reset()end;return end
+  if not gun or pc.bShowMouseCursor or pc.HUD.ChatUI.TypeInChat or H.IsPauseMenu(pc)or M.backpack.ui.opened or M.overlayCapturesInput() then if #S.bindings>0 then S.reset()end;return end
   local ctx=StaticFindObject('/Game/Inputs/PIE/IMC_Player.IMC_Player');if not valid(ctx)then return end
   if valid(S.ctx)and S.ctx:GetAddress()~=ctx:GetAddress()then S.reset()end;S.ctx=ctx
   if os.clock()>=(S.nextAt or 0)then

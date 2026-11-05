@@ -70,5 +70,6 @@ return function(M,G,H,valid,log)
    S.align(a,c)
   end end
  end
+ function S.reset()S.slots={};S.aligned={};S.pending={};S.nextAt=0 end
  return S
 end

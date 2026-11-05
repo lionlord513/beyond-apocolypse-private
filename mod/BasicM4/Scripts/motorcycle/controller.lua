@@ -94,7 +94,7 @@ return function(M,root,H,valid,log)
   for i=#B.pending,1,-1 do local q=B.pending[i]
    if not valid(q.actor)then table.remove(B.pending,i);if q.onFailure then pcall(q.onFailure)end
    elseif now>q.expires then q.actor:K2_DestroyActor();table.remove(B.pending,i);if q.onFailure then pcall(q.onFailure)end;log('Motorcycle native initialization failed')
-   elseif now>=q.ready then local ok,r=pcall(B.adopt,q.actor,true,q.variant);if ok and r then table.remove(B.pending,i)elseif not ok then log('Motorcycle setup: '..tostring(r));q.ready=now+3 end end
+   elseif now>=q.ready then local ok,r=pcall(B.adopt,q.actor,true,q.variant);if ok and r then table.remove(B.pending,i);if q.onReady then q.onReady()end elseif not ok then log('Motorcycle setup: '..tostring(r));q.ready=now+3 end end
   end
   for _,a in ipairs(FindAllOf('CaddieCar_C')or{})do if valid(a)and not B.tracked[a:GetFullName()]then
    if B.known[id(a)]or marker(a)then local ok,e=pcall(B.adopt,a,false);if not ok then log('Motorcycle restore: '..tostring(e))end

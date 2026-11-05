@@ -141,7 +141,7 @@ return function(M,G,T,H,valid,log)
   if M.controls then key=M.controls.values.transport[1];if key=='None'then key=M.controls.values.transport[2]end;C.key=key end
   local down=M.controls and M.controls.down(pc,'transport')or(not M.controls and pc:IsInputKeyDown({KeyName=FName(key)}));local pressed=down and not C.down;C.down=down
   local left=pc:IsInputKeyDown({KeyName=FName('LeftMouseButton')});local clicked=left and not C.left;C.left=left
-  if pc.HUD.ChatUI.TypeInChat or H.IsPauseMenu(pc)or M.devmenu.ui.opened or M.backpack.ui.opened or(M.utility and M.utility.opened) then if valid(C.promptRow)then C.promptRow:SetVisibility(1)end;return end
+  if pc.HUD.ChatUI.TypeInChat or H.IsPauseMenu(pc)or M.overlayCapturesInput() or M.backpack.ui.opened or(M.utility and M.utility.opened) then if valid(C.promptRow)then C.promptRow:SetVisibility(1)end;return end
   -- Hints already refresh at 4 Hz. Discover nearby trailers only when drawing
   -- that hint or on a fresh action press; host execution still revalidates it.
   local context;if pressed or now>=C.nextHint then context=C.context(pc)end

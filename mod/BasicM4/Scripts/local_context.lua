@@ -1,13 +1,17 @@
 -- UEHelpers in the pinned loader can select the first remote controller.
 -- Select the actual local controller, retaining the human while driving.
 return function(valid)
- local H={};local controller
+ local H={}
+ local game=StaticFindObject('/Script/Engine.Default__GameplayStatics')
+ local viewportEngine
  function H.GetPlayerController()
-  if valid(controller)and controller:IsLocalPlayerController()then return controller end
-  controller=nil
-  for _,pc in ipairs(FindAllOf('PlayerController')or{})do
-   if valid(pc)and pc:IsLocalPlayerController()then controller=pc;return pc end
-  end
+  if not valid(viewportEngine)then viewportEngine=FindFirstOf('GameEngine')end
+  local viewport=valid(viewportEngine)and viewportEngine.GameViewport
+  if not valid(viewport)then return end
+  local world=viewport:GetWorld()
+  if not valid(world)then return end
+  local pc=game:GetPlayerController(world,0)
+  if valid(pc)and pc:IsLocalPlayerController()then return pc end
  end
  function H.GetPlayer()
   local pc=H.GetPlayerController();if not pc then return end
@@ -31,6 +35,6 @@ return function(valid)
   if not menu then return true end
   return menu:GetIsPauseMenu()
  end
- function H.reset()controller=nil end
+ function H.reset()end
  return H
 end

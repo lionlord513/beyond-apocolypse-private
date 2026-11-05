@@ -1,5 +1,5 @@
 return function(G,valid,remember,config)
- local W={nextAt=0,seen={}}
+ local W={nextAt=0,seen={},retry={}}
  local function guid(a)
   local key
   a.Seats:ForEach(function(_,v)
@@ -24,7 +24,7 @@ return function(G,valid,remember,config)
    for _,q in ipairs(players)do local dx,dy=at.X-q.X,at.Y-q.Y;d2=math.min(d2,dx*dx+dy*dy)end
    if d2>14000^2 and d2<50000^2 then
     local key=guid(a)
-    if key and not G.known[key]and not G.sites[key]and not W.seen[key]then
+    if key and not G.known[key]and not G.sites[key]and not W.seen[key]and now>=(W.retry[key]or 0)then
      local h=5381;for i=1,#key do h=(h*33+key:byte(i))&0xffffffff end
      local chance=math.max(0,math.min(10,(config.SpawnPercent or 3)+1))
      if h%100<chance then
@@ -36,15 +36,18 @@ return function(G,valid,remember,config)
         local q=r.actor:K2_GetActorLocation();if (q.X-pos.X)^2+(q.Y-pos.Y)^2<10000^2 then nearby=true;break end
        end end end
        if pos and not nearby then
-        G.spawn(true,pos,true);remember('site',key,G.sites);W.seen[key]=true;return
+        local _,pending=G.create(p,true,pos,true)
+        pending.onReady=function()remember('site',key,G.sites);W.seen[key]=true;W.retry[key]=nil end
+        W.retry[key]=now+30
+        return
        end
       end
-     end
-     W.seen[key]=true
+     else W.seen[key]=true end
+     if not W.seen[key]then W.retry[key]=now+30 end
     end
    end
   end end
  end
- function W.reset()W.nextAt=0;W.seen={}end
+ function W.reset()W.nextAt=0;W.seen={};W.retry={}end
  return W
 end

@@ -18,7 +18,7 @@ return function(M,root,H,valid,enqueue,log)
  local function busy()
   if not B.ready()then return true end
   local pc=H.GetPlayerController();local hud=pc.HUD
-  return pc.bShowMouseCursor or (valid(hud) and valid(hud.ChatUI) and hud.ChatUI.TypeInChat) or H.IsPauseMenu(pc)or M.devmenu.ui.opened or valid(pc.Vehicle)
+  return pc.bShowMouseCursor or (valid(hud) and valid(hud.ChatUI) and hud.ChatUI.TypeInChat) or H.IsPauseMenu(pc)or M.overlayCapturesInput() or valid(pc.Vehicle)
  end
  function B.toggle()
   if B.ui.opened then B.ui.close();return end;if busy()then return end

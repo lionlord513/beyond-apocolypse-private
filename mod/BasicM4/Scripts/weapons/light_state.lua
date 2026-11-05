@@ -2,12 +2,13 @@
 -- newest record when the player selects an older save. No native actor data is
 -- copied or serialized by Lua; vehicles/parts remain the game's responsibility.
 return function(root,valid,log,statePath)
+ local snapshot=dofile(root..'/Scripts/save_snapshot.lua')
  local J={state={},ready=false};local kinds={light=2,scope=1,scopeItem=0}
  local function guid(g)return ('%08x:%08x:%08x:%08x'):format(g.A&0xffffffff,g.B&0xffffffff,g.C&0xffffffff,g.D&0xffffffff)end
  local function isguid(s)return type(s)=='string'and #s==35 and s:match('^%x+:%x+:%x+:%x+$')~=nil end
  local function key(meta)
   local s=meta.SaveName;local world,revision=guid(s.Guid),guid(s.GuidUnique)
-  if world=='00000000:00000000:00000000:00000000'or revision=='00000000:00000000:00000000:00000000'then return end
+  if world=='00000000:00000000:00000000:00000000'then return end
   return world:gsub(':','')..'-'..revision:gsub(':','')..'-'..tostring(s.Iterator),world
  end
  local function path(k)local name='weapon-light-'..k..'.txt';return statePath and statePath(name)or root..'/state/'..name end
@@ -43,11 +44,11 @@ return function(root,valid,log,statePath)
  end
  function J.load(save)
   if J.ready then return end
-  J.state=J.empty();J.ready=true;J.loadKey=nil;J.error=nil
   if not valid(save)then return end
-  local k,world=key(save.SaveGameMetadata);J.world=world;J.loadKey=k
+  local k,world=key(save.SaveGameMetadata);if not world then return end
+  J.state=J.empty();J.ready=true;J.error=nil;J.world=world;J.loadKey=k
   if not k then return end
-  local f=io.open(path(k),'rb');if not f then return end;local bytes=f:read('*a');f:close()
+  local bytes=snapshot.read(path(k));if not bytes then return end
   local ok,result=pcall(J.decode,bytes)
   if ok then J.state=result;log('Weapon light loaded native save revision '..k)
   else J.error=tostring(result);log('Weapon light snapshot rejected; original actors left recoverable: '..J.error)end
@@ -60,13 +61,11 @@ return function(root,valid,log,statePath)
  function J.capture(save)
   if not J.ready or not valid(save)or not save:IsA(StaticFindObject('/Script/DriveBeyondHorizons.DBHSaveGame'))then return end
   assert(not J.error,J.error)
-  local k,world=key(save.SaveGameMetadata);if not k then error('Native save has no revision identity')end
-  if J.world and J.world~=world then return end
+  local k,world=key(save.SaveGameMetadata);if not k then return end
+  if J.world and J.world~=world and not snapshot.active(save)then return end
   J.world=world;local bytes=J.encode(J.state);local target=path(k)
-  local existing=io.open(target,'rb')
-  if existing then local old=existing:read('*a');existing:close();assert(old==bytes,'Native save reused a weapon light revision; refusing to overwrite an older record');return end
-  local f=assert(io.open(target..'.tmp','wb'));assert(f:write(bytes));assert(f:close())
-  assert(os.rename(target..'.tmp',target));J.savedKey=k;log('Weapon light snapshot saved '..k)
+
+  snapshot.commit(target,k,bytes);J.savedKey=k
  end
  function J.install()
   if J.hooks then return end
@@ -76,5 +75,5 @@ return function(root,valid,log,statePath)
   end)}
  end
  function J.reset()J.ready=false;J.world=nil;J.state=J.empty();J.error=nil;J.loadKey=nil end
- J.guid=guid;J.key=key;J.state=J.empty();J.install();return J
+ J.guid=guid;J.key=key;J.activeSave=snapshot.active;J.state=J.empty();J.install();return J
 end
