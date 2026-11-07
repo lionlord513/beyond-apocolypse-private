@@ -16,13 +16,15 @@ local release=dofile(root..'/Scripts/release.lua')
 local defs=dofile(root..'/Scripts/weapons/catalog.lua')
 local M={version=release.Version,release=release,active=true,definitions=defs,config=config,statePath=storage.state}
 local forced,chosen,tracked,filled,errors={},{},{},{},{}
-local geometry,materials={},{ }
+local materials={}
 local refreshRetry={}
 local akClass,pmcClass,game
 local function log(s)print('[Beyond Apocolypse] '..s..'\n') end
 local function valid(o)return o and o:IsValid()end
 local H=dofile(root..'/Scripts/local_context.lua')(valid)
 M.root=root
+local meshCache=dofile(root..'/Scripts/weapons/mesh_cache.lua')(M,H,valid)
+M.weaponMeshes=meshCache
 local performance=dofile(root..'/Scripts/performance.lua')(M,H,valid,log);M.performance=performance
 local branding=dofile(root..'/Scripts/menu_branding.lua')(root,release,H,valid)
 M.branding=branding
@@ -62,7 +64,8 @@ local function selected(a)
 end
 local function components(a)
  local out={}
- for _,v in ipairs(a:K2_GetComponentsByClass(pmcClass))do
+ if not valid(a)or not valid(a.SkeletalMesh)then return out end
+ for _,v in ipairs(a:K2_GetComponentsByClass(StaticFindObject('/Script/Engine.MeshComponent')))do
   local c=v:get()
   if valid(c) and valid(c.AttachParent) and c.AttachParent:GetAddress()==a.SkeletalMesh:GetAddress()then
    local s=c.AttachSocketName:ToString()
@@ -86,7 +89,7 @@ local function getMaterial(a,d)
  if valid(materials[d.Id])then return materials[d.Id]end
  local parent=LoadAsset(d.MaterialParent)
  local lib=StaticFindObject('/Script/Engine.Default__KismetMaterialLibrary')
- local mat=lib:CreateDynamicMaterialInstance(a,parent,FName(d.MaterialName),0)
+ local mat=lib:CreateDynamicMaterialInstance(H.GetPlayerController(),parent,FName(d.MaterialName),0)
  assert(valid(mat),'Cannot create '..d.Id..' material')
  local images=loadPbrImages('assets/'..d.Id..'-textures.gltf')
  for param,tex in pairs(images)do mat:SetTextureParameterValue(FName(param),tex)end
@@ -98,14 +101,11 @@ local function getMaterial(a,d)
 end
 local function fill(a,c,d)
  local key=c:GetFullName()
- if valid(filled[key]) and filled[key]:GetAddress()==c:GetAddress()and c:GetNumSections()>0 then return end
- geometry[d.Id]=geometry[d.Id]or dofile(root..'/'..d.Geometry)
  local part=c.AttachSocketName:ToString()==d.MagazineSocket and 'magazine' or 'body'
- local data=assert(geometry[d.Id][part]);c:SetCollisionEnabled(0)
-
- c:CreateMeshSection(0,data.vertices,data.triangles,data.normals,data.uv,{},data.tangents or {},false)
- c:SetMaterial(0,getMaterial(a,d))
- if data.ironTriangles then c:CreateMeshSection(1,data.vertices,data.ironTriangles,data.normals,data.uv,{},data.tangents or{},false);c:SetMaterial(1,getMaterial(a,d))end
+ local iron=meshCache.irons[key]
+ if valid(filled[key])and filled[key]:GetAddress()==c:GetAddress()and valid(c.StaticMesh)and(part~='body'or iron and valid(iron.component))then return end
+ c:SetCollisionEnabled(0)
+ meshCache.fill(a,c,d.Id,part,getMaterial(a,d))
  do
   local tr=d.Transform()
   if part=='magazine'then tr=StaticFindObject('/Script/Engine.Default__KismetMathLibrary'):MakeRelativeTransform(tr,a.SkeletalMesh:GetSocketTransform(FName(d.MagazineSocket),2))end
@@ -119,16 +119,18 @@ local function create(a,d)
   for _,part in ipairs(d.Parts)do
    local tr=d.Transform();local socket=part=='magazine'and d.MagazineSocket or d.BodySocket
    if part=='magazine'then tr=StaticFindObject('/Script/Engine.Default__KismetMathLibrary'):MakeRelativeTransform(tr,mesh:GetSocketTransform(FName(socket),2))end
-   local c=a:AddComponentByClass(pmcClass,true,tr,false);assert(valid(c),'Mesh creation failed')
+   local c=a:AddComponentByClass(meshCache.class,true,tr,false);assert(valid(c),'Mesh creation failed')
+   c:SetComponentTickEnabled(false);c:SetIsReplicated(false)
    made[#made+1]=c;c:K2_AttachToComponent(mesh,FName(socket),0,0,0,false);c:K2_SetRelativeTransform(tr,false,{},true)
    fill(a,c,d)
   end
   if a:HasAuthority()then a:FlushNetDormancy();a:ForceNetUpdate()end
  end)
- if not ok then for _,c in ipairs(made)do if valid(c)then c:K2_DestroyComponent(a)end end;error(e)end
+ if not ok then for _,c in ipairs(made)do if valid(c)then meshCache.remove(c);c:K2_DestroyComponent(a)end end;error(e)end
  return made
 end
-local identitySockets={ba_nativeak='ak',ba_rifle_m4='m4',ba_rifle_hunting='hunting',ba_rifle_enfield='enfield'}
+local weaponRefresh=dofile(root..'/Scripts/weapons/refresh.lua')(M,valid)
+local identitySockets=weaponRefresh.sockets
 local function rifleMarker(a)
  local scene=StaticFindObject('/Script/Engine.SceneComponent')
  for _,entry in ipairs(a:K2_GetComponentsByClass(scene))do
@@ -161,16 +163,23 @@ local function update(a)
   selected(a)
   if id~=chosen[key]then id=chosen[key];setMarker(a,marker,id)end
  elseif not id then
-  -- Identity may arrive after the actor. Keep a visible donor in the meantime.
-  if not rendered then a.SkeletalMesh:SetVisibility(true,false);return end
+  -- The save GUID is host-only. Wait briefly for the replicated identity,
+  -- rather than flashing the donor AK on every native inventory restoration.
+  if not rendered then a.SkeletalMesh:SetVisibility(not weaponRefresh.awaitIdentity(a),false);return end
   id=rendered.Id
  end
+ weaponRefresh.identified(a)
  local d=defs[id]
- if #meshes>0 and rendered~=d then
-  for _,c in ipairs(meshes)do c:K2_DestroyComponent(a)end
+ local legacy=false;for _,c in ipairs(meshes)do if not c:IsA(meshCache.class)then legacy=true;break end end
+ if #meshes>0 and(rendered~=d or legacy)then
+  for _,c in ipairs(meshes)do meshCache.remove(c);c:K2_DestroyComponent(a)end
   meshes={};tracked[a:GetFullName()]=nil
  end
- if d and #meshes==0 then a.SkeletalMesh:SetVisibility(true,false);meshes=create(a,d)end
+ if d and #meshes==0 then
+  local ok,value=pcall(create,a,d)
+  if not ok then a.SkeletalMesh:SetVisibility(true,false);error(value)end
+  meshes=value
+ end
  if d then
   for _,c in ipairs(meshes)do fill(a,c,d)end
   a.SkeletalMesh.VisibilityBasedAnimTickOption=0;a.SkeletalMesh:SetVisibility(false,false)
@@ -178,7 +187,7 @@ local function update(a)
   if M.ballistics and M.ballistics.installed then M.ballistics.prepare(a,d)end
   if M.rail then M.rail.update(a,d)end
   local scope=M.rail and M.rail.optic.has(a)
-  for _,c in ipairs(meshes)do if c:GetNumSections()>1 then c:SetMeshSectionVisible(1,not scope)end end
+  for _,c in ipairs(meshes)do meshCache.showIrons(c,not scope)end
   tracked[a:GetFullName()]={actor=a,def=d}
  else
   a.SkeletalMesh:SetVisibility(true,false)
@@ -206,7 +215,7 @@ function M.force(a,id)
  assert(initialize()and valid(a)and a:IsA(akClass),'Hold a rifle first')
  assert(a:HasAuthority(),'Host only');local k=assert(guid(a),'Item identity not ready')
  saveChoice(k,id)
- for _,c in ipairs(components(a))do c:K2_DestroyComponent(a)end
+ for _,c in ipairs(components(a))do meshCache.remove(c);c:K2_DestroyComponent(a)end
  tracked[a:GetFullName()]=nil;update(a);log(d.Name..' selected: '..k)
 end
 function M.spawn(id)
@@ -220,6 +229,7 @@ function M.spawn(id)
 end
 function M.scan()
  if M.features==false or not player()or not initialize()then return end
+ weaponRefresh.install();weaponRefresh.prune();meshCache.prune()
  local world=H.GetWorld();if not valid(world)then return end
  local seen={}
  for _,a in ipairs(FindAllOf('AkWeapon_C')or{})do if valid(a)and a:GetWorld():GetAddress()==world:GetAddress()then seen[a:GetFullName()]=true;guardedUpdate(a)end end
@@ -235,6 +245,7 @@ M.apocalypse=apocalypse
 local mechanic=dofile(root..'/Scripts/night_hunter.lua')(root,config.Apocalypse,valid,log);M.mechanic=mechanic
 local actions,scanElapsed={},config.PollMilliseconds
 local function shortcut(fn)if not M.travelling then actions[#actions+1]=fn end end
+weaponRefresh.install(shortcut)
 local session=dofile(root..'/Scripts/session.lua')(M,H,valid,shortcut);M.session=session
 M.dashboard=dofile(root..'/Scripts/dashboard.lua')(M,H,valid)
 M.hudFrame=M.dashboard.frame
@@ -327,7 +338,7 @@ M.akClass=function()initialize();return akClass end
 -- Public packages have no spawn-test key bindings.
 RegisterLoadMapPreHook(function()
  M.travelling=true;M.features=false
- M.population.reset();actions={};tracked={};filled={};materials={};refreshRetry={};akClass=nil;pmcClass=nil;game=nil
+ M.population.reset();weaponRefresh.reset();meshCache.reset();actions={};tracked={};filled={};materials={};refreshRetry={};akClass=nil;pmcClass=nil;game=nil
     M.playerModels.reset();M.dashboard.reset();motorcycle.reset();M.utility.reset();H.reset();session.reset();performance.reset();firing.reset();apocalypse.reset();hazmat.reset();mechanic.reset();branding.reset();companionCall('reset');backpack.reset();gyrocopter.reset();weaponHandling.reset();weaponHandling.slots.reset();weaponHandling.equipCache=nil;rail.reset();roaming.reset();hangar.reset();towing.reset();M.ammo.reset();M.ballistics.reset()
 end)
 RegisterLoadMapPostHook(function()actions={};M.travelling=false end)

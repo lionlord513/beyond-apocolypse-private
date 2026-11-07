@@ -2,6 +2,7 @@
 -- Construction notifications avoid adding a recurring world search.
 return function(M,root,H,valid,log)
  local P={limit=10,disabled=false,records={},incoming={},live=0,nextAt=0}
+ local config=M.config and M.config.Apocalypse or {}
  local game=StaticFindObject('/Script/Engine.Default__GameplayStatics')
  local sys=StaticFindObject('/Script/Engine.Default__KismetSystemLibrary')
  local path=M.statePath and M.statePath('zombie-limit.txt')or root..'/state/zombie-limit.txt'
@@ -18,14 +19,21 @@ return function(M,root,H,valid,log)
   if r.paused then sys:K2_UnPauseTimerHandle(r.actor,r.actor.TimerHandle)end
   P.native=nil
  end
- function P.track(z)
+ function P.track(z,kind)
   if not P.worldAddress or not alive(z)or not z:HasAuthority()then return end
   local w=z:GetWorld();if not valid(w)or w:GetAddress()~=P.worldAddress then return end
   local key=z:GetAddress();if not P.records[key]then P.records[key]=z;P.live=P.live+1;P.dirty=true end
+  if kind=='mechanic'then P.mechanic=z;P.dirty=true end
  end
- function P.remaining()
+ local function mechanicAlive()return alive(P.mechanic)and alive(P.records[P.mechanic:GetAddress()])end
+ local function reserved()return mechanicAlive()or config.Enabled~=false and config.MechanicEnabled~=false end
+ function P.remaining(kind)
   if P.disabled then return 0 end
-  return math.max(0,P.target()-P.live)
+  -- Reserve one place inside the hard ceiling, without reducing a lower
+  -- daytime target. A manual replacement may reuse the existing Mechanic's slot.
+  if kind=='mechanic'then return math.max(0,P.limit-P.live+(mechanicAlive()and 1 or 0))end
+  local held=reserved()and not mechanicAlive()and 1 or 0
+  return math.max(0,math.min(P.target()-P.live,P.limit-P.live-held))
  end
  function P.dayTarget(n)return math.min(n,math.max(2,math.floor(n*.5+.5)))end
  function P.target()
@@ -48,14 +56,18 @@ return function(M,root,H,valid,log)
   -- Night survivors can remain in a fight after dawn. Stop new additions at
   -- the daytime target; the host's hard ceiling still applies at all times.
   local cap=P.disabled and 0 or P.rebalance and P.target()or P.limit;P.rebalance=nil
+  if reserved()and not mechanicAlive()then cap=math.max(0,math.min(cap,P.limit-1))end
   if #list>cap then
    local players={};if valid(P.gs)then P.gs.Players:ForEach(function(_,v)local p=v:get();if valid(p)and p.IsLoaded then players[#players+1]=p:K2_GetActorLocation()end end)end
    local ranked={};for _,z in ipairs(list)do
     local at=z:K2_GetActorLocation();local nearest=math.huge
     for _,p in ipairs(players)do nearest=math.min(nearest,(at.X-p.X)^2+(at.Y-p.Y)^2+(at.Z-p.Z)^2)end
-    ranked[#ranked+1]={actor=z,distance=nearest}
+    ranked[#ranked+1]={actor=z,distance=nearest,mechanic=mechanicAlive()and z:GetAddress()==P.mechanic:GetAddress()}
    end
-   table.sort(ranked,function(a,b)if a.distance==b.distance then return a.actor:GetAddress()<b.actor:GetAddress()end;return a.distance<b.distance end)
+   table.sort(ranked,function(a,b)
+    if a.mechanic~=b.mechanic then return a.mechanic==true end
+    if a.distance==b.distance then return a.actor:GetAddress()<b.actor:GetAddress()end;return a.distance<b.distance
+   end)
    for i=cap+1,#ranked do local z=ranked[i].actor;P.records[z:GetAddress()]=nil;z:K2_DestroyActor()end
   end
   P.live=math.min(#list,cap);P.dirty=false;P.nativeBudget()
@@ -82,7 +94,7 @@ return function(M,root,H,valid,log)
   if not P.isHost()then return end
   local gs=game:GetGameState(p);if not valid(gs)or not valid(gs.BP_ZombieSpawner)then return end
   if not valid(P.gs)or P.gs:GetAddress()~=gs:GetAddress()then
-   restoreNative();P.records={};P.live=0;P.gs=gs;P.worldAddress=p:GetWorld():GetAddress();P.rebalance=true
+   restoreNative();P.records={};P.live=0;P.mechanic=nil;P.gs=gs;P.worldAddress=p:GetWorld():GetAddress();P.rebalance=true
    local s=gs.BP_ZombieSpawner;P.native={actor=s,values={}}
    for _,name in ipairs(fields)do P.native.values[name]=s[name]end
    for _,z in ipairs(FindAllOf('BP_Zombie_C')or{})do P.track(z)end
@@ -91,7 +103,7 @@ return function(M,root,H,valid,log)
   local now=os.clock();if P.dirty or now>=P.nextAt then P.nextAt=now+.25;P.enforce()end
  end
  function P.reset()
-  restoreNative();P.records={};P.incoming={};P.live=0;P.gs=nil;P.worldAddress=nil;P.disabled=false;P.nextAt=0
+  restoreNative();P.records={};P.incoming={};P.live=0;P.mechanic=nil;P.gs=nil;P.worldAddress=nil;P.disabled=false;P.nextAt=0
  end
  NotifyOnNewObject('/Game/BP/Player/Zombies/BP_Zombie.BP_Zombie_C',function(z)P.incoming[#P.incoming+1]=z end)
  local update='/Game/BP/Components/BP_ZombieSpawnerUsed.BP_ZombieSpawnerUsed_C:UpdateValue'

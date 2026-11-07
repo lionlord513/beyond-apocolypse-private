@@ -1,6 +1,6 @@
 -- Local preferences, personal statistics, and explicitly host-only world settings.
 return function(M,root,H,valid,enqueue,log)
- local U={opened=false,tab='Settings',settingsTab='Keybinds',buttons={},session=0,total=0};local Ctl=M.controls;local lib,layout,slate
+ local U={opened=false,tab='Settings',settingsTab='Gameplay',buttons={},session=0,total=0};local Ctl=M.controls;local lib,layout,slate
  local game=StaticFindObject('/Script/Engine.Default__GameplayStatics')
  local C={bg={R=.012,G=.014,B=.015,A=.98},panel={R=.025,G=.028,B=.029,A=1},card={R=.049,G=.052,B=.052,A=1},red={R=.34,G=.021,B=.017,A=1},accent={R=.72,G=.19,B=.12,A=1},text={R=.87,G=.86,B=.81,A=1},muted={R=.48,G=.50,B=.47,A=1},gold={R=.68,G=.55,B=.32,A=1}}
  local statsFile=M.statePath and M.statePath('personal-distance.txt')or root..'/state/personal-distance.txt'
@@ -95,11 +95,11 @@ return function(M,root,H,valid,enqueue,log)
     end)
     text('Automatic hover and leveling. Hold raise / lower to climb / descend.',286,340,1070,32,17,'muted')
     text('Applies only when you pilot a gyrocopter. Saved across sessions.',286,384,1070,32,17,'muted')
-    button((M.performance.gameplayMode and '[X] 'or '[ ] ')..'Gameplay Performance Mode',270,452,700,54,function()
+    button((M.performance.gameplayMode and '[X] 'or '[ ] ')..'Extreme Performance Mode',270,452,700,54,function()
      local ok,result,message=pcall(M.performance.setGameplayMode,not M.performance.gameplayMode)
      U.message=ok and (result and(message or 'Performance Mode updated.')or message)or tostring(result):gsub('^.-:%d+: ','');U.render()
     end)
-    text('Uses native LOD, grass and post-processing settings. No custom visibility sweep.',286,526,1080,32,17,'muted')
+    text('Removes decorative grass, bushes and clouds; simplifies the sky, trees and effects.',286,526,1080,32,17,'muted')
     text('Saved on this PC. Turn off to restore previous render settings.',286,570,1080,32,17,'muted')
     button('Move dashboard',270,628,520,54,function()
      if valid(M.dashboard.widget)then dashboardEditor()else U.message='Enter a vehicle to move its dashboard.';U.render()end
@@ -130,7 +130,7 @@ return function(M,root,H,valid,enqueue,log)
    slider:SetIsEnabled(host==true);place(slider,300,368,1050,52)
    text('2',300,430,100,30,18,'muted');text('40',1300,430,80,30,18,'muted')
    U.zombieLabel=text(host and ('%d day / %d night & infestations'):format(M.population.dayTarget(value),value)or 'Host only',540,430,740,40,20,'gold')
-   text('Includes native zombies, mod encounters, hazmats and the Mechanic.',286,505,1080,36,17,'muted')
+   text('Includes all zombies; one place in the ceiling is reserved for the Mechanic.',286,505,1080,36,17,'muted')
    text('Default: 5 by day, 10 at night or in an infested building. Slider scales both.',286,550,1080,36,17,'muted')
    text('Saved on this PC for sessions you host. Clients cannot override the host.',286,595,1080,36,17,'muted')
    if host then button('APPLY ZOMBIE LIMIT',970,690,424,54,function()

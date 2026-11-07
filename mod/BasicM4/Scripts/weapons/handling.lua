@@ -31,7 +31,8 @@ return function(M,root,H,valid,enqueue,log)
  end
  function V.equipped()
   if M.features==false then return end
-  local p=H.GetPlayer();local pc=H.GetPlayerController()
+  local pc=H.GetPlayerController();local p=valid(pc)and pc.PlayerControlled
+  if not valid(p)and valid(pc)then p=pc.Pawn end
   if not valid(pc)or not valid(p)or not p.IsLoaded or p.BP_PlayerStats.IsDead or p.BP_PlayerStats.IsDying or valid(pc.Vehicle)then return end
   local a=p.ItemEquiped;if not valid(a)then return end
   local now=os.clock();local c=V.equipCache

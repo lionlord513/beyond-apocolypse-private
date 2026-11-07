@@ -22,7 +22,8 @@ local function zombie(id,distance,authority,w)
  return z
 end
 for i=1,5 do zombies[i]=zombie(i,i*100)end
-local M={apocalypse={},mechanic={reset=function()end},roaming={reset=function()end}}
+local config={MechanicEnabled=false}
+local M={config={Apocalypse=config},apocalypse={},mechanic={reset=function()end},roaming={reset=function()end}}
 local P=dofile(scripts..'/zombie_population.lua')(M,scratch,{GetPlayerController=function()return pc end,GetPlayer=function()return pawn end},function(o)return type(o)=='table'end,function()end)
 P.tick(pawn);assert(P.live==5 and searches==1)
 assert(P.limit==10 and P.target()==5 and P.remaining()==0,'default daytime population is not five')
@@ -43,4 +44,23 @@ local late=zombie(8,500);observer(late);now=4;P.tick(pawn);assert(late.destroyed
 P.setDisabled(false);assert(not paused and P.remaining()==2)
 for _=1,50 do now=now+.3;P.tick(pawn)end;assert(searches==1,'population added recurring world scans')
 P.reset();assert(not paused);for k,v in pairs(original)do assert(native[k]==v,'native spawner value not restored')end
-print('PASS: shared cap, nearest retention, client denial, bounds, death/replenishment, native bursts, disable/re-enable, no repeated search, restore')
+-- An enabled Mechanic owns one place inside the ceiling, even after a native
+-- batch fills it. His greater spawn distance must not make him first to cull.
+config.MechanicEnabled=true;P.limit=10;gs.UDS['Time of Day']=2100;zombies={}
+for i=1,10 do zombies[i]=zombie(100+i,i*100)end
+P.tick(pawn);assert(P.live==9 and zombies[10].destroyed,'Ordinary zombies consumed the reserved Mechanic slot')
+assert(P.remaining()==0 and P.remaining('mechanic')==1 and native.MaxZombieBySpawn==0,'Spawn budgets did not distinguish Mechanic from ordinary zombies')
+local mechanic=zombie(200,23000);P.track(mechanic)
+-- Native callbacks can return distinct Lua wrappers for the same UObject.
+P.track(setmetatable({},{__index=mechanic}),'mechanic');P.enforce()
+assert(P.live==10 and not mechanic.destroyed and P.remaining()==0,'Mechanic exceeded the ceiling or was immediately culled')
+local overflow=zombie(201,10);observer(overflow);now=now+1;P.tick(pawn)
+assert(P.live==10 and not mechanic.destroyed,'Near ordinary spawn displaced the distant Mechanic')
+P.setLimit(4);assert(P.live==4 and not mechanic.destroyed,'Lowering the ceiling removed the reserved enemy')
+mechanic.IsDead=true;P.enforce()
+assert(P.live==3 and P.remaining()==0 and P.remaining('mechanic')==1,'Death did not retain the next reserved slot')
+config.MechanicEnabled=false;assert(P.remaining()==1,'Disabling the feature did not release its reservation')
+P.reset();config.MechanicEnabled=true;P.limit=10;zombies={};gs.UDS['Time of Day']=1200
+P.tick(pawn);assert(P.remaining()==5,'Reservation unnecessarily reduced the normal daytime target')
+P.reset();assert(not P.mechanic,'World change retained a protected old actor')
+print('PASS: shared ceiling, reserved Mechanic admission/retention, native bursts, feature toggle, daytime target, client denial and restore')

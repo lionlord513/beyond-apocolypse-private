@@ -1,13 +1,13 @@
 -- One shared 2x optic. Identity rides native items; only the host consumes parts.
-return function(M,R,root,valid)
+return function(M,R,root,valid,H)
  local O={records={},seen={}};local J=R.journal
- local pmc=StaticFindObject('/Script/ProceduralMeshComponent.ProceduralMeshComponent')
+ local cache=assert(M.weaponMeshes);local meshClass=cache.class
  local scene=StaticFindObject('/Script/Engine.SceneComponent')
  local mathlib=StaticFindObject('/Script/Engine.Default__KismetMathLibrary')
  local identity={Translation={X=0,Y=0,Z=0},Rotation={X=0,Y=0,Z=0,W=1},Scale3D={X=1,Y=1,Z=1}}
  O.axisHeight=2.63878
  O.mounts={m4={x=1,z=5.10},hunting={x=15,z=5.4},enfield={x=3,z=3.65},ak={x=12,y=.7,z=8.6}}
- local geometry;local material;local built={}
+ local material;local built={}
  local function getMaterial(a)
   if valid(material)then return material end
   local function offset(o,name)local n;o:ForEachProperty(function(p)if p:GetFName():ToString()==name then n=p:GetOffset_Internal()end end);return assert(n)end
@@ -17,11 +17,12 @@ return function(M,R,root,valid)
   local cfg=StaticFindObject('/Script/glTFRuntime.glTFRuntimeConfig')
   local address=load(lib:GetAddress(),fn:GetAddress(),offset(fn,'LoaderConfig'),offset(fn,'ReturnValue'),root..'/assets/optic/textures.gltf',offset(cfg,'SceneScale'),offset(cfg,'TransformBaseType'))
   local asset;for _,v in ipairs(FindAllOf('glTFRuntimeAsset')or{})do if v:GetAddress()==address then asset=v;break end end;assert(valid(asset),'Sight textures unavailable')
-  local mat=StaticFindObject('/Script/Engine.Default__KismetMaterialLibrary'):CreateDynamicMaterialInstance(a,LoadAsset('/MasterWeapon/Materials/Weapons/MAT_ArK47.MAT_ArK47'),FName('BA_Optic'),0)
+  local context=H.GetPlayerController();assert(valid(context),'Local world is loading')
+  local mat=StaticFindObject('/Script/Engine.Default__KismetMaterialLibrary'):CreateDynamicMaterialInstance(context,LoadAsset('/MasterWeapon/Materials/Weapons/MAT_ArK47.MAT_ArK47'),FName('BA_Optic'),0)
   for i,key in ipairs({'Diffuse','NormalMap','RoughnessMap','MetalMap'})do
    local tex=asset:LoadImage(i-1,{Compression=i==2 and 1 or 0,Group=0,bSRGB=i==1,MaxWidth=1024,MaxHeight=1024,bVerticalFlip=false,bForceHDR=false,bCompressMips=false,bStreaming=true,LODBias=0,bForceAutoDetect=true,ForcePixelFormat=0});assert(valid(tex));mat:SetTextureParameterValue(FName(key),tex)
   end
-  mat:SetTextureParameterValue(FName('AOMap'),StaticFindObject('/Script/Engine.Default__KismetRenderingLibrary'):ImportFileAsTexture2D(a,root..'/assets/gyrocopter/clean-ao.png'));mat:SetScalarParameterValue(FName('AODarkness'),0);material=mat;return mat
+  mat:SetTextureParameterValue(FName('AOMap'),StaticFindObject('/Script/Engine.Default__KismetRenderingLibrary'):ImportFileAsTexture2D(context,root..'/assets/gyrocopter/clean-ao.png'));mat:SetScalarParameterValue(FName('AODarkness'),0);material=mat;return mat
  end
  local function marker(a,name)
   for _,v in ipairs(a:K2_GetComponentsByClass(scene))do local c=v:get();if valid(c)and c.AttachSocketName:ToString()==name then return c end end
@@ -33,11 +34,14 @@ return function(M,R,root,valid)
  function O.has(a)return valid(a)and(a:HasAuthority()and J.state.scope[M.guid(a)]or marker(a,'BA_2xScope'))end
  local function mesh(a,parent,tr,name)
   local c=marker(a,name)
-  if not c then c=a:AddComponentByClass(pmc,true,tr,false);c:K2_AttachToComponent(parent,FName(name),0,0,0,false);c:SetCollisionEnabled(0);c:SetIsReplicated(false)end
+  if c and not c:IsA(meshClass)then c:K2_DestroyComponent(a);c=nil end
+  if not c then
+   c=a:AddComponentByClass(meshClass,true,tr,false);assert(valid(c),'Sight mesh unavailable')
+   c:K2_AttachToComponent(parent,FName(name),0,0,0,false);c:SetCollisionEnabled(0);c:SetGenerateOverlapEvents(false);c:SetComponentTickEnabled(false);c:SetIsReplicated(false)
+  end
   local key=c:GetFullName()
-  if not valid(built[key])or built[key]:GetAddress()~=c:GetAddress()or c:GetNumSections()==0 then
-   geometry=geometry or dofile(root..'/assets/optic/model.lua');local g=geometry
-   c:CreateMeshSection(0,g.vertices,g.triangles,g.normals,g.uv,{},g.tangents or{},false);c:SetMaterial(0,getMaterial(a));c:SetCastShadow(false);built[key]=c
+  if not valid(built[key])or built[key]:GetAddress()~=c:GetAddress()or not valid(c.StaticMesh)then
+   cache.fill(a,c,'optic','scope',getMaterial(a));c:SetCastShadow(false);built[key]=c
   end
   c:K2_SetRelativeTransform(tr,false,{},true)
   return c

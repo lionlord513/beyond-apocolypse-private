@@ -62,7 +62,6 @@ return function(root,valid)
     material:SetTextureParameterValue(FName('TextureCleanNormal'),plasticNormal)
     material:SetTextureParameterValue(FName('TextureCleanORM'),plasticORM);material:SetTextureParameterValue(FName('ClearCoatTexture'),white)
     material:SetTextureParameterValue(FName('TextureColor'),white);material:SetTextureParameterValue(FName('TextureColorMask'),white)
-    if not valid(plasticDirt)then plasticDirt=StaticFindObject('/Script/Engine.Default__KismetRenderingLibrary'):ImportFileAsTexture2D(a,root..'/assets/gyrocopter/plastic-dirt.png')end
     v.paintWhite=white
     c:SetMaterial(0,material);a.MaterialDynComponent:AddDynMaterial(c,'BA_Plastic',material);a.MaterialDynComponent:ProcessDynParam();v.paint=material
    end
@@ -104,7 +103,15 @@ return function(root,valid)
   local wearMaterial=a.VehicleMesh:GetMaterial(0)
   if valid(wearMaterial)and valid(v.paint)then
    local dirty=wearMaterial:K2_GetScalarParameterValue(FName('Rust and wear'))>.05
-   if v.dirty~=dirty then v.paint:SetTextureParameterValue(FName('TextureColor'),dirty and plasticDirt or v.paintWhite);v.dirty=dirty end
+   if v.dirty~=dirty then
+    -- An unused texture held only by Lua can be collected while every airframe
+    -- is clean. Reacquire it before handing a pointer to the render thread.
+    if dirty and not valid(plasticDirt)then
+     plasticDirt=StaticFindObject('/Script/Engine.Default__KismetRenderingLibrary'):ImportFileAsTexture2D(a,root..'/assets/gyrocopter/plastic-dirt.png')
+     assert(valid(plasticDirt),'Airframe dirt texture unavailable')
+    end
+    v.paint:SetTextureParameterValue(FName('TextureColor'),dirty and plasticDirt or v.paintWhite);v.dirty=dirty
+   end
    v.paint:SetScalarParameterValue(FName('Rust and wear'),0)
   end
   for _,value in ipairs(a:K2_GetComponentsByClass(StaticFindObject('/Script/Engine.PrimitiveComponent')))do

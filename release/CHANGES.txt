@@ -1,3 +1,10 @@
+1.1.5
+- Extreme Performance Mode removes decorative ground cover and cloud effects, reduces sky and tree detail, and restores prior settings when disabled. Gameplay obstacles and overall view distance are preserved.
+- Cache rifle and optic geometry and materials. Refresh weapon identity during spawn and inventory restoration to reduce switching hitches and temporary AK visuals.
+- Reserve one slot within the zombie limit for the Mechanic and keep him when enforcing that limit.
+- Reacquire the Hornet dirt texture after native garbage collection before applying it to a clean airframe.
+- Resolve guest Hangar computers relative to the player when world origins differ. Preserve the dashboard, shared nitrous display and separate optional developer menu.
+
 1.1.3
 - Matched the Nexus and mod manager downloads.
 - Fixed repeated update prompts after installing from Nexus.

@@ -2,6 +2,7 @@ return function(M,root,H,valid,enqueue,log)
  local A={last={},seq=0,queue=0,nextAt=0,terminals={}}
  local game=StaticFindObject('/Script/Engine.Default__GameplayStatics')
  local widget=StaticFindObject('/Script/UMG.Default__WidgetBlueprintLibrary')
+ local computerTarget=dofile(root..'/Scripts/computer_target.lua')
  local items={
   {id='chassis',name='Hornet airframe',price=8500,description='Airframe with fuel tank. Other parts sold separately.'},
   {id='blade',name='Universal rotor blade',price=1200},
@@ -122,18 +123,27 @@ return function(M,root,H,valid,enqueue,log)
    local e=ctx:get();local terminal=arg:get();local p=valid(e)and e:GetOwner();local pc=valid(p)and p:GetController()
    if valid(pc)and valid(terminal)then
     A.terminals[pc:GetAddress()]=terminal
-    if not pc:HasAuthority()then local q=terminal:K2_GetActorLocation();pc:ServerExecRPC(('BAHC1|%.0f|%.0f|%.0f'):format(q.X,q.Y,q.Z))end
+    if not pc:HasAuthority()and valid(p)then
+     local packet,legacy=computerTarget.encode(terminal:K2_GetActorLocation(),p:K2_GetActorLocation())
+     -- Older hosts understand only the absolute hint. Updated hosts apply the
+     -- relative hint last; both messages merely remember the opened computer.
+     if packet then pc:ServerExecRPC(legacy);pc:ServerExecRPC(packet)end
+    end
    end
   end)}end
   if not A.rpc then A.rpc={RegisterHook('/Script/Engine.PlayerController:ServerExecRPC',function(ctx,msg)
-   local ok,s=pcall(function()return msg:get():ToString()end);if not ok or #s>48 then return end
-   local x,y,z=s:match('^BAHC1|(%-?%d+)|(%-?%d+)|(%-?%d+)$')
-   if x then
-    x,y,z=tonumber(x),tonumber(y),tonumber(z);if math.max(math.abs(x),math.abs(y),math.abs(z))>2147483647 or A.queue>=8 then return end
+   local ok,s=pcall(function()return msg:get():ToString()end);if not ok or #s>80 then return end
+   if s:match('^BAHC[12]|')then
+    if A.queue>=8 then return end
     local pc=ctx:get();A.queue=A.queue+1;enqueue(function()
      A.queue=math.max(0,A.queue-1);if not valid(pc)or not pc:HasAuthority()or not valid(pc.PlayerControlled)then return end
-     local p=pc.PlayerControlled:K2_GetActorLocation();if (p.X-x)^2+(p.Y-y)^2+(p.Z-z)^2>=500^2 then return end
-     for _,t in ipairs(FindAllOf('BP_eBayPC_C')or{})do if valid(t)then local q=t:K2_GetActorLocation();if math.abs(q.X-x)<=2 and math.abs(q.Y-y)<=2 and math.abs(q.Z-z)<=2 then A.terminals[pc:GetAddress()]=t;break end end end
+     local p=pc.PlayerControlled:K2_GetActorLocation();local target,tolerance=computerTarget.decode(s,p);if not target then return end
+     local best,distance
+     for _,t in ipairs(FindAllOf('BP_eBayPC_C')or{})do if valid(t)and t:GetWorld():GetAddress()==pc:GetWorld():GetAddress()then local q=t:K2_GetActorLocation()
+      local d=(q.X-target.X)^2+(q.Y-target.Y)^2+(q.Z-target.Z)^2
+      if d<=tolerance^2 and(not distance or d<distance)and(q.X-p.X)^2+(q.Y-p.Y)^2+(q.Z-p.Z)^2<500^2 then best=t;distance=d end
+     end end
+     if best then A.terminals[pc:GetAddress()]=best end
     end);return
    end
    local protocol,seq,id=s:match('^(BAHG[12])|(%d+)|([%a%d]+)$');seq=tonumber(seq)
