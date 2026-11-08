@@ -2,11 +2,12 @@
   "schema": 1,
   "id": "bmm",
   "name": "Beyond Mod Manager",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "notes": [
-    "Checks and repairs the tested UE4SS runtime during mod installs and updates, including existing and partial installations.",
-    "Checks for manager updates on every launch and offers Install update or Later.",
-    "Uninstall removes the full selected mod folder, including generated files and settings, so reinstall starts fresh. Recovery backups and game saves are retained."
+    "Recovers from temporary update-server errors, including HTTP 504, with bounded retries and a verified alternate GitHub asset route.",
+    "Bounds stalled downloads, respects server retry limits, and safely restarts interrupted transfers before checking their size and SHA-256.",
+    "Fixes updater-helper failures when launched from some PowerShell environments and records errors before replacement.",
+    "Keeps BMM usable after an unavailable update and offers Retry update. Includes the UE4SS repair, startup prompts and clean uninstall from 1.0.9."
   ],
   "description": "Install and manage Drive Beyond Horizons mods from ZIP files. Keep mod settings, see required support files, and check updates when a mod author provides an update source.",
   "update": {

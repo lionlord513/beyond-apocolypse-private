@@ -34,6 +34,7 @@ namespace BeyondModManager
     {
         public string Version { get; set; }
         public string Url { get; set; }
+        public string AlternateUrl { get; set; }
         public string Sha256 { get; set; }
         public long Size { get; set; }
         public string Notes { get; set; }
@@ -207,6 +208,14 @@ namespace BeyondModManager
             return value.ToLowerInvariant();
         }
 
+        internal static string AlternateAssetUrl(GitHubUpdateAsset asset, UpdateSource source, GitHubUpdateRelease release, string hash = null)
+        {
+            if (String.IsNullOrEmpty(asset.url) || asset.browser_download_url == null) return null;
+            if (!IsReleaseAssetUrl(asset.url, source.ResolvedRepository, release.tag_name) || new Uri(asset.url).Host != "api.github.com")
+                throw new InvalidDataException("The alternate asset URL does not belong to its declared GitHub repository.");
+            return AssetUrl(new GitHubUpdateAsset { url = asset.url, id = asset.id, digest = asset.digest }, source, release, hash);
+        }
+
         public static string ReadChecksum(string text, string assetName)
         {
             var matches = new List<string>();
@@ -263,63 +272,17 @@ namespace BeyondModManager
                 hash = listed;
             }
             if (hash == null) throw new InvalidDataException("No verifiable SHA-256 digest is published for this update.");
-            return new UpdateCandidate { Version = version, Url = AssetUrl(asset, source, release, hash), Sha256 = hash,
+            return new UpdateCandidate { Version = version, Url = AssetUrl(asset, source, release, hash), AlternateUrl = AlternateAssetUrl(asset, source, release, hash), Sha256 = hash,
                 Size = asset.size, AssetName = name, Repository = source.ResolvedRepository, Tag = release.tag_name,
                 Kind = source.Kind ?? "mod", Notes = manifest == null ? (release.body ?? "") : String.Join(Environment.NewLine, manifest.notes ?? new string[0]) };
         }
 
-        static async Task Fetch(string url, Stream destination, long maxBytes, bool json)
-        {
-            // No embedded credentials; each redirect is revalidated and never receives authentication.
-            ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
-            using (var handler = new HttpClientHandler { AllowAutoRedirect = false })
-            using (var client = new HttpClient(handler) { Timeout = maxBytes <= 2 * 1024 * 1024 ? TimeSpan.FromSeconds(20) : TimeSpan.FromMinutes(5) })
-            {
-                for (int redirects = 0; redirects < 6; redirects++)
-                {
-                    if (!IsAllowedUrl(url)) throw new InvalidDataException("Update downloads require an approved HTTPS GitHub host.");
-                    using (var request = new HttpRequestMessage(HttpMethod.Get, url))
-                    {
-                        request.Headers.UserAgent.ParseAdd("Beyond-Mod-Manager/1.0");
-                        if (new Uri(url).Host == "api.github.com")
-                        {
-                            request.Headers.Accept.ParseAdd(json ? "application/vnd.github+json" : "application/octet-stream");
-                            request.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
-                        }
-                        using (var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
-                        {
-                            int status = (int)response.StatusCode;
-                            if (status >= 300 && status < 400)
-                            {
-                                if (response.Headers.Location == null) throw new IOException("Update redirect is missing its destination.");
-                                url = new Uri(new Uri(url), response.Headers.Location).AbsoluteUri;
-                                continue;
-                            }
-                            response.EnsureSuccessStatusCode();
-                            if (response.Content.Headers.ContentLength > maxBytes) throw new InvalidDataException("Update download exceeds its expected size.");
-                            using (var input = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-                            {
-                                var buffer = new byte[65536]; long total = 0; int read;
-                                while ((read = await input.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) > 0)
-                                {
-                                    total += read;
-                                    if (total > maxBytes) throw new InvalidDataException("Update download exceeds its expected size.");
-                                    await destination.WriteAsync(buffer, 0, read).ConfigureAwait(false);
-                                }
-                            }
-                            return;
-                        }
-                    }
-                }
-            }
-            throw new IOException("Too many update redirects.");
-        }
-
-        static async Task<string> ReadText(string url, bool json)
+        static async Task<string> ReadText(string url, bool json, string alternate = null)
         {
             using (var stream = new MemoryStream())
+            using (var transport = new UpdateTransport())
             {
-                await Fetch(url, stream, 2 * 1024 * 1024, json).ConfigureAwait(false);
+                await transport.Fetch(url, stream, 2 * 1024 * 1024, json, alternate).ConfigureAwait(false);
                 return new UTF8Encoding(false, true).GetString(stream.ToArray());
             }
         }
@@ -360,14 +323,14 @@ namespace BeyondModManager
                     var meta = assets.Where(a => a.name == source.ManifestAsset).ToArray();
                     if (meta.Length == 0) continue;
                     if (meta.Length != 1) throw new InvalidDataException("Ambiguous update manifest.");
-                    manifest = Serializer().Deserialize<PublicUpdateManifest>(await ReadText(AssetUrl(meta[0], source, release), false).ConfigureAwait(false));
+                    manifest = Serializer().Deserialize<PublicUpdateManifest>(await ReadText(AssetUrl(meta[0], source, release), false, AlternateAssetUrl(meta[0], source, release)).ConfigureAwait(false));
                     if (!PublicManifest(manifest)) continue;
                 }
                 if (source.Sha256Asset != null)
                 {
                     var checksum = assets.Where(a => a.name == source.Sha256Asset).ToArray();
                     if (checksum.Length != 1) throw new InvalidDataException("The declared checksum asset is missing.");
-                    checksums = await ReadText(AssetUrl(checksum[0], source, release), false).ConfigureAwait(false);
+                    checksums = await ReadText(AssetUrl(checksum[0], source, release), false, AlternateAssetUrl(checksum[0], source, release)).ConfigureAwait(false);
                 }
                 var candidate = ResolveCandidate(source, release, manifest, checksums);
                 if (candidate != null && NeedsUpdate(candidate, installedVersion, installedPackageHash)) return candidate;
@@ -398,8 +361,15 @@ namespace BeyondModManager
 
         public static async Task<string> DownloadVerified(UpdateCandidate candidate, string destination)
         {
+            using (var transport = new UpdateTransport())
+                return await DownloadVerified(candidate, destination, transport).ConfigureAwait(false);
+        }
+
+        internal static async Task<string> DownloadVerified(UpdateCandidate candidate, string destination, UpdateTransport transport)
+        {
             if (candidate == null || candidate.Size <= 0 || candidate.Size > MaximumPackageBytes ||
-                NormalizeHash(candidate.Sha256) == null || !IsReleaseAssetUrl(candidate.Url, candidate.Repository, candidate.Tag))
+                NormalizeHash(candidate.Sha256) == null || !IsReleaseAssetUrl(candidate.Url, candidate.Repository, candidate.Tag) ||
+                (candidate.AlternateUrl != null && (!IsReleaseAssetUrl(candidate.AlternateUrl, candidate.Repository, candidate.Tag) || new Uri(candidate.AlternateUrl).Host != "api.github.com")))
                 throw new InvalidDataException("The update candidate is not verifiable.");
             destination = Path.GetFullPath(destination);
             if (File.Exists(destination)) throw new IOException("Update staging file already exists.");
@@ -409,7 +379,7 @@ namespace BeyondModManager
             try
             {
                 using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-                    await Fetch(candidate.Url, file, candidate.Size, false).ConfigureAwait(false);
+                    await transport.Fetch(candidate.Url, file, candidate.Size, false, candidate.AlternateUrl, true).ConfigureAwait(false);
                 VerifyFile(temporary, candidate);
                 File.Move(temporary, destination);
                 return destination;
@@ -480,38 +450,50 @@ namespace BeyondModManager
             File.WriteAllText(settings, Serializer().Serialize(plan), new UTF8Encoding(false));
             File.WriteAllText(script, ApplyScript, new UTF8Encoding(false));
             var executable = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), @"WindowsPowerShell\v1.0\powershell.exe");
-            Process.Start(new ProcessStartInfo(executable, "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"" + script + "\" -Settings \"" + settings + "\"")
-            { UseShellExecute = false, CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden });
+            var start = new ProcessStartInfo(executable, "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"" + script + "\" -Settings \"" + settings + "\"")
+            { UseShellExecute = false, CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden, WorkingDirectory = work };
+            // A manager launched from PowerShell 7 can inherit its incompatible module path.
+            // Let Windows PowerShell initialize its own built-in module locations.
+            start.EnvironmentVariables.Remove("PSModulePath");
+            Process.Start(start);
         }
 
         internal const string ApplyScript = @"param([Parameter(Mandatory=$true)][string]$Settings)
 $ErrorActionPreference='Stop'
-$change=Get-Content -LiteralPath $Settings -Raw | ConvertFrom-Json
 $workspace=[IO.Path]::GetFullPath($PSScriptRoot).TrimEnd('\')
+function FileHash([string]$LiteralPath) {
+ $fileStream=[IO.File]::OpenRead($LiteralPath)
+ try {$hash=[Security.Cryptography.SHA256]::Create();try{return [BitConverter]::ToString($hash.ComputeHash($fileStream)).Replace('-','')}finally{$hash.Dispose()}}finally{$fileStream.Dispose()}
+}
+try {
+$change=Get-Content -LiteralPath $Settings -Raw | ConvertFrom-Json
 $target=[IO.Path]::GetFullPath($change.target)
 $candidate=[IO.Path]::GetFullPath($change.candidate)
 if($candidate -ne (Join-Path $workspace 'Beyond Mod Manager.exe') -or [IO.Path]::GetFileName($target) -ne 'Beyond Mod Manager.exe' -or $change.nonce -notmatch '^[a-f0-9]{32}$'){throw 'Invalid update paths.'}
 foreach($path in @($workspace,[IO.Path]::GetDirectoryName($target))){$dir=Get-Item -LiteralPath $path;while($null -ne $dir){if($dir.Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'Linked update path.'};$dir=$dir.Parent}}
-if((Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash -ne $change.sha256){throw 'Staged update changed.'}
+if((FileHash $candidate) -ne $change.sha256){throw 'Staged update changed.'}
 $running=Get-Process -Id $change.process -ErrorAction SilentlyContinue
 if($null -ne $running -and $running.StartTime.ToUniversalTime().Ticks.ToString() -eq $change.started){Wait-Process -Id $change.process -Timeout 120 -ErrorAction Stop}
-if((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne $change.original){throw 'Current manager changed; update cancelled.'}
+if((FileHash $target) -ne $change.original){throw 'Current manager changed; update cancelled.'}
 $incoming=$target+'.'+$change.nonce+'.new'
 $rollback=$target+'.'+$change.nonce+'.previous'
 $failed=$target+'.'+$change.nonce+'.failed'
 $replaced=$false
 try {
  Copy-Item -LiteralPath $candidate -Destination $incoming -ErrorAction Stop
- if((Get-FileHash -LiteralPath $incoming -Algorithm SHA256).Hash -ne $change.sha256){throw 'Copied update changed.'}
+ if((FileHash $incoming) -ne $change.sha256){throw 'Copied update changed.'}
  [IO.File]::Replace($incoming,$target,$rollback)
  $replaced=$true
- if((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne $change.sha256){throw 'Installed update verification failed.'}
+ if((FileHash $target) -ne $change.sha256){throw 'Installed update verification failed.'}
  Start-Process -FilePath $target -WorkingDirectory ([IO.Path]::GetDirectoryName($target)) -WindowStyle Hidden -ErrorAction Stop
 } catch {
  if($replaced -and (Test-Path -LiteralPath $rollback)){[IO.File]::Replace($rollback,$target,$failed)}
- $_ | Out-String | Set-Content -LiteralPath (Join-Path $workspace 'update-error.txt')
  throw
 } finally {if(Test-Path -LiteralPath $incoming){Remove-Item -LiteralPath $incoming}}
+} catch {
+ [IO.File]::WriteAllText([IO.Path]::Combine($workspace,'update-error.txt'),($_ | Out-String))
+ exit 1
+}
 ";
     }
 }

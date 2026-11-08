@@ -1,4 +1,4 @@
-# Beyond Mod Manager 1.0.9
+# Beyond Mod Manager 1.0.10
 
 Source for the Windows release of Beyond Mod Manager (BMM).
 
@@ -6,7 +6,15 @@ BMM installs and manages Drive Beyond Horizons mod ZIPs. It can enable,
 disable and remove mods, preserve settings during updates, and check for updates when
 the mod author provides an update source. Beyond Apocalypse is optional.
 
-Version 1.0.9 verifies the tested UE4SS runtime during every mod installation
+Version 1.0.10 recovers from temporary update-server failures, including HTTP 504.
+Downloads retry up to three times with backoff and can use the same GitHub asset's
+API route. Stalled transfers time out, partial files are discarded, and downloaded
+packages still require the exact published size and SHA-256. A failed manager
+download leaves the current application usable with a Retry update action.
+The replacement helper also handles inherited PowerShell environments correctly
+and records failures that previously could exit silently.
+
+BMM verifies the tested UE4SS runtime during every mod installation
 and update, repairing incompatible or partial installations from its verified
 bundled files. It checks for manager updates on every launch and prompts when
 a newer public release is available. Uninstall removes the full managed mod

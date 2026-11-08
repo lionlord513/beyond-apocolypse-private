@@ -1,10 +1,10 @@
-BUILD BEYOND MOD MANAGER 1.0.9
+BUILD BEYOND MOD MANAGER 1.0.10
 
 You need a 64-bit Windows PC, Python 3, and the .NET Framework 4.x compiler.
 The build uses the Windows compiler at:
 C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe
 
-1. Download Beyond-Mod-Manager-1.0.9-Source.zip from the release and extract it.
+1. Download Beyond-Mod-Manager-1.0.10-Source.zip from the release and extract it.
 2. Open a terminal in the extracted folder that contains build.py.
 3. Run:
 
@@ -18,10 +18,15 @@ The finished program is:
    dist\Beyond Mod Manager.exe
 
 The player download is:
-   dist\Beyond-Mod-Manager-1.0.9.zip
+   dist\Beyond-Mod-Manager-1.0.10.zip
 
-The check results are saved in artifacts\self-test.txt and artifacts\inventory-tests.txt.
+The check results are saved in artifacts\self-test.txt,
+artifacts\inventory-tests.txt and artifacts\update-transport-tests.txt.
 To include interface preview images, leave off --skip-previews.
+
+To test the real updater helper without opening the manager or changing a live
+installation, run python Tests/ManagerApplyTests.py. It creates disposable
+executables below artifacts and tests replacement and rollback.
 
 Keep the Assets folder intact. It contains the public artwork, metadata and
 loader files embedded in the single EXE. UE4SS is supplied as a prebuilt

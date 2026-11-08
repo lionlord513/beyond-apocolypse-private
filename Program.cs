@@ -34,7 +34,7 @@ namespace BeyondModManager
 
     public static class Program
     {
-        public const string ManagerVersion = "1.0.9";
+        public const string ManagerVersion = "1.0.10";
         static readonly string DataRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BeyondModManager");
         static readonly JavaScriptSerializer Json = new JavaScriptSerializer { MaxJsonLength = 2 * 1024 * 1024, RecursionLimit = 32 };
         static readonly Dictionary<string, UpdateCandidate> Available = new Dictionary<string, UpdateCandidate>(StringComparer.OrdinalIgnoreCase);
@@ -49,6 +49,7 @@ namespace BeyondModManager
         static bool Busy, PreviewOnly, StartupChecked, UpdatePromptPending, UpdatePromptVisible;
         static Func<UpdateSource,string,Task<UpdateCandidate>> ManagerQuery = Updates.QueryManagerUpdateAsync;
         static Func<Task> ManagerInstall = CheckManager;
+        static Func<UpdateCandidate, string, Task<StagedManagerUpdate>> ManagerStage = Updates.StageManagerUpdateAsync;
         static string Page = "Mods";
         static string PreferencesFile { get { return Path.Combine(DataRoot, "settings.json"); } }
         static string LogFile { get { return Path.Combine(DataRoot, "activity.log"); } }
@@ -405,15 +406,24 @@ namespace BeyondModManager
             {
                 if (ManagerCandidate == null)
                 {
-                    Status("Checking manager updates…"); ManagerCandidate = await ManagerQuery(Manager.Update, ManagerVersion);
+                    Status("Checking manager updates…");
+                    try { ManagerCandidate = await ManagerQuery(Manager.Update, ManagerVersion); }
+                    catch { Text("ManagerUpdateStatus", "Update check unavailable. Try again shortly."); throw; }
                     Text("ManagerUpdateStatus", ManagerCandidate == null ? "BMM " + ManagerVersion + " is up to date." : "BMM " + ManagerCandidate.Version + " is ready. The manager will reopen after updating.");
                     View<Button>("ManagerUpdateButton").Content = ManagerCandidate == null ? "Check for updates" : "Update manager";
                     Log(ManagerCandidate == null ? "No newer manager release is available." : "Manager update ready: " + ManagerCandidate.Version); return;
                 }
                 Status("Downloading and verifying the manager update…");
                 StagedManagerUpdate staged;
-                try { staged = await Updates.StageManagerUpdateAsync(ManagerCandidate, Path.Combine(DataRoot, "manager-updates")); }
-                catch { ManagerCandidate = null; View<Button>("ManagerUpdateButton").Content = "Check for updates"; throw; }
+                try { staged = await ManagerStage(ManagerCandidate, Path.Combine(DataRoot, "manager-updates")); }
+                catch (UpdateConnectionException error)
+                {
+                    if (!error.CanRetry) ManagerCandidate = null;
+                    Text("ManagerUpdateStatus", "Download unavailable. " + (ManagerCandidate == null ? "Check for updates to try again." : "Your current BMM is unchanged. Use Retry update."));
+                    View<Button>("ManagerUpdateButton").Content = ManagerCandidate == null ? "Check for updates" : "Retry update";
+                    throw;
+                }
+                catch { ManagerCandidate = null; Text("ManagerUpdateStatus", "Update could not be verified or staged. Check the activity log and retry."); View<Button>("ManagerUpdateButton").Content = "Check for updates"; throw; }
                 Updates.BeginManagerUpdate(staged, Process.GetCurrentProcess().MainModule.FileName);
                 Busy = false; Application.Current.Shutdown();
             });
@@ -514,7 +524,7 @@ namespace BeyondModManager
         static int Render(string path, string page, int width, int height)
         {
             LoadWindow(true); SelectPage(page == "Import" || page == "Cancelled" || page == "Update" ? "Mods" : page == "Creators" ? "Settings" : page);
-            if (page == "Update") { ManagerCandidate = new UpdateCandidate { Version = "1.0.10", Notes = "A new update is ready to install. Your installed mods stay in place." }; UpdatePromptPending = true; TryShowManagerUpdate(); }
+            if (page == "Update") { ManagerCandidate = new UpdateCandidate { Version = "1.0.11", Notes = "A new update is ready to install. Your installed mods stay in place." }; UpdatePromptPending = true; TryShowManagerUpdate(); }
             if (page == "Creators") View<Expander>("CreatorSection").IsExpanded = true;
             if (page == "Import" || page == "Cancelled") ShowPreview(new InstallPlan { Name = "Complete HUD Speedometer", Version = "1.0.0", Kind = "Lua", MissingDependencies = new List<string> { "UE4SS" }, Warnings = new List<string> { "Existing settings will be retained. This package has no declared automatic update source." } });
             if (page == "Cancelled") View<Button>("CancelImportButton").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -528,10 +538,10 @@ namespace BeyondModManager
         }
         static void StartupUpdateTests()
         {
-            var query=ManagerQuery; var install=ManagerInstall; int calls=0, installs=0;
+            var query=ManagerQuery; var install=ManagerInstall; var stage=ManagerStage; int calls=0, installs=0;
             try
             {
-                ManagerQuery=(source,current)=>{calls++;return Task.FromResult(new UpdateCandidate{Version="1.0.10",Notes="Verified fixture update"});};
+                ManagerQuery=(source,current)=>{calls++;return Task.FromResult(new UpdateCandidate{Version="1.0.11",Notes="Verified fixture update"});};
                 ManagerInstall=()=>{installs++;return Task.FromResult(0);};
                 StartupChecked=false; Busy=true; CheckManagerAtStartup().GetAwaiter().GetResult();
                 if(UpdatePromptVisible||!UpdatePromptPending||calls!=1)throw new Exception("Startup update did not defer while busy");
@@ -549,8 +559,17 @@ namespace BeyondModManager
                 CheckManagerAtStartup().GetAwaiter().GetResult();if(UpdatePromptVisible)throw new Exception("Up-to-date launch showed a popup");
                 StartupChecked=false; ManagerQuery=(source,current)=>{var t=new TaskCompletionSource<UpdateCandidate>();t.SetException(new IOException("Offline fixture"));return t.Task;};
                 CheckManagerAtStartup().GetAwaiter().GetResult();if(UpdatePromptVisible||Busy)throw new Exception("Offline launch blocked the manager");
+                CheckManager().GetAwaiter().GetResult();
+                if(Busy||!View<TextBlock>("ManagerUpdateStatus").Text.Contains("unavailable"))throw new Exception("Failed manual check left a stale success status");
+                ManagerCandidate=new UpdateCandidate{Version="1.0.11"};
+                ManagerStage=(candidate,path)=>{var t=new TaskCompletionSource<StagedManagerUpdate>();t.SetException(new UpdateConnectionException("HTTP 504 fixture",null));return t.Task;};
+                CheckManager().GetAwaiter().GetResult();
+                if(Busy||ManagerCandidate==null||View<Button>("ManagerUpdateButton").Content.ToString()!="Retry update"||!View<FrameworkElement>("Workspace").IsEnabled)throw new Exception("Failed update did not leave an enabled retry action");
+                ManagerStage=(candidate,path)=>{var t=new TaskCompletionSource<StagedManagerUpdate>();t.SetException(new InvalidDataException("Hash mismatch fixture"));return t.Task;};
+                CheckManager().GetAwaiter().GetResult();
+                if(Busy||ManagerCandidate!=null||View<Button>("ManagerUpdateButton").Content.ToString()!="Check for updates")throw new Exception("Invalid candidate was retained after failed verification");
             }
-            finally {ManagerQuery=query;ManagerInstall=install;ManagerCandidate=null;StartupChecked=false;UpdatePromptPending=false;UpdatePromptVisible=false;Busy=false;Pending=null;DismissManagerUpdate();}
+            finally {ManagerQuery=query;ManagerInstall=install;ManagerStage=stage;ManagerCandidate=null;StartupChecked=false;UpdatePromptPending=false;UpdatePromptVisible=false;Busy=false;Pending=null;DismissManagerUpdate();}
         }
         static int SelfTest(string output)
         {

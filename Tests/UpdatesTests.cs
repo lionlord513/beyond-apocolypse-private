@@ -44,6 +44,11 @@ public static class UpdatesTests
             Assert(Updates.ResolveCandidate(source, release, null, null).Version == "0.9.3.1", "Generic verified GitHub digest");
             var currentCandidate = Updates.ResolveCandidate(source, release, null, null);
             Assert(currentCandidate.Url.EndsWith("?bmm_revision=sha256-" + hash), "ZIP URL bound to validated API digest");
+            release.assets[0].url = "https://api.github.com/repos/example/public-mod/releases/assets/321";
+            Assert(Updates.ResolveCandidate(source, release, null, null).AlternateUrl.EndsWith("/321?bmm_revision=sha256-" + hash), "Alternate API asset keeps the same verified digest");
+            release.assets[0].url = "https://api.github.com/repos/other/repository/releases/assets/321";
+            Reject(() => Updates.ResolveCandidate(source, release, null, null), "alternate asset from another repository");
+            release.assets[0].url = null;
             var replacement = Release("v0.9.3.1", "Mod-0.9.3.1.zip", otherHash, 124);
             Assert(Updates.ResolveCandidate(source, replacement, null, null).Url != currentCandidate.Url, "Same-version replacement gets a distinct ZIP cache key");
             Assert(Updates.ResolveCandidate(source, release, null, null).Url == currentCandidate.Url, "Unchanged asset revision has a stable cache key");

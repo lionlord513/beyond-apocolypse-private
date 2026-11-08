@@ -1,10 +1,20 @@
-BEYOND MOD MANAGER 1.0.9 - SOURCE REVIEW
+BEYOND MOD MANAGER 1.0.10 - SOURCE REVIEW
 
 Program.cs and MainWindow.xaml contain the interface and its actions.
 Core/ModInventory.cs handles ZIP validation, file ownership, backups,
 dependencies, enabling/disabling and uninstalling mods.
 Core/Updates.cs handles GitHub release checks, verified downloads and the
 manager updater. Download size and SHA-256 checks remain enforced.
+Core/UpdateTransport.cs adds bounded retries, complete-transfer and idle timeouts,
+rate-limit handling and a validated alternate GitHub asset route. Retries start
+with a fresh empty staging file and request a new signed download redirect.
+Tests/UpdateTransportTests.cs covers HTTP 504 and other temporary responses,
+stalled and truncated downloads, redirect rules, rate limits, local disk errors,
+hash failures, partial-file cleanup and successful recovery without a live server.
+Tests/ManagerApplyTests.py separately exercises the actual replacement helper in
+disposable processes. The helper resets its inherited PowerShell module path,
+uses .NET hashing, records errors even before replacement, and rolls back a
+replacement that cannot launch. This also covers launches from PowerShell 7.
 Tests/UpdatesTests.cs supplies the offline checks included in the build.
 Tests/InventoryTests.cs and Tests/RuntimeTests.cs run installation, rollback,
 runtime compatibility and complete-uninstall fixtures in every build.
@@ -26,7 +36,7 @@ UE4SS source for the bundled revision:
 https://github.com/UE4SS-RE/RE-UE4SS/tree/8f7b2ca3c259df527c743a1568c400b61a1475cf
 The bundled UE4SS license is also available in THIRD-PARTY-UE4SS-LICENSE.txt.
 
-Version 1.0.9 adds startup update prompts and complete uninstall. Lua folder
+Version 1.0.9 added startup update prompts and complete uninstall. Lua folder
 removal is a journaled move to .bmm-uninstalled under the game root, outside
 every mod loader path. This recovery copy is never restored on reinstall.
 Pak companions are removed with transaction backups. Shared UE4SS support,
