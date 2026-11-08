@@ -12,7 +12,9 @@ Copy the example below, save it as bmm.json at the top of your ZIP, and replace 
 
 Use dependencies for required mods, such as ue4ss or bpmodloadermod. Use loadAfter only when a Lua mod needs another mod loaded first. The names must match that mod's folder.
 
-preserve lists settings files to keep during updates. Paths start from the main game folder. Don't put your code files here.
+preserve lists settings files to keep during updates. Paths start from the main game folder. Don't put your code files here. Uninstall removes the complete managed mod folder, including these settings and generated files; reinstall starts fresh.
+
+BMM verifies and repairs its tested UE4SS support when installing or updating Lua mods. The optional runtimeProfile field can explicitly require "ue4ss-8f7b2ca3". Unsupported explicit runtime profiles are refused before installation. Shared runtime files in third-party ZIPs cannot replace BMM's verified runtime bundle.
 
 Offer updates (optional)
 

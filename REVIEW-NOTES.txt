@@ -1,4 +1,4 @@
-BEYOND MOD MANAGER 1.0.7 - SOURCE REVIEW
+BEYOND MOD MANAGER 1.0.9 - SOURCE REVIEW
 
 Program.cs and MainWindow.xaml contain the interface and its actions.
 Core/ModInventory.cs handles ZIP validation, file ownership, backups,
@@ -6,11 +6,14 @@ dependencies, enabling/disabling and uninstalling mods.
 Core/Updates.cs handles GitHub release checks, verified downloads and the
 manager updater. Download size and SHA-256 checks remain enforced.
 Tests/UpdatesTests.cs supplies the offline checks included in the build.
-Tests/InventoryTests.cs contains additional installation fixtures.
+Tests/InventoryTests.cs and Tests/RuntimeTests.cs run installation, rollback,
+runtime compatibility and complete-uninstall fixtures in every build.
+Core/RuntimeSupport.cs supplies the pinned runtime policy and transaction writes.
 
 The manager runs with the current user's permissions. It does not execute
-installer scripts found inside mod archives. It can add UE4SS support when
-needed, while retaining an existing loader. Installation changes require
+installer scripts found inside mod archives. It verifies both runtime DLLs on each installation and update, correcting
+incompatible files from its hash-verified embedded bundle. Existing runtime
+settings and shared helper customization are retained. Installation changes require
 the game to be closed. Beyond Apocalypse is downloaded only when selected.
 
 Assets/dependency-runtime.zip is an embedded third-party support package.
@@ -23,7 +26,9 @@ UE4SS source for the bundled revision:
 https://github.com/UE4SS-RE/RE-UE4SS/tree/8f7b2ca3c259df527c743a1568c400b61a1475cf
 The bundled UE4SS license is also available in THIRD-PARTY-UE4SS-LICENSE.txt.
 
-Version 1.0.7 launches the game through Steam, supports verified replacement
-packages with the same mod version, and excludes personal companion files
-from Beyond Apocalypse packages. The public catalogue targets mod 1.0.6.
+Version 1.0.9 adds startup update prompts and complete uninstall. Lua folder
+removal is a journaled move to .bmm-uninstalled under the game root, outside
+every mod loader path. This recovery copy is never restored on reinstall.
+Pak companions are removed with transaction backups. Shared UE4SS support,
+other mods and game-world saves remain installed.
 The pinned third-party loader dependencies remain unchanged.

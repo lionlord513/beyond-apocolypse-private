@@ -28,7 +28,7 @@ refs += ['/reference:' + str(FRAMEWORK / 'WPF' / name) for name in
 exe = DIST / 'Beyond Mod Manager.exe'
 resources = {'MainWindow.xaml': ROOT / 'MainWindow.xaml'}
 resources.update({p.name: p for p in sorted((ROOT / 'Assets').iterdir()) if p.is_file()})
-sources = [ROOT / 'Program.cs', ROOT / 'Core/ModInventory.cs', ROOT / 'Core/Updates.cs', ROOT / 'Core/ProtectedFeed.cs', ROOT / 'Tests/UpdatesTests.cs']
+sources = [ROOT / 'Program.cs', ROOT / 'Core/ModInventory.cs', ROOT / 'Core/Updates.cs', ROOT / 'Core/ProtectedFeed.cs', ROOT / 'Core/RuntimeSupport.cs', ROOT / 'Tests/UpdatesTests.cs']
 command = [str(FRAMEWORK / 'csc.exe'), '/nologo', '/target:winexe', '/optimize+', '/platform:x64',
            '/main:BeyondModManager.Program', '/win32manifest:' + str(ROOT / 'app.manifest'),
            '/win32icon:' + str(ROOT / 'Assets/bmm-icon.ico'), '/out:' + str(exe)]
@@ -36,8 +36,16 @@ command += refs + ['/resource:' + str(path) + ',' + name for name, path in resou
 subprocess.run(command, check=True, cwd=ROOT)
 subprocess.run([str(exe), '--self-test', str(ARTIFACTS / 'self-test.txt')], check=True, cwd=ROOT)
 print((ARTIFACTS / 'self-test.txt').read_text())
+inventory = ARTIFACTS / 'InventoryTests.exe'
+test_sources = [ROOT / 'Core/ModInventory.cs', ROOT / 'Core/RuntimeSupport.cs', ROOT / 'Core/Updates.cs', ROOT / 'Core/ProtectedFeed.cs', ROOT / 'Tests/InventoryTests.cs', ROOT / 'Tests/RuntimeTests.cs']
+subprocess.run([str(FRAMEWORK / 'csc.exe'), '/nologo', '/target:exe', '/platform:x64', '/main:InventoryTests', '/out:' + str(inventory)] + refs + ['/resource:' + str(ROOT / 'Assets/dependency-runtime.zip') + ',dependency-runtime.zip'] + [str(p) for p in test_sources], check=True, cwd=ROOT)
+result = subprocess.run([str(inventory)], cwd=ROOT, capture_output=True, text=True, timeout=300)
+(ARTIFACTS / 'inventory-tests.txt').write_text(result.stdout + result.stderr, encoding='utf-8')
+print(result.stdout + result.stderr, flush=True)
+result.check_returncode()
+
 if '--skip-previews' not in sys.argv:
-    for page, width, height in [('Mods', 1240, 840), ('Settings', 1240, 840), ('Creators', 1004, 681), ('Mods', 1004, 681), ('Import', 1004, 681)]:
+    for page, width, height in [('Mods', 1240, 840), ('Settings', 1240, 840), ('Creators', 1004, 681), ('Mods', 1004, 681), ('Import', 1004, 681), ('Update', 1004, 681)]:
         subprocess.run([str(exe), '--preview', str(ARTIFACTS / ('preview-' + page.lower() + '-' + str(width) + '.png')), page, str(width), str(height)], check=True, cwd=ROOT)
 
 archive = DIST / ('Beyond-Mod-Manager-' + version + '.zip')

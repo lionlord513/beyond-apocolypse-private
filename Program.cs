@@ -34,7 +34,7 @@ namespace BeyondModManager
 
     public static class Program
     {
-        public const string ManagerVersion = "1.0.8";
+        public const string ManagerVersion = "1.0.9";
         static readonly string DataRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BeyondModManager");
         static readonly JavaScriptSerializer Json = new JavaScriptSerializer { MaxJsonLength = 2 * 1024 * 1024, RecursionLimit = 32 };
         static readonly Dictionary<string, UpdateCandidate> Available = new Dictionary<string, UpdateCandidate>(StringComparer.OrdinalIgnoreCase);
@@ -46,7 +46,9 @@ namespace BeyondModManager
         static ModStore Store;
         static InstallPlan Pending;
         static UpdateCandidate ManagerCandidate;
-        static bool Busy, PreviewOnly;
+        static bool Busy, PreviewOnly, StartupChecked, UpdatePromptPending, UpdatePromptVisible;
+        static Func<UpdateSource,string,Task<UpdateCandidate>> ManagerQuery = Updates.QueryManagerUpdateAsync;
+        static Func<Task> ManagerInstall = CheckManager;
         static string Page = "Mods";
         static string PreferencesFile { get { return Path.Combine(DataRoot, "settings.json"); } }
         static string LogFile { get { return Path.Combine(DataRoot, "activity.log"); } }
@@ -214,10 +216,11 @@ namespace BeyondModManager
         {
             foreach (string name in new[] { "AddZipButton", "RefreshButton", "BrowseGameButton", "ModsPageButton", "ActivityPageButton", "SettingsPageButton", "ManagerUpdateButton", "CopyExampleButton" }) View<Button>(name).IsEnabled = !Busy;
             View<Button>("PlayButton").IsEnabled = !Busy && GameReady;
+            View<Button>("RepairRuntimeButton").IsEnabled = !Busy && GameReady;
             View<Button>("CancelImportButton").IsEnabled = !Busy;
             View<Button>("ConfirmImportButton").IsEnabled = !Busy && Pending != null;
-            View<FrameworkElement>("Navigation").IsEnabled = Pending == null;
-            View<FrameworkElement>("Workspace").IsEnabled = Pending == null;
+            View<FrameworkElement>("Navigation").IsEnabled = Pending == null && !UpdatePromptVisible;
+            View<FrameworkElement>("Workspace").IsEnabled = Pending == null && !UpdatePromptVisible;
             View<ProgressBar>("Progress").Visibility = Busy ? Visibility.Visible : Visibility.Collapsed;
             View<ProgressBar>("Progress").IsIndeterminate = Busy;
             var tile = Selected; var record = tile == null ? null : tile.Record;
@@ -234,7 +237,7 @@ namespace BeyondModManager
             if (Busy) return; Busy = true; RefreshButtons();
             try { await operation(); }
             catch (Exception error) { Log(Friendly(error)); }
-            finally { Busy = false; RefreshButtons(); }
+            finally { Busy = false; RefreshButtons(); TryShowManagerUpdate(); }
         }
         static void RequireClosed()
         {
@@ -243,13 +246,13 @@ namespace BeyondModManager
         }
         static void ChooseZip()
         {
-            if (Busy) return;
+            if (Busy || UpdatePromptVisible) return;
             var dialog = new OpenFileDialog { Title = "Add mod ZIPs", Filter = "Mod ZIP archives (*.zip)|*.zip", Multiselect = true };
             if (dialog.ShowDialog(Window) == true) EnqueueImports(dialog.FileNames);
         }
         static async void EnqueueImports(IEnumerable<string> paths)
         {
-            if (Busy) { Status("Wait for the current operation to finish before adding another ZIP."); return; }
+            if (Busy || UpdatePromptVisible) { Status("Finish the current dialog before adding another ZIP."); return; }
             foreach (string path in paths)
                 if (File.Exists(path) && Path.GetExtension(path).Equals(".zip", StringComparison.OrdinalIgnoreCase)) Imports.Enqueue(path);
             if (Imports.Count == 0) { Status("Add a ZIP archive containing a mod."); return; }
@@ -297,17 +300,9 @@ namespace BeyondModManager
                 RequireClosed();
                 var unknown = plan.MissingDependencies.Where(x => !x.Equals("UE4SS", StringComparison.OrdinalIgnoreCase) && !x.Equals("BPModLoaderMod", StringComparison.OrdinalIgnoreCase)).ToArray();
                 if (unknown.Length > 0) throw new InvalidOperationException("Install the required mods first: " + String.Join(", ", unknown));
-                bool needSupport = plan.MissingDependencies.Count > 0;
-                bool blueprint = plan.MissingDependencies.Any(x => x.Equals("BPModLoaderMod", StringComparison.OrdinalIgnoreCase));
-                Status("Installing " + plan.Name + "…");
+                Status("Installing " + plan.Name + " and verifying mod support…");
                 var installed = await Task.Run(() =>
                 {
-                    if (needSupport)
-                    {
-                        string resource = MaterializeResource("dependency-runtime.zip", Path.Combine(DataRoot, "support", Guid.NewGuid().ToString("N")));
-                        Store.InstallDependencies(resource, blueprint);
-                        plan = Store.PreviewZip(plan.SourceZip);
-                    }
                     var record = Store.Install(plan, adopt);
                     if (PublicBeyond(record)) { Store.SetUpdateSource(record.Id, Beyond.Update); record.Update = Beyond.Update; }
                     return record;
@@ -367,8 +362,42 @@ namespace BeyondModManager
         static async Task UninstallSelected()
         {
             var tile = Selected; if (tile == null || !tile.Record.Managed || Busy) return;
-            if (MessageBox.Show(Window, "Uninstall " + tile.Name + "?\n\nYour saves, mod settings and shared support files will be retained.", "Uninstall mod", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) return;
-            await Run(async () => { RequireClosed(); var result = await Task.Run(() => Store.Uninstall(tile.Record.Id)); Available.Remove(tile.Record.Id); RefreshList(); Log(tile.Name + " uninstalled. " + result.PreservedFiles.Count + " modified/settings files retained. Backup: " + result.BackupPath); });
+            if (MessageBox.Show(Window, "Uninstall " + tile.Name + "?\n\nAll files in this mod's managed folder, including its settings and generated data, will be removed. A recovery backup is kept outside the mod folders. Game-world saves and shared support files are retained.", "Uninstall mod", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) return;
+            await Run(async () => { RequireClosed(); var result = await Task.Run(() => Store.Uninstall(tile.Record.Id)); Available.Remove(tile.Record.Id); RefreshList(); Log(tile.Name + " uninstalled completely. Reinstall starts fresh. Recovery backup: " + result.BackupPath); });
+        }
+        static void SetManagerUpdateStatus()
+        {
+            Text("ManagerUpdateStatus", ManagerCandidate == null ? "BMM " + ManagerVersion + " is up to date." : "BMM " + ManagerCandidate.Version + " is ready. The manager will reopen after updating.");
+            View<Button>("ManagerUpdateButton").Content = ManagerCandidate == null ? "Check for updates" : "Update manager";
+        }
+        static void TryShowManagerUpdate()
+        {
+            if (!UpdatePromptPending || ManagerCandidate == null || Busy || Pending != null || UpdatePromptVisible || Imports.Count != 0) return;
+            UpdatePromptPending = false; UpdatePromptVisible = true;
+            Text("ManagerPromptVersion", "Beyond Mod Manager " + ManagerCandidate.Version + " is available");
+            Text("ManagerPromptNotes", ManagerCandidate.Notes);
+            View<Border>("ManagerUpdateOverlay").Visibility = Visibility.Visible; RefreshButtons();
+        }
+        static void DismissManagerUpdate()
+        {
+            UpdatePromptVisible = false; View<Border>("ManagerUpdateOverlay").Visibility = Visibility.Collapsed; RefreshButtons();
+        }
+        static async Task CheckManagerAtStartup()
+        {
+            if (StartupChecked) return; StartupChecked = true;
+            Text("ManagerUpdateStatus", "Checking for manager updates…");
+            try
+            {
+                var candidate = await ManagerQuery(Manager.Update, ManagerVersion);
+                if (candidate == null) { if (ManagerCandidate == null) SetManagerUpdateStatus(); return; }
+                if (ManagerCandidate == null || Updates.ParseVersion(candidate.Version) > Updates.ParseVersion(ManagerCandidate.Version)) ManagerCandidate = candidate;
+                SetManagerUpdateStatus(); UpdatePromptPending = true; TryShowManagerUpdate();
+            }
+            catch (Exception error) { Text("ManagerUpdateStatus", "Automatic update check unavailable. You can retry here."); Log("Manager update check: " + Friendly(error)); }
+        }
+        static async void StartupManagerCheck(object sender, EventArgs args)
+        {
+            Window.ContentRendered -= StartupManagerCheck; await CheckManagerAtStartup();
         }
         static async Task CheckManager()
         {
@@ -376,7 +405,7 @@ namespace BeyondModManager
             {
                 if (ManagerCandidate == null)
                 {
-                    Status("Checking manager updates…"); ManagerCandidate = await Updates.QueryManagerUpdateAsync(Manager.Update, ManagerVersion);
+                    Status("Checking manager updates…"); ManagerCandidate = await ManagerQuery(Manager.Update, ManagerVersion);
                     Text("ManagerUpdateStatus", ManagerCandidate == null ? "BMM " + ManagerVersion + " is up to date." : "BMM " + ManagerCandidate.Version + " is ready. The manager will reopen after updating.");
                     View<Button>("ManagerUpdateButton").Content = ManagerCandidate == null ? "Check for updates" : "Update manager";
                     Log(ManagerCandidate == null ? "No newer manager release is available." : "Manager update ready: " + ManagerCandidate.Version); return;
@@ -425,11 +454,14 @@ namespace BeyondModManager
             View<Button>("RefreshButton").Click += (s, e) => { try { RefreshList(); Status("Mod collection refreshed."); } catch (Exception error) { Log(Friendly(error)); } };
             View<ListBox>("ModList").SelectionChanged += (s, e) => RefreshDetail();
             View<Button>("ConfirmImportButton").Click += async (s, e) => await ConfirmImport();
-            View<Button>("CancelImportButton").Click += async (s, e) => { Pending = null; View<Border>("ImportOverlay").Visibility = Visibility.Collapsed; RefreshButtons(); Status("Installation cancelled."); await NextImport(); };
+            View<Button>("CancelImportButton").Click += async (s, e) => { Pending = null; View<Border>("ImportOverlay").Visibility = Visibility.Collapsed; RefreshButtons(); Status("Installation cancelled."); await NextImport(); TryShowManagerUpdate(); };
             View<Button>("UpdateModButton").Click += async (s, e) => await UpdateSelected();
             View<Button>("ToggleModButton").Click += async (s, e) => await ToggleSelected();
             View<Button>("UninstallModButton").Click += async (s, e) => await UninstallSelected();
             View<Button>("ManagerUpdateButton").Click += async (s, e) => await CheckManager();
+            View<Button>("ManagerPromptLater").Click += (s, e) => DismissManagerUpdate();
+            View<Button>("ManagerPromptInstall").Click += async (s, e) => { DismissManagerUpdate(); await ManagerInstall(); };
+            View<Button>("RepairRuntimeButton").Click += async (s, e) => await Run(async () => { RequireClosed(); await Task.Run(() => Store.RepairRuntime()); RefreshList(); Log("UE4SS support verified and repaired. Existing settings retained."); });
             View<Button>("OpenLogButton").Click += (s, e) => OpenPath(LogFile);
             View<Button>("OpenGameFolderButton").Click += (s, e) => OpenPath(Preferences.GamePath);
             View<Button>("OpenManagerFolderButton").Click += (s, e) => OpenPath(DataRoot);
@@ -461,6 +493,7 @@ namespace BeyondModManager
                 try { if (File.Exists(LogFile)) { var lines = File.ReadLines(LogFile).Reverse().Take(120).Reverse(); Activity.Append(String.Join(Environment.NewLine, lines) + Environment.NewLine); View<TextBox>("ActivityText").Text = Activity.ToString(); } } catch { }
                 RefreshList(); if (!GameReady) SelectPage("Settings");
                 Window.ContentRendered += CheckInstalledMixTape;
+                Window.ContentRendered += StartupManagerCheck;
             }
         }
         static void PopulatePreview()
@@ -480,7 +513,8 @@ namespace BeyondModManager
         }
         static int Render(string path, string page, int width, int height)
         {
-            LoadWindow(true); SelectPage(page == "Import" || page == "Cancelled" ? "Mods" : page == "Creators" ? "Settings" : page);
+            LoadWindow(true); SelectPage(page == "Import" || page == "Cancelled" || page == "Update" ? "Mods" : page == "Creators" ? "Settings" : page);
+            if (page == "Update") { ManagerCandidate = new UpdateCandidate { Version = "1.0.10", Notes = "A new update is ready to install. Your installed mods stay in place." }; UpdatePromptPending = true; TryShowManagerUpdate(); }
             if (page == "Creators") View<Expander>("CreatorSection").IsExpanded = true;
             if (page == "Import" || page == "Cancelled") ShowPreview(new InstallPlan { Name = "Complete HUD Speedometer", Version = "1.0.0", Kind = "Lua", MissingDependencies = new List<string> { "UE4SS" }, Warnings = new List<string> { "Existing settings will be retained. This package has no declared automatic update source." } });
             if (page == "Cancelled") View<Button>("CancelImportButton").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -492,9 +526,35 @@ namespace BeyondModManager
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))); using (var output = File.Create(path)) encoder.Save(output);
             return 0;
         }
+        static void StartupUpdateTests()
+        {
+            var query=ManagerQuery; var install=ManagerInstall; int calls=0, installs=0;
+            try
+            {
+                ManagerQuery=(source,current)=>{calls++;return Task.FromResult(new UpdateCandidate{Version="1.0.10",Notes="Verified fixture update"});};
+                ManagerInstall=()=>{installs++;return Task.FromResult(0);};
+                StartupChecked=false; Busy=true; CheckManagerAtStartup().GetAwaiter().GetResult();
+                if(UpdatePromptVisible||!UpdatePromptPending||calls!=1)throw new Exception("Startup update did not defer while busy");
+                Busy=false; Pending=new InstallPlan(); TryShowManagerUpdate();
+                if(UpdatePromptVisible)throw new Exception("Startup update interrupted an import");
+                Pending=null; TryShowManagerUpdate();
+                if(!UpdatePromptVisible||View<Border>("ManagerUpdateOverlay").Visibility!=Visibility.Visible||View<FrameworkElement>("Workspace").IsEnabled)throw new Exception("Startup update popup missing");
+                View<Button>("ManagerPromptLater").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                CheckManagerAtStartup().GetAwaiter().GetResult();
+                if(UpdatePromptVisible||calls!=1||installs!=0)throw new Exception("Later should defer only this launch");
+                StartupChecked=false; CheckManagerAtStartup().GetAwaiter().GetResult();
+                View<Button>("ManagerPromptInstall").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if(installs!=1||UpdatePromptVisible||calls!=2)throw new Exception("Next launch or install action failed");
+                ManagerCandidate=null; StartupChecked=false; ManagerQuery=(source,current)=>Task.FromResult<UpdateCandidate>(null);
+                CheckManagerAtStartup().GetAwaiter().GetResult();if(UpdatePromptVisible)throw new Exception("Up-to-date launch showed a popup");
+                StartupChecked=false; ManagerQuery=(source,current)=>{var t=new TaskCompletionSource<UpdateCandidate>();t.SetException(new IOException("Offline fixture"));return t.Task;};
+                CheckManagerAtStartup().GetAwaiter().GetResult();if(UpdatePromptVisible||Busy)throw new Exception("Offline launch blocked the manager");
+            }
+            finally {ManagerQuery=query;ManagerInstall=install;ManagerCandidate=null;StartupChecked=false;UpdatePromptPending=false;UpdatePromptVisible=false;Busy=false;Pending=null;DismissManagerUpdate();}
+        }
         static int SelfTest(string output)
         {
-            UpdatesTests.Run(); LoadWindow(true);
+            UpdatesTests.Run(); LoadWindow(true); StartupUpdateTests();
             // Exercise the actual Cancel event: the last queued import has no Run/finally to restore controls.
             for (int attempt = 0; attempt < 2; attempt++)
             {

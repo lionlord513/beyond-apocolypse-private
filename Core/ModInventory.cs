@@ -40,6 +40,7 @@ namespace BeyondModManager {
  }
  public sealed class PackageMetadata {
   public string Id {get;set;} public string Name {get;set;} public string Version {get;set;} public string Channel {get;set;}
+  public string RuntimeProfile {get;set;}
   public string Description {get;set;} public string Changelog {get;set;}
   public string[] Dependencies {get;set;} public string[] LoadAfter {get;set;} public string[] Preserve {get;set;} public UpdateSource Update {get;set;}
  }
@@ -49,6 +50,7 @@ namespace BeyondModManager {
  }
  public sealed class InstallPlan {
   public string Id {get;set;} public string Name {get;set;} public string Version {get;set;} public string Channel {get;set;} public string Kind {get;set;}
+  public string RuntimeProfile {get;set;}
   public string Description {get;set;} public string Changelog {get;set;} public string Readme {get;set;}
   public int FileCount {get{return Files.Count;}} public long TotalBytes {get{return Files.Sum(x=>x.Bytes);}}
   public List<string> Warnings {get;set;} public List<string> MissingDependencies {get;set;}
@@ -60,6 +62,7 @@ namespace BeyondModManager {
  }
  public sealed class ModRecord {
   public int Schema {get;set;} public string Id {get;set;} public string Name {get;set;} public string Version {get;set;} public string Channel {get;set;} public string Kind {get;set;}
+  public string RuntimeProfile {get;set;}
   public string Description {get;set;} public string Changelog {get;set;} public string Readme {get;set;}
   public bool Enabled {get;set;} public bool Managed {get;set;} public string InstalledUtc {get;set;} public string ArchiveHash {get;set;}
   public List<ModFile> Files {get;set;} public List<string> LuaRoots {get;set;} public string[] Dependencies {get;set;} public string[] LoadAfter {get;set;}
@@ -70,7 +73,7 @@ namespace BeyondModManager {
   public string BackupPath {get;set;} public List<string> PreservedFiles {get;set;}
   public OperationResult(){PreservedFiles=new List<string>();}
  }
- public sealed class ModStore {
+ public sealed partial class ModStore {
   const string BeyondRoot=GameInstallation.ModsRoot+"/BeyondApocalypse", LegacyRoot=GameInstallation.ModsRoot+"/BasicM4";
   const string LegacyShimMarker="-- BeyondApocalypse legacy migration shim v1";
   const long MaxBytes=2L*1024*1024*1024; const long MaxEntry=512L*1024*1024; const int MaxEntries=20000;
@@ -211,13 +214,14 @@ namespace BeyondModManager {
     var readme=files.Where(x=>System.IO.Path.GetFileName(x.Key).StartsWith("README",StringComparison.OrdinalIgnoreCase)&&new[]{".txt",".md"}.Contains(System.IO.Path.GetExtension(x.Key),Compare)).OrderBy(x=>x.Key.Length).FirstOrDefault();
     if(readme.Value!=null)using(var reader=new StreamReader(readme.Value.Open())){var buffer=new char[65536];var count=reader.ReadBlock(buffer,0,buffer.Length);plan.Readme=new string(buffer,0,count).Replace("\0","");if(!reader.EndOfStream)plan.Readme+="\n[Additional text omitted]";}
     plan.Kind=plan.LuaRoots.Count>0?(pakNames.Count>0?"Lua + packages":"Lua"):"Packages";
+    plan.RuntimeProfile=meta.RuntimeProfile;RuntimeSupport.ValidateProfile(plan.RuntimeProfile);
     plan.Dependencies=meta.Dependencies??new string[0];plan.LoadAfter=meta.LoadAfter??new string[0];plan.Update=meta.Update;
     if(plan.Dependencies.Length>64||plan.LoadAfter.Length>64||(meta.Preserve??new string[0]).Length>128)throw new InvalidDataException("Too many package dependency or preservation rules.");
     if(plan.Update!=null)Updates.ValidateSource(plan.Update);
     foreach(var d in plan.Dependencies.Concat(plan.LoadAfter))Id(d);
     if(skipped>0)plan.Warnings.Add(skipped+" documentation, installer, or unsupported files will remain outside the game. No installer scripts are run.");
     if(pakNames.Any(x=>Compare.Equals(x,"ZodMenu")))plan.Warnings.Add("ZodMenu uses F8, which can overlap another mod's menu key. Its original package names are preserved.");
-    if(plan.Files.Any(x=>x.Shared))plan.Warnings.Add("Bundled loader files are used only when absent. An existing UE4SS runtime is never replaced.");
+    if(plan.Files.Any(x=>x.Shared))plan.Warnings.Add("BMM verifies and repairs its supported UE4SS runtime. Existing runtime settings are retained.");
    }
    var managed=Records();var previous=managed.FirstOrDefault(x=>SameMod(x.Id,plan.Id));
    if(IsBeyondIdentity(plan.Id))CheckBeyondRoots();
@@ -231,10 +235,10 @@ namespace BeyondModManager {
   }
   void Dependencies(InstallPlan plan) {
    plan.MissingDependencies.Clear();var status=GameInstallation.Inspect(GamePath);var records=Records();
-   var bundledLoader=plan.Files.Any(x=>Compare.Equals(x.Path,GameInstallation.BinaryRoot+"/ue4ss/UE4SS.dll"));
-   if((plan.LuaRoots.Count>0||plan.Files.Any(x=>Prefix(x.Path,GameInstallation.PaksRoot+"/LogicMods")))&&!status.HasUE4SS&&!bundledLoader)plan.MissingDependencies.Add("UE4SS");
+   var compatible=RuntimeSupport.Compatible(GamePath);
+   if(NeedsRuntime(plan)&&!compatible)plan.MissingDependencies.Add("UE4SS");
    if(plan.Files.Any(x=>Prefix(x.Path,GameInstallation.PaksRoot+"/LogicMods"))&&!status.HasBPModLoader&&!plan.LuaRoots.Any(x=>Compare.Equals(x.Split('/').Last(),"BPModLoaderMod")))plan.MissingDependencies.Add("BPModLoaderMod");
-   foreach(var dep in plan.Dependencies){if(Compare.Equals(dep,"ue4ss")){if(!status.HasUE4SS&&!bundledLoader&&!plan.MissingDependencies.Contains("UE4SS"))plan.MissingDependencies.Add("UE4SS");continue;}if(Compare.Equals(dep,"bpmodloadermod")){if(!status.HasBPModLoader&&!plan.LuaRoots.Any(x=>Compare.Equals(x.Split('/').Last(),dep))&&!plan.MissingDependencies.Contains("BPModLoaderMod"))plan.MissingDependencies.Add("BPModLoaderMod");continue;}var folder=Destination(GameInstallation.ModsRoot+"/"+dep);var managed=records.FirstOrDefault(x=>SameMod(x.Id,dep)||x.LuaRoots.Any(p=>SameMod(p.Split('/').Last(),dep)));if(managed==null&&IsBeyondIdentity(dep)){var current=Destination(BeyondRoot);if(File.Exists(System.IO.Path.Combine(current,"Scripts","main.lua")))folder=current;}var available=managed!=null?DependencyPresent(managed):File.Exists(System.IO.Path.Combine(folder,"Scripts","main.lua"))&&IsLuaEnabled(System.IO.Path.GetFileName(folder),folder);if(!available&&!plan.LuaRoots.Any(x=>SameMod(x.Split('/').Last(),dep)))plan.MissingDependencies.Add(dep);}
+   foreach(var dep in plan.Dependencies){if(Compare.Equals(dep,"ue4ss")){if(!compatible&&!plan.MissingDependencies.Contains("UE4SS"))plan.MissingDependencies.Add("UE4SS");continue;}if(Compare.Equals(dep,"bpmodloadermod")){if(!status.HasBPModLoader&&!plan.LuaRoots.Any(x=>Compare.Equals(x.Split('/').Last(),dep))&&!plan.MissingDependencies.Contains("BPModLoaderMod"))plan.MissingDependencies.Add("BPModLoaderMod");continue;}var folder=Destination(GameInstallation.ModsRoot+"/"+dep);var managed=records.FirstOrDefault(x=>SameMod(x.Id,dep)||x.LuaRoots.Any(p=>SameMod(p.Split('/').Last(),dep)));if(managed==null&&IsBeyondIdentity(dep)){var current=Destination(BeyondRoot);if(File.Exists(System.IO.Path.Combine(current,"Scripts","main.lua")))folder=current;}var available=managed!=null?DependencyPresent(managed):File.Exists(System.IO.Path.Combine(folder,"Scripts","main.lua"))&&IsLuaEnabled(System.IO.Path.GetFileName(folder),folder);if(!available&&!plan.LuaRoots.Any(x=>SameMod(x.Split('/').Last(),dep)))plan.MissingDependencies.Add(dep);}
   }
   bool DependencyPresent(ModRecord record){return record.Enabled&&record.LuaRoots.All(root=>File.Exists(Destination(root+"/Scripts/main.lua"))&&IsLuaEnabled(root.Split('/').Last(),Destination(root)))&&record.Files.Where(f=>!f.Preserve&&!f.Shared&&!f.Path.EndsWith("/enabled.txt",StringComparison.OrdinalIgnoreCase)).All(f=>File.Exists(Destination(f.Path)));}
   List<ModRecord> Records() {
@@ -265,13 +269,8 @@ namespace BeyondModManager {
   public ModRecord Install(InstallPlan plan,bool adoptExisting) {return InstallCore(plan,false,false,adoptExisting);}
   public ModRecord AdoptFromPackage(InstallPlan plan) {return Install(plan,true);}
   public void InstallDependencies(string zipPath,bool requireBlueprintLoader) {
-   Ready();var status=GameInstallation.Inspect(GamePath);if(status.HasUE4SS&&(!requireBlueprintLoader||status.HasBPModLoader))return;
-   const string expected="e14657eec1c3fb08d1d0e4d5b24f69a9343cd06359e1af27ae6c9c84c5f010cf";
-   var dll=Destination(GameInstallation.BinaryRoot+"/ue4ss/UE4SS.dll");
-   if(status.HasUE4SS&&(!File.Exists(dll)||!Compare.Equals(HashFile(dll),expected)))throw new InvalidOperationException("The existing UE4SS version is different. Install its matching BPModLoaderMod manually; BMM will not replace a working loader.");
-   var plan=PreviewZip(zipPath);var runtime=plan.Files.FirstOrDefault(x=>Compare.Equals(x.Path,GameInstallation.BinaryRoot+"/ue4ss/UE4SS.dll"));
-   if(runtime==null||!Compare.Equals(runtime.Hash,expected)||plan.LuaRoots.Any(x=>!Compare.Equals(x,GameInstallation.ModsRoot+"/BPModLoaderMod"))||plan.Files.Any(x=>!x.Shared&&!Prefix(x.Path,GameInstallation.ModsRoot+"/BPModLoaderMod")))throw new InvalidDataException("The dependency bundle did not match the supported runtime.");
-   InstallCore(plan,true,requireBlueprintLoader,false);
+   if(!File.Exists(zipPath)||!Compare.Equals(HashFile(zipPath),RuntimeSupport.BundleHash))throw new InvalidDataException("The dependency bundle did not match the supported runtime.");
+   RepairRuntime(requireBlueprintLoader);
   }
   ModRecord InstallCore(InstallPlan plan,bool dependencyMode,bool requireBlueprintLoader,bool adoptExisting) {
    if(plan==null)throw new ArgumentNullException("plan");Ready();using(var gate=Lock()){RecoverPending();
@@ -279,7 +278,8 @@ namespace BeyondModManager {
     if(!Compare.Equals(HashFile(plan.SourceZip),plan.ArchiveHash))throw new InvalidDataException("The archive changed after preview. Import it again.");
     var fresh=PreviewZip(plan.SourceZip);
     if(dependencyMode){fresh.Id="bmm-runtime";fresh.Name="UE4SS mod support";fresh.Update=null;if(!requireBlueprintLoader){fresh.LuaRoots.Clear();fresh.Files.RemoveAll(x=>!x.Shared);}Dependencies(fresh);}
-    if(fresh.MissingDependencies.Count>0)throw new InvalidOperationException("Install or enable the required dependencies first: "+String.Join(", ",fresh.MissingDependencies));plan=fresh;
+    var missing=fresh.MissingDependencies.Where(x=>!Compare.Equals(x,"UE4SS")&&!Compare.Equals(x,"BPModLoaderMod")).ToArray();
+    if(missing.Length>0)throw new InvalidOperationException("Install or enable the required dependencies first: "+String.Join(", ",missing));plan=fresh;ValidateRuntimeProfiles(plan);
     var records=Records();var previous=records.FirstOrDefault(x=>SameMod(x.Id,plan.Id));bool reinstall=false;
     var removedPath=RemovedPath(plan.Id);if(IsBeyondIdentity(plan.Id)&&!File.Exists(removedPath))removedPath=RemovedPath("basicm4");
     if(previous==null&&File.Exists(removedPath)){previous=Json.Deserialize<ModRecord>(File.ReadAllText(removedPath));ValidateRecord(previous);if(!SameMod(previous.Id,plan.Id))throw new InvalidDataException("The previous-install record does not match this mod.");reinstall=true;}
@@ -292,25 +292,35 @@ namespace BeyondModManager {
     var other=new HashSet<string>(records.Where(x=>!SameMod(x.Id,plan.Id)).SelectMany(x=>x.Files.Where(f=>!f.Shared)).Select(x=>x.Path),Compare);
     foreach(var root in plan.LuaRoots){var p=Destination(root);NoTreeLinks(p);if(records.Any(x=>!SameMod(x.Id,plan.Id)&&x.LuaRoots.Contains(root,Compare)))throw new IOException("Another managed mod owns "+root);if(Directory.Exists(p)&&Directory.EnumerateFiles(p,"*",SearchOption.AllDirectories).Any()&&(previous==null||!previous.LuaRoots.Contains(root,Compare))&&!dependencyMode&&!adoptExisting)throw new IOException("The mod folder already exists outside this manager: "+root+". Review and explicitly adopt it before updating.");}
     var status=GameInstallation.Inspect(GamePath);var installed=new List<ModFile>();
-    foreach(var f in plan.Files){var target=Destination(f.Path);if(other.Contains(f.Path))throw new IOException("Another managed mod owns "+f.Path);if(f.Shared){if(status.HasUE4SS)continue;if(File.Exists(target)){if(!Compare.Equals(HashFile(target),f.Hash))throw new IOException("An existing loader-support file needs manual review: "+f.Path);continue;}}
+    foreach(var f in plan.Files){var target=Destination(f.Path);if(other.Contains(f.Path))throw new IOException("Another managed mod owns "+f.Path);if(f.Shared)continue;
      var existing=reinstall&&!previous.Enabled?DisabledPath(previous.Id,f.Path):target;
      if(migrateLegacy&&Prefix(f.Path,BeyondRoot)&&!File.Exists(existing))existing=Under(legacySource,f.Path.Substring(BeyondRoot.Length+1));
+     if(reinstall)existing=null; // Old uninstall tombstones must not restore old settings on a fresh install.
      ModFile old;own.TryGetValue(f.Path,out old);if(File.Exists(existing)&&old==null&&!adoptExisting&&!(migrateLegacy&&previous!=null&&f.Preserve)&&!(dependencyMode&&!f.Shared&&Compare.Equals(HashFile(existing),f.Hash)))throw new IOException("An existing file is not owned by this mod: "+f.Path);
      if(File.Exists(existing)&&old!=null&&!Compare.Equals(HashFile(existing),old.Hash)&&!old.Preserve&&!f.Preserve)throw new IOException("An installed mod file was changed locally: "+f.Path+". Back it up before replacing it.");
      var copy=new ModFile{Path=f.Path,Hash=f.Hash,Bytes=f.Bytes,Preserve=f.Preserve||(old!=null&&old.Preserve),Shared=f.Shared,Source=f.Source};
      if(File.Exists(existing)&&copy.Preserve){copy.Hash=HashFile(existing);copy.Bytes=new FileInfo(existing).Length;}installed.Add(copy);
     }
     foreach(var root in plan.LuaRoots){var marker=root+"/enabled.txt";if(!installed.Any(x=>Compare.Equals(x.Path,marker)))installed.Add(new ModFile{Path=marker,Hash=HashText(""),Bytes=0});}
-    var next=new ModRecord{Id=plan.Id,Name=plan.Name,Version=plan.Version,Channel=plan.Channel,Kind=plan.Kind,Description=plan.Description,Changelog=plan.Changelog,Readme=plan.Readme,Enabled=true,Managed=true,InstalledUtc=DateTime.UtcNow.ToString("o"),ArchiveHash=plan.ArchiveHash,Files=installed,LuaRoots=plan.LuaRoots,Dependencies=plan.Dependencies,LoadAfter=plan.LoadAfter,Update=plan.Update??(previous==null||!Compare.Equals(previous.Channel,plan.Channel)?null:previous.Update)};
+    var next=new ModRecord{RuntimeProfile=plan.RuntimeProfile,Id=plan.Id,Name=plan.Name,Version=plan.Version,Channel=plan.Channel,Kind=plan.Kind,Description=plan.Description,Changelog=plan.Changelog,Readme=plan.Readme,Enabled=true,Managed=true,InstalledUtc=DateTime.UtcNow.ToString("o"),ArchiveHash=plan.ArchiveHash,Files=installed,LuaRoots=plan.LuaRoots,Dependencies=plan.Dependencies,LoadAfter=plan.LoadAfter,Update=plan.Update??(previous==null||!Compare.Equals(previous.Channel,plan.Channel)?null:previous.Update)};
     ValidateOrder(next);
     using(var tx=new Transaction(DataPath,GamePath))try {
-     if(migrateLegacy)MigrateLegacy(tx,legacySource);
-     if(reinstall&&!previous.Enabled)foreach(var folder in previous.LuaRoots.Where(x=>plan.LuaRoots.Contains(x,Compare))){var source=DisabledPath(previous.Id,folder);var destination=Destination(folder);if(Directory.Exists(source)){if(Directory.Exists(destination))throw new IOException("Both active and saved mod folders exist; restore needs review.");tx.Move(source,destination);}}
+     if(NeedsRuntime(plan)||status.HasUE4SS)EnsureRuntime(tx,NeedsBlueprint(plan));
+     if(migrateLegacy&&!reinstall)MigrateLegacy(tx,legacySource);
+     if(reinstall)ArchiveRemovedFolders(tx,previous,records);
      using(var archive=ZipFile.OpenRead(plan.SourceZip))foreach(var f in installed){var target=Destination(f.Path);if(File.Exists(target)&&(f.Preserve||Compare.Equals(HashFile(target),f.Hash)))continue;if(f.Source==null){tx.Write(target,new byte[0]);continue;}var entry=archive.GetEntry(f.Source);if(entry==null)entry=archive.Entries.FirstOrDefault(x=>Compare.Equals(x.FullName.Replace('\\','/'),f.Source));if(entry==null)throw new InvalidDataException("A previewed archive file is missing.");using(var stream=entry.Open())tx.Write(target,stream,f.Bytes,f.Hash);}
      if(previous!=null)foreach(var f in previous.Files.Where(x=>!x.Shared&&!installed.Any(n=>Compare.Equals(n.Path,canonicalBeyond?RenamedPath(x.Path):x.Path)))){var target=Destination(canonicalBeyond?RenamedPath(f.Path):f.Path);if(File.Exists(target)&&!f.Preserve&&Compare.Equals(HashFile(target),f.Hash))tx.Delete(target);}
      if(plan.LuaRoots.Count>0)tx.Write(Destination(GameInstallation.ModsRoot+"/mods.txt"),Encoding.UTF8.GetBytes(ModList(plan.LuaRoots,true,OrderDependencies(plan.LoadAfter.Concat(plan.Dependencies)),false)));
      tx.Write(ManifestPath(plan.Id),Encoding.UTF8.GetBytes(Json.Serialize(next)));if(previous!=null&&!reinstall&&!Compare.Equals(previous.Id,plan.Id))tx.Delete(ManifestPath(previous.Id));if(reinstall)tx.Delete(removedPath);tx.Commit();return next;
     }catch{tx.Rollback();throw;}
+   }
+  }
+  void ArchiveRemovedFolders(Transaction tx,ModRecord previous,List<ModRecord> records) {
+   var recovery=Under(GamePath,".bmm-uninstalled/"+Guid.NewGuid().ToString("N").Substring(0,16));
+   foreach(var root in previous.LuaRoots){
+    if(Compare.Equals(root,GameInstallation.ModsRoot+"/shared")||records.Any(r=>!SameMod(r.Id,previous.Id)&&(r.LuaRoots.Contains(root,Compare)||r.Files.Any(f=>Prefix(f.Path,root)))))throw new IOException("Another mod owns the old uninstall folder: "+root);
+    var sources=new[]{Destination(root),DisabledPath(previous.Id,root)};
+    for(int i=0;i<sources.Length;i++){NoTreeLinks(sources[i]);if(Directory.Exists(sources[i]))tx.Move(sources[i],Under(recovery,i+"/"+root.Split('/').Last()));}
    }
   }
   void MigrateLegacy(Transaction tx,string source){var destination=Destination(BeyondRoot);if(!Directory.Exists(destination)){tx.Move(source,destination);return;}foreach(var file in Directory.EnumerateFiles(source,"*",SearchOption.AllDirectories)){var relative=file.Substring(source.Length+1).Replace('\\','/');var target=Under(destination,relative);if(!File.Exists(target))using(var input=File.OpenRead(file))tx.Write(target,input,new FileInfo(file).Length,HashFile(file));}var recovery=Under(GamePath,".bmm-migrations/"+Guid.NewGuid().ToString("N")+"/BasicM4");tx.Move(source,recovery);}
@@ -335,12 +345,28 @@ namespace BeyondModManager {
    }
   }
   public OperationResult Uninstall(string id) {
-   Ready();using(var gate=Lock()){RecoverPending();var record=Get(id);id=record.Id;if(record.Enabled)Dependents(record);var result=new OperationResult();
+   Ready();using(var gate=Lock()){RecoverPending();var record=Get(id);id=record.Id;
+    if(Compare.Equals(id,"bmm-runtime"))throw new InvalidOperationException("Shared UE4SS support is kept installed.");
+    if(record.Enabled)Dependents(record);var result=new OperationResult();var others=Records().Where(x=>!SameMod(x.Id,id)).ToArray();
+    // The complete selected mod folder includes generated settings, caches and
+    // modified code. Move it out of all loader paths; never restore it on reinstall.
+    var roots=record.LuaRoots.Select(r=>new KeyValuePair<string,string>(r,record.Enabled?Destination(r):DisabledPath(id,r))).ToArray();
+    foreach(var root in roots){
+     NoTreeLinks(root.Value);
+     if(Compare.Equals(root.Key,GameInstallation.ModsRoot+"/shared")||others.Any(r=>r.LuaRoots.Any(x=>Compare.Equals(x,root.Key)||Prefix(x,root.Key))||r.Files.Any(f=>Prefix(f.Path,root.Key))))throw new IOException("Another mod owns files inside "+root.Key);
+    }
+    // Keep recovery paths shorter than the original UE4SS path. Repeating the
+    // entire game-relative path here can exceed Windows limits during rollback.
+    var recovery=Under(GamePath,".bmm-uninstalled/"+Guid.NewGuid().ToString("N").Substring(0,16));
     using(var tx=new Transaction(DataPath,GamePath))try {
-     foreach(var f in record.Files.Where(x=>!x.Shared)){var p=record.Enabled?Destination(f.Path):DisabledPath(id,f.Path);if(!File.Exists(p))continue;if(f.Preserve||!Compare.Equals(HashFile(p),f.Hash)){
-      if(Prefix(f.Path,GameInstallation.PaksRoot)||f.Path.EndsWith("/enabled.txt",StringComparison.OrdinalIgnoreCase)){var saved=Under(DataPath,"preserved/"+Guid.NewGuid().ToString("N")+System.IO.Path.GetExtension(f.Path));using(var input=File.OpenRead(p))tx.Write(saved,input,new FileInfo(p).Length,HashFile(p));tx.Delete(p);result.PreservedFiles.Add(saved);}else result.PreservedFiles.Add(p);continue;
-     }tx.Delete(p);}
-     if(record.LuaRoots.Count>0)tx.Write(Destination(GameInstallation.ModsRoot+"/mods.txt"),Encoding.UTF8.GetBytes(ModList(record.LuaRoots,false,record.LoadAfter,true)));tx.Write(RemovedPath(id),Encoding.UTF8.GetBytes(Json.Serialize(record)));tx.Delete(ManifestPath(id));tx.Commit();result.BackupPath=tx.Folder;return result;
+     foreach(var root in roots)if(Directory.Exists(root.Value))tx.Move(root.Value,Under(recovery,root.Key.Split('/').Last()));
+     foreach(var f in record.Files.Where(x=>!x.Shared&&!record.LuaRoots.Any(r=>Prefix(x.Path,r)))){
+      if(others.Any(r=>r.Files.Any(x=>Compare.Equals(x.Path,f.Path))))throw new IOException("Another mod owns "+f.Path);
+      var p=record.Enabled?Destination(f.Path):DisabledPath(id,f.Path);if(File.Exists(p))tx.Delete(p);
+     }
+     if(record.LuaRoots.Count>0)tx.Write(Destination(GameInstallation.ModsRoot+"/mods.txt"),Encoding.UTF8.GetBytes(ModList(record.LuaRoots,false,record.LoadAfter,true)));
+     if(File.Exists(RemovedPath(id)))tx.Delete(RemovedPath(id));
+     tx.Delete(ManifestPath(id));tx.Commit();result.BackupPath=Directory.Exists(recovery)?recovery:tx.Folder;return result;
     }catch{tx.Rollback();throw;}
    }
   }

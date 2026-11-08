@@ -273,7 +273,7 @@ namespace BeyondModManager
             // No embedded credentials; each redirect is revalidated and never receives authentication.
             ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
             using (var handler = new HttpClientHandler { AllowAutoRedirect = false })
-            using (var client = new HttpClient(handler) { Timeout = TimeSpan.FromMinutes(5) })
+            using (var client = new HttpClient(handler) { Timeout = maxBytes <= 2 * 1024 * 1024 ? TimeSpan.FromSeconds(20) : TimeSpan.FromMinutes(5) })
             {
                 for (int redirects = 0; redirects < 6; redirects++)
                 {

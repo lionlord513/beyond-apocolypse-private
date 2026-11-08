@@ -2,9 +2,11 @@
   "schema": 1,
   "id": "bmm",
   "name": "Beyond Mod Manager",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "notes": [
-    "Adds MixTape Maker to the mod catalogue and supports anonymous checks for signed audio-tool updates."
+    "Checks and repairs the tested UE4SS runtime during mod installs and updates, including existing and partial installations.",
+    "Checks for manager updates on every launch and offers Install update or Later.",
+    "Uninstall removes the full selected mod folder, including generated files and settings, so reinstall starts fresh. Recovery backups and game saves are retained."
   ],
   "description": "Install and manage Drive Beyond Horizons mods from ZIP files. Keep mod settings, see required support files, and check updates when a mod author provides an update source.",
   "update": {
