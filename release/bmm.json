@@ -2,7 +2,7 @@
   "schema": 1,
   "id": "beyondapocalypse",
   "name": "Beyond Apocalypse",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "channel": "stable",
   "description": "Zombies, rifles, backpacks, motorcycles, a gyrocopter and custom player models.",
   "website": "https://www.nexusmods.com/drivebeyondhorizons/mods/28",
@@ -16,15 +16,23 @@
   },
   "history": [
     {
+      "version": "1.1.6",
+      "channel": "stable",
+      "released": "2026-11-09",
+      "notes": [
+        "Shortened menus, help and descriptions. Gameplay and controls are unchanged."
+      ]
+    },
+    {
       "version": "1.1.5",
       "channel": "stable",
       "released": "2026-11-06",
       "notes": [
-        "Extreme Performance Mode removes decorative ground cover and cloud effects, reduces sky and tree detail, and restores prior settings when disabled. Gameplay obstacles and overall view distance are preserved.",
-        "Cache rifle and optic geometry and materials. Refresh weapon identity during spawn and inventory restoration to reduce switching hitches and temporary AK visuals.",
-        "Reserve one slot within the zombie limit for the Mechanic and keep him when enforcing that limit.",
-        "Reacquire the Hornet dirt texture after native garbage collection before applying it to a clean airframe.",
-        "Resolve guest Hangar computers relative to the player when world origins differ. Preserve the dashboard, shared nitrous display and separate optional developer menu."
+        "Extreme Performance Mode removes decorative grass, bushes and clouds, and lowers sky and tree detail. Turning it off restores your previous settings.",
+        "Reduced rifle-switching stutter and fixed rifles briefly showing the wrong model.",
+        "Fixed the zombie limit removing the Mechanic. He now uses one slot in the limit.",
+        "Fixed a Hornet texture issue after cleaning the airframe.",
+        "Fixed guests being unable to open some Hangar computers."
       ]
     },
     {
@@ -32,13 +40,13 @@
       "channel": "stable",
       "released": "2026-11-05",
       "notes": [
-        "Move the dashboard from F9 Settings > Gameplay. Restore the shared nitrous gauge and boost status with Beyond Tuning.",
-        "Keep native rifle visibility during streaming and build the host-selected variant for each peer.",
-        "Commit wild Hornet sites after successful delivery. Retry blocked sites.",
-        "Suspend Hornet flight forces while the native hitch shows another vehicle towing it.",
-        "Restore transport, ammo and weapon attachments after save initialization and preserve them through native Save As.",
-        "Hangar guest orders charge the buyer. Preserve individual ammo reserves when a Steam identity is unavailable.",
-        "Reset session state on travel and keep the optional local testing menu separate from gameplay."
+        "Added dashboard positioning in F9 > Settings > Gameplay. Restored the Beyond Tuning nitrous gauge and boost status.",
+        "Fixed rifles disappearing or showing the wrong model in multiplayer.",
+        "Fixed wild Hornet spawns failing at blocked locations.",
+        "Fixed the Hornet fighting against a vehicle towing it.",
+        "Fixed transport, ammo and weapon attachments after loading or using Save As.",
+        "Fixed guest Hangar orders charging the host and ammo reserves being mixed up for offline players.",
+        "Fixed leftover mod state when changing worlds."
       ]
     },
     {
@@ -67,10 +75,10 @@
       "channel": "stable",
       "released": "2026-11-03",
       "notes": [
-        "Fixed the Alienâ€™s eyes and added glowing irises.",
+        "Fixed the AlienÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢s eyes and added glowing irises.",
         "Fixed the Alien head appearing in first person.",
         "Alien skin paint now leaves toenails unchanged.",
-        "Added native clothing support for the Alien, including shirts, pants and shoes."
+        "The Alien can now wear shirts, pants and shoes."
       ]
     },
     {
@@ -336,7 +344,7 @@
       "released": "2026-09-28",
       "channel": "beta",
       "notes": [
-        "Owner-only aircraft simulation, multiplayer aircraft identity and blade fitting updates."
+        "Improved aircraft movement and rotor-blade fitting in multiplayer."
       ]
     },
     {
@@ -360,7 +368,7 @@
       "released": "2026-09-28",
       "channel": "beta",
       "notes": [
-        "Guest left-click blade attachment and replicated landing pad collision."
+        "Fixed guests fitting rotor blades and standing on landing pads."
       ]
     },
     {
@@ -384,7 +392,7 @@
       "released": "2026-09-28",
       "channel": "beta",
       "notes": [
-        "Hover docking and native towing force fixes."
+        "Fixed docking while hovering and towing."
       ]
     },
     {
@@ -400,7 +408,7 @@
       "released": "2026-09-28",
       "channel": "beta",
       "notes": [
-        "Blade pickup alignment and native left-click attachment."
+        "Fixed blade pickup alignment and left-click attachment."
       ]
     },
     {
@@ -440,7 +448,7 @@
       "released": "2026-09-27",
       "channel": "beta",
       "notes": [
-        "Single-seat Hornet gyrocopter with native servicing and rare airframe spawns."
+        "Added the single-seat Hornet gyrocopter and rare airframe spawns."
       ]
     },
     {

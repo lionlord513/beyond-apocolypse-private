@@ -8,7 +8,7 @@ parser.add_argument('--runtime',type=Path,required=True,help='Recovered Win64 di
 parser.add_argument('--model-source',type=Path,required=True)
 parser.add_argument('--output',type=Path,required=True)
 args=parser.parse_args();out=args.output.resolve();out.mkdir(parents=True,exist_ok=True)
-version='1.1.5';binroot='DriveBeyondHorizons/Binaries/Win64';mods=binroot+'/ue4ss/Mods'
+version='1.1.6';binroot='DriveBeyondHorizons/Binaries/Win64';mods=binroot+'/ue4ss/Mods'
 sha=lambda data:hashlib.sha256(data).hexdigest()
 def payload(path):return {p.relative_to(path).as_posix():p.read_bytes() for p in sorted(path.rglob('*'))if p.is_file()}
 mod=payload(root/'mod/BasicM4')
@@ -18,7 +18,7 @@ for name,data in mod.items():
  assert not name.startswith('state/')or name=='state/KEEP THIS FOLDER.txt',name
  if name.endswith(('.lua','.txt')):
   assert not any(s in data.lower()for s in (b'baaudit',b'c:/users/',b'c:\\users\\',b'live-audit',b'work/private-companion')),name
-assert b"Version='1.1.5',Channel='stable'"in mod['Scripts/release.lua']
+assert b"Version='1.1.6',Channel='stable'"in mod['Scripts/release.lua']
 runtime={}
 for name in ['dwmapi.dll','ue4ss/UE4SS.dll','ue4ss/UE4SS-settings.ini','ue4ss/LICENSE','ue4ss/Mods/shared/UEHelpers/UEHelpers.lua']:
  runtime[name]=(args.runtime/name).read_bytes()
@@ -45,19 +45,19 @@ def archive(name,files):
  return p
 # Both delivery channels use one canonical package, including the loader.
 # Hash-based same-version checks therefore recognize a Nexus install as current.
-nex=archive('BeyondApocolypse-1.1.5-Nexus.zip',nexus)
-pub=out/'BeyondApocalypse-1.1.5-public.zip';shutil.copyfile(nex,pub)
+nex=archive('BeyondApocolypse-1.1.6-Nexus.zip',nexus)
+pub=out/'BeyondApocalypse-1.1.6-public.zip';shutil.copyfile(nex,pub)
 assert pub.read_bytes()==nex.read_bytes()
-legacy=out/'BeyondApocolypse-1.1.5-beta.zip';shutil.copyfile(pub,legacy)
+legacy=out/'BeyondApocolypse-1.1.6-beta.zip';shutil.copyfile(pub,legacy)
 with zipfile.ZipFile(args.model_source)as z:
  source={n:z.read(n)for n in z.namelist()if not n.endswith('/')}
 assert any(n.endswith(('.ac','.blend','.gltf'))for n in source),'Original editable model is missing'
 for k,v in mod.items():
- if k.startswith('assets/gyrocopter/'):source['Beyond-Apocalypse-1.1.5-current/'+k]=v
-source['Beyond-Apocalypse-1.1.5-current/README.txt']=b'Original source/converter retained. Current imported Hornet assets are included under assets/gyrocopter. See its ATTRIBUTION.txt and COPYING.txt.\n'
-model=archive('BeyondApocolypse-1.1.5-Hornet-Model-Source.zip',source)
+ if k.startswith('assets/gyrocopter/'):source['Beyond-Apocalypse-1.1.6-current/'+k]=v
+source['Beyond-Apocalypse-1.1.6-current/README.txt']=b'Original source/converter retained. Current imported Hornet assets are included under assets/gyrocopter. See its ATTRIBUTION.txt and COPYING.txt.\n'
+model=archive('BeyondApocolypse-1.1.6-Hornet-Model-Source.zip',source)
 meta=json.loads(docs['bmm.json']);notes=meta['history'][0]['notes']
-def manifest(p):return {'schema':1,'version':version,'released':'2026-11-06','channel':'stable','origin':'GitHub','asset':p.name,'size':p.stat().st_size,'sha256':sha(p.read_bytes()),'url':'https://github.com/lionlord513/beyond-apocolypse-private/releases/download/v1.1.5/'+p.name,'notes':notes,'history':meta['history'][1:]}
+def manifest(p):return {'schema':1,'version':version,'released':'2026-11-09','channel':'stable','origin':'GitHub','asset':p.name,'size':p.stat().st_size,'sha256':sha(p.read_bytes()),'url':'https://github.com/lionlord513/beyond-apocolypse-private/releases/download/v1.1.6/'+p.name,'notes':notes,'history':meta['history'][1:]}
 for name,p in [('bmm-mod.json',pub),('release.json',legacy)]:
  (out/name).write_text(json.dumps(manifest(p),indent=2)+'\n',encoding='utf-8')
 files=[pub,nex,legacy,model,out/'bmm-mod.json',out/'release.json']

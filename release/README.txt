@@ -1,4 +1,4 @@
-BEYOND APOCALYPSE 1.1.5
+BEYOND APOCALYPSE 1.1.6
 
 Survive zombie encounters, pack supplies in a backpack and shop for gear at the Hangar. Ride motorcycles, fly the Hornet gyrocopter or choose a custom player model.
 
@@ -10,7 +10,7 @@ Press Tab to open your backpack. Use the Hangar app on an in-game computer to bu
 
 While seated, open F9 > Settings > Gameplay > Move dashboard. Drag the speedometer and release to save its position on this PC. Esc cancels. With Beyond Tuning, the road dashboard shows the installed nitrous supply and active boost stage.
 
-Extreme Performance Mode is in F9 > Settings > Gameplay. It removes decorative grass, bushes and clouds and lowers tree, sky, shadow and effect detail. Roads, buildings, collision obstacles, weather and the day/night cycle remain active. Turning it off restores your previous settings. The preference is local to each PC. Rifle performance improvements apply with either setting.
+Extreme Performance Mode is in F9 > Settings > Gameplay. It removes decorative grass, bushes and clouds and lowers tree, sky, shadow and effect detail. Turning it off restores your previous settings.
 
 Installation
 

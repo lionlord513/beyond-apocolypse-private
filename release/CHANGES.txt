@@ -1,9 +1,12 @@
+1.1.6
+- Shortened menus, help and descriptions. Gameplay and controls are unchanged.
+
 1.1.5
-- Extreme Performance Mode removes decorative ground cover and cloud effects, reduces sky and tree detail, and restores prior settings when disabled. Gameplay obstacles and overall view distance are preserved.
-- Cache rifle and optic geometry and materials. Refresh weapon identity during spawn and inventory restoration to reduce switching hitches and temporary AK visuals.
-- Reserve one slot within the zombie limit for the Mechanic and keep him when enforcing that limit.
-- Reacquire the Hornet dirt texture after native garbage collection before applying it to a clean airframe.
-- Resolve guest Hangar computers relative to the player when world origins differ. Preserve the dashboard, shared nitrous display and separate optional developer menu.
+- Extreme Performance Mode removes decorative grass, bushes and clouds, and lowers sky and tree detail. Turning it off restores your previous settings.
+- Reduced rifle-switching stutter and fixed rifles briefly showing the wrong model.
+- Fixed the zombie limit removing the Mechanic. He now uses one slot in the limit.
+- Fixed a Hornet texture issue after cleaning the airframe.
+- Fixed guests being unable to open some Hangar computers.
 
 1.1.3
 - Matched the Nexus and mod manager downloads.
@@ -17,10 +20,10 @@
 - Updated graphics settings support for the November 4 hotfix.
 
 1.1.1
-- Fixed the Alien’s eyes and added glowing irises.
+- Fixed the AlienÃ¢â‚¬â„¢s eyes and added glowing irises.
 - Fixed the Alien head appearing in first person.
 - Alien skin paint now leaves toenails unchanged.
-- Added native clothing support for the Alien, including shirts, pants and shoes.
+- The Alien can now wear shirts, pants and shoes.
 
 1.1.0
 - Added the Alien with glowing eyes.
@@ -121,7 +124,7 @@
 - Fixed a multiplayer crash while syncing rotor blades.
 
 0.11.7
-- Owner-only aircraft simulation, multiplayer aircraft identity and blade fitting updates.
+- Improved aircraft movement and rotor-blade fitting in multiplayer.
 
 0.11.6
 - Docking collision, delayed attachment and trailer-mass synchronization fixes.
@@ -130,7 +133,7 @@
 - Restored the missing heli-trailer landing pad.
 
 0.11.4
-- Guest left-click blade attachment and replicated landing pad collision.
+- Fixed guests fitting rotor blades and standing on landing pads.
 
 0.11.3
 - Multiplayer aircraft/blade identities and docking synchronization.
@@ -139,13 +142,13 @@
 - Landing pad trim and stopped-engine Hornet audio cleanup.
 
 0.11.1
-- Hover docking and native towing force fixes.
+- Fixed docking while hovering and towing.
 
 0.11.0
 - Native blade removal/refitting and separate Trailer/Heli trailer choices.
 
 0.10.1
-- Blade pickup alignment and native left-click attachment.
+- Fixed blade pickup alignment and left-click attachment.
 
 0.10.0
 - Hornet carrier deck, removable main blades and docking/rack storage.
@@ -160,7 +163,7 @@
 - Assisted vertical flight and restored rotor/propeller visibility.
 
 0.9.0
-- Single-seat Hornet gyrocopter with native servicing and rare airframe spawns.
+- Added the single-seat Hornet gyrocopter and rare airframe spawns.
 
 0.8.0
 - Imported Hazmat zombie variant with distance detail levels.

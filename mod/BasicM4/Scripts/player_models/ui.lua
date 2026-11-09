@@ -6,7 +6,7 @@ return function(M,root,valid)
   local C=M.playerModels;local rect,text,button,place,new=draw.rect,draw.text,draw.button,draw.place,draw.new
   U.modelChoice=U.modelChoice or C.selected;local choice=C.catalog[U.modelChoice+1]
   text('PLAYER MODELS',270,145,1000,40,25,'gold')
-  text('Choose an appearance. Your movement, equipment and stats stay the same.',270,198,1110,32,16,'muted')
+  text('Choose your appearance.',270,198,1110,32,16,'muted')
   local function picture(file,x,y,w,h)
    local image=new('Image',U.tree)
    local texture=V.textures[file]

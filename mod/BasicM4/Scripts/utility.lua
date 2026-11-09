@@ -83,7 +83,7 @@ return function(M,root,H,valid,enqueue,log)
   local vp=layout:GetViewportSize(U.pc);local dpi=layout:GetViewportScale(U.pc)
   U.scale=math.min(vp.X/1440,vp.Y/840)/dpi;U.x=(vp.X/dpi-1440*U.scale)/2;U.y=(vp.Y/dpi-840*U.scale)/2
   rect(0,0,1440,840,'bg');rect(0,0,1440,5,'red');rect(20,132,218,654,'panel')
-  text('BEYOND APOCOLYPSE',30,40,1100,48,30);text('PLAYER UTILITY  /  '..M.version,32,92,1000,30,14,'muted')
+  text('BEYOND APOCALYPSE',30,40,1100,48,30);text('PLAYER UTILITY  /  '..M.version,32,92,1000,30,14,'muted')
   button('CLOSE [F9]',1230,35,184,52,function()U.close()end)
   for i,name in ipairs({'Settings','Models','Stats','Host'})do button(name:upper(),30,146+(i-1)*63,198,52,function()U.tab=name;U.capture=nil;U.render()end,U.tab==name and 'red'or'panel')end
   if U.tab=='Settings'then
@@ -94,26 +94,26 @@ return function(M,root,H,valid,enqueue,log)
      local ok,e=pcall(Ctl.setSimpleFlight,not Ctl.simpleFlight);U.message=ok and 'Gameplay settings saved.'or tostring(e):gsub('^.-:%d+: ','');U.render()
     end)
     text('Automatic hover and leveling. Hold raise / lower to climb / descend.',286,340,1070,32,17,'muted')
-    text('Applies only when you pilot a gyrocopter. Saved across sessions.',286,384,1070,32,17,'muted')
+    text('',286,384,1070,32,17,'muted')
     button((M.performance.gameplayMode and '[X] 'or '[ ] ')..'Extreme Performance Mode',270,452,700,54,function()
      local ok,result,message=pcall(M.performance.setGameplayMode,not M.performance.gameplayMode)
      U.message=ok and (result and(message or 'Performance Mode updated.')or message)or tostring(result):gsub('^.-:%d+: ','');U.render()
     end)
     text('Removes decorative grass, bushes and clouds; simplifies the sky, trees and effects.',286,526,1080,32,17,'muted')
-    text('Saved on this PC. Turn off to restore previous render settings.',286,570,1080,32,17,'muted')
+    text('Turn off to restore your previous graphics settings.',286,570,1080,32,17,'muted')
     button('Move dashboard',270,628,520,54,function()
      if valid(M.dashboard.widget)then dashboardEditor()else U.message='Enter a vehicle to move its dashboard.';U.render()end
     end)
    else
    text('GYROCOPTER KEYBINDINGS',270,195,1000,40,25,'gold')
-   text('Click a key, then press its replacement. Escape cancels; Backspace clears an alternate.',270,235,1120,28,14,'muted')
+   text('Click a key, then press a new one. Esc cancels. Backspace clears an alternate key.',270,235,1120,28,14,'muted')
    text('ACTION',280,269,510,26,14,'muted');text('PRIMARY',850,269,220,26,14,'muted');text('ALTERNATE',1130,269,220,26,14,'muted')
    for i,r in ipairs(Ctl.rows)do local id=r[1];local y=300+(i-1)*31;rect(270,y,1125,29,'panel');local label=r[2];if Ctl.simpleFlight then if id=='collectiveUp'then label='Climb'elseif id=='collectiveDown'then label='Descend'end end;text(label,282,y+4,520,27,15)
     for index=1,2 do local slot=index;local waiting=U.capture and U.capture.id==id and U.capture.slot==slot
      button(waiting and 'PRESS A KEY...'or U.draft[id][slot],820+(slot-1)*280,y,268,29,function()U.capture={id=id,slot=slot};U.message='';U.render()end,waiting and 'red'or'card')
     end
    end
-   text('Native seat entry/exit and item interactions keep the game settings.',280,712,1000,28,13,'muted')
+   text('',280,712,1000,28,13,'muted')
    button('DEFAULTS',270,746,210,48,function()for _,r in ipairs(Ctl.rows)do U.draft[r[1]]={r[3],r[4]}end;U.capture=nil;U.render()end)
    button('APPLY',1170,746,224,48,function()local ok,e=pcall(Ctl.apply,U.draft);U.capture=nil;U.message=ok and 'Controls saved.'or tostring(e):gsub('^.-:%d+: ','');U.render()end,'red')
    end
@@ -123,16 +123,16 @@ return function(M,root,H,valid,enqueue,log)
    text('HOST WORLD SETTINGS',270,145,1000,40,25,'gold')
    local host=M.population and M.population.isHost()
    text(host and 'These settings affect everyone in your hosted session.'or 'Only the host can change these settings.',270,210,1100,36,18,'muted')
-   text('Zombie population ceiling',286,290,1060,40,23)
+   text('Zombie limit',286,290,1060,40,23)
    local value=host and (U.zombieDraft or M.population.limit)or 10
    U.zombieSlider=new('Slider',U.tree);local slider=U.zombieSlider
    slider:SetMinValue(2);slider:SetMaxValue(40);slider:SetStepSize(1);slider:SetValue(value)
    slider:SetIsEnabled(host==true);place(slider,300,368,1050,52)
    text('2',300,430,100,30,18,'muted');text('40',1300,430,80,30,18,'muted')
    U.zombieLabel=text(host and ('%d day / %d night & infestations'):format(M.population.dayTarget(value),value)or 'Host only',540,430,740,40,20,'gold')
-   text('Includes all zombies; one place in the ceiling is reserved for the Mechanic.',286,505,1080,36,17,'muted')
+   text('The Mechanic uses one slot in the zombie limit.',286,505,1080,36,17,'muted')
    text('Default: 5 by day, 10 at night or in an infested building. Slider scales both.',286,550,1080,36,17,'muted')
-   text('Saved on this PC for sessions you host. Clients cannot override the host.',286,595,1080,36,17,'muted')
+   text('Saved on this PC for games you host.',286,595,1080,36,17,'muted')
    if host then button('APPLY ZOMBIE LIMIT',970,690,424,54,function()
     local n=math.max(2,math.min(40,math.floor(slider:GetValue()+.5)))
     local ok,message=pcall(M.population.setLimit,n);U.message=tostring(message):gsub('^.-:%d+: ','');if ok then U.zombieDraft=n end;U.render()
@@ -140,7 +140,7 @@ return function(M,root,H,valid,enqueue,log)
   else
    text('PERSONAL STATS',270,145,1000,40,25,'gold')
    for i,r in ipairs(U.stats())do local y=223+(i-1)*69;rect(270,y,1125,58,'card');text(r[1],290,y+16,590,36,18);U.statCells[i]=text(r[2],970,y+16,410,36,18,'gold')end
-   text('Distance is sampled locally. Total starts with this update; large teleports are excluded.',280,696,1110,36,14,'muted')
+   text('Distance excludes large teleports.',280,696,1110,36,14,'muted')
   end
   text(U.message or '',30,806,1360,28,14,'gold')
  end
