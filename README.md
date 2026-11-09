@@ -1,28 +1,25 @@
-# Beyond Mod Manager 1.0.10
+# Beyond Mod Manager 1.0.11
 
-Source for the Windows release of Beyond Mod Manager (BMM).
+Install, update, enable and remove Drive Beyond Horizons mods.
 
-BMM installs and manages Drive Beyond Horizons mod ZIPs. It can enable,
-disable and remove mods, preserve settings during updates, and check for updates when
-the mod author provides an update source. Beyond Apocalypse is optional.
+Open BMM, choose your game folder if needed, then select a mod or use **Add ZIP**. Close the game before installing or updating. BMM checks for manager and supported mod updates when it opens.
 
-Version 1.0.10 recovers from temporary update-server failures, including HTTP 504.
-Downloads retry up to three times with backoff and can use the same GitHub asset's
-API route. Stalled transfers time out, partial files are discarded, and downloaded
-packages still require the exact published size and SHA-256. A failed manager
-download leaves the current application usable with a Retry update action.
-The replacement helper also handles inherited PowerShell environments correctly
-and records failures that previously could exit silently.
+Use **Settings > repair Mod** to repair the shared UE4SS support files. Uninstall removes the selected mod, its settings and generated data, and keeps a recovery copy in Backups. Game saves and shared UE4SS files remain installed.
 
-BMM verifies the tested UE4SS runtime during every mod installation
-and update, repairing incompatible or partial installations from its verified
-bundled files. It checks for manager updates on every launch and prompts when
-a newer public release is available. Uninstall removes the full managed mod
-folder, including generated data and settings, with a recovery copy kept outside
-the mod loader. Reinstall starts fresh; game saves and shared support stay installed.
+## Changes
 
-Start with [BUILDING.txt](BUILDING.txt) to build the manager.
-[REVIEW-NOTES.txt](REVIEW-NOTES.txt) lists the main code and bundled dependencies.
+### 1.0.11
+- Shortened descriptions, help and update messages.
+- Renamed Repair mod support to repair Mod.
 
-This branch contains BMM, its public artwork/catalogue, build tools and tests.
-It does not contain the game or the Beyond Apocalypse gameplay mod.
+### 1.0.10
+- Downloads retry after temporary server errors, including HTTP 504.
+- Fixed stalled updates and update failures in some PowerShell environments.
+- Added Retry update when a manager download fails.
+
+### 1.0.9
+- Added automatic UE4SS repair during mod installs and updates.
+- Added startup prompts for manager updates.
+- Uninstall now removes the full managed mod folder and keeps a recovery copy.
+
+See BUILDING.txt to build the manager and REVIEW-NOTES.txt for source details.

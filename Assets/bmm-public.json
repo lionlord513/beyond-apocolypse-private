@@ -2,14 +2,12 @@
   "schema": 1,
   "id": "bmm",
   "name": "Beyond Mod Manager",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "notes": [
-    "Recovers from temporary update-server errors, including HTTP 504, with bounded retries and a verified alternate GitHub asset route.",
-    "Bounds stalled downloads, respects server retry limits, and safely restarts interrupted transfers before checking their size and SHA-256.",
-    "Fixes updater-helper failures when launched from some PowerShell environments and records errors before replacement.",
-    "Keeps BMM usable after an unavailable update and offers Retry update. Includes the UE4SS repair, startup prompts and clean uninstall from 1.0.9."
+    "Shortened descriptions, help and update messages.",
+    "Renamed Repair mod support to repair Mod."
   ],
-  "description": "Install and manage Drive Beyond Horizons mods from ZIP files. Keep mod settings, see required support files, and check updates when a mod author provides an update source.",
+  "description": "Install, update, enable and remove Drive Beyond Horizons mods.",
   "update": {
     "Provider": "github",
     "TagPrefix": "bmm-v",

@@ -4,7 +4,7 @@
   "name": "Beyond Apocalypse",
   "version": "1.0.6",
   "channel": "stable",
-  "description": "Expand Drive Beyond Horizons with first-person rifles and attachments, backpacks, wandering zombies and encounters, the Hornet gyrocopter, two motorcycles, the Hangar parts shop, and F9 player settings. Back up saves and use the same mod version with everyone in co-op.",
+  "description": "Zombies, rifles, backpacks, motorcycles, the Hornet gyrocopter and custom player models. Buy gear at the Hangar. Press F9 for settings. Everyone in co-op needs the same version.",
   "website": "https://www.nexusmods.com/drivebeyondhorizons/mods/28",
   "update": {
     "Provider": "github",
@@ -22,10 +22,10 @@
       "notes": [
         "Updated for Drive Beyond Horizons build 26106988 while retaining established vehicle, inventory, input and Hangar fixes.",
         "F9 opens player settings, statistics and host zombie population controls (2 to 40). Default targets are 5 by day and 10 at night or around an infested building.",
-        "Bounded scenery updates replace repeated world-wide mesh scans; idle input and trailer searches are reduced.",
-        "Both motorcycles retain corrected rider positioning, stable parked wheels and contact-height presentation. Removable bike-shaped headlights use the native car lighting system.",
-        "Hornet pitch, roll and yaw remain enabled after resting on the ground; the manual collective gauge updates smoothly between flight calculations.",
-        "Restored rotor-blade pickup recovery, replicated service-part fitting, Hangar click safeguards and saved control reconciliation.",
+        "Reduced background work to improve performance.",
+        "Improved motorcycle rider positions, parked wheels and removable headlights.",
+        "Fixed Hornet steering after landing and made the collective gauge smoother.",
+        "Fixed rotor-blade pickup, fitting parts in multiplayer, Hangar purchases and saved keybindings.",
         "Public gameplay files only. Mod Manager is optional; the game can be launched directly through Steam."
       ]
     },
@@ -47,7 +47,7 @@
       "notes": [
         "Refined the compact Suzuki PV 50 with fitted service parts, corrected grip targets and clearer detailed metal finishes.",
         "Hold X while riding either motorcycle to gradually raise the front up to 35 degrees; release X to lower it.",
-        "Hangar computer setup now retries while loading, and custom orders use the native Buy callback across computers.",
+        "Fixed issues opening the Hangar and ordering items.",
         "Includes saved F8 Performance Mode, both rare motorcycle loot variants, all three repaired rifles and the existing 1.0.4 fixes. Everyone in co-op should update and restart."
       ]
     },
@@ -57,7 +57,7 @@
       "channel": "beta",
       "notes": [
         "Added editable melee controls in F8, ammo cartons, small zombie ammo drops, and uncommon ammunition near loose rifles.",
-        "Hangar ammunition is 30 rounds for $300; guest orders, parcel safeguards, and the $1,000 radiator are included.",
+        "Added 30-round ammo cartons for $300 and a $1,000 radiator. Fixed guest purchases and parcel delivery.",
         "Improved Hornet towing and rotor-blade pickup.",
         "Adjusted motorcycle tire alignment and rear skid effects, and improved rifle materials.",
         "Included performance fixes and published-release history in Launcher 1.2.2."
@@ -236,7 +236,7 @@
       "released": "2026-09-29",
       "channel": "beta",
       "notes": [
-        "Rotor-sync actor work deferred to the game tick to address an RPC callback crash."
+        "Fixed a multiplayer crash when syncing rotor blades."
       ]
     },
     {
@@ -244,7 +244,7 @@
       "released": "2026-09-28",
       "channel": "beta",
       "notes": [
-        "Owner-only aircraft simulation, multiplayer aircraft identity and blade fitting updates."
+        "Improved aircraft movement and rotor-blade fitting in multiplayer."
       ]
     },
     {
@@ -268,7 +268,7 @@
       "released": "2026-09-28",
       "channel": "beta",
       "notes": [
-        "Guest left-click blade attachment and replicated landing pad collision."
+        "Fixed guests fitting rotor blades and standing on landing pads."
       ]
     },
     {
@@ -292,7 +292,7 @@
       "released": "2026-09-28",
       "channel": "beta",
       "notes": [
-        "Hover docking and native towing force fixes."
+        "Fixed docking while hovering and towing."
       ]
     },
     {
@@ -308,7 +308,7 @@
       "released": "2026-09-28",
       "channel": "beta",
       "notes": [
-        "Blade pickup alignment and native left-click attachment."
+        "Fixed blade pickup alignment and left-click attachment."
       ]
     },
     {
@@ -348,7 +348,7 @@
       "released": "2026-09-27",
       "channel": "beta",
       "notes": [
-        "Single-seat Hornet gyrocopter with native servicing and rare airframe spawns."
+        "Added the single-seat Hornet gyrocopter and rare airframe spawns."
       ]
     },
     {

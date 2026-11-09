@@ -34,7 +34,7 @@ namespace BeyondModManager
 
     public static class Program
     {
-        public const string ManagerVersion = "1.0.10";
+        public const string ManagerVersion = "1.0.11";
         static readonly string DataRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BeyondModManager");
         static readonly JavaScriptSerializer Json = new JavaScriptSerializer { MaxJsonLength = 2 * 1024 * 1024, RecursionLimit = 32 };
         static readonly Dictionary<string, UpdateCandidate> Available = new Dictionary<string, UpdateCandidate>(StringComparer.OrdinalIgnoreCase);

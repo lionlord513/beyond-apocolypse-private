@@ -2,7 +2,7 @@
   "id": "mixtapemaker",
   "name": "MixTape Maker",
   "version": "0.1.0",
-  "description": "Record up to five YouTube tracks on a color-labeled cassette for the garage computer or Tuner laptop.",
+  "description": "Make cassettes with up to five YouTube tracks and play them in car radios or boomboxes.",
   "update": {
     "Provider": "github",
     "SealedRepository": "bmm1.TA3XsCgtKv+/mPABPeyx2Jeykg78HTIDFMZa0vFUZGH2vw610ebLfpMvY/uiNt0h6HyaW71Rf34N0ATYBxGTteBO8EKOPWgWWFmYgnMSQ2NX6c/MAogB+9V9eDdyklVO",

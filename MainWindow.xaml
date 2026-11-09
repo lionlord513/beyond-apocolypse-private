@@ -69,9 +69,9 @@
      <DockPanel><Button x:Name="BrowseGameButton" DockPanel.Dock="Right" Content="Browse" Margin="10,0,0,0"/><TextBox x:Name="GamePathText" IsReadOnly="True" VerticalContentAlignment="Center"/></DockPanel>
      <TextBlock Text="The folder that contains DriveBeyondHorizons.exe. Steam installations are detected automatically." Style="{StaticResource Muted}" Margin="0,9,0,24"/>
      <Border Background="#22281E" CornerRadius="8" Padding="19" Margin="0,0,0,20"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Margin="0,0,15,0"><TextBlock Text="Manager updates" FontSize="18" FontWeight="SemiBold"/><TextBlock Text="BMM checks for updates every time it opens." Style="{StaticResource Muted}" Margin="0,7,0,0"/><TextBlock x:Name="ManagerUpdateStatus" Foreground="#B6C395" FontSize="12" Margin="0,8,0,0"/></StackPanel><Button x:Name="ManagerUpdateButton" Grid.Column="1" Content="Check for updates" VerticalAlignment="Center"/></Grid></Border>
-     <Button x:Name="RepairRuntimeButton" Content="Repair mod support" HorizontalAlignment="Left" Margin="0,0,0,20"/>
+     <Button x:Name="RepairRuntimeButton" Content="repair Mod" HorizontalAlignment="Left" Margin="0,0,0,20"/>
      <TextBlock Text="FILES AND RECOVERY" Style="{StaticResource Eyebrow}" Margin="0,0,0,12"/><WrapPanel><Button x:Name="OpenGameFolderButton" Content="Game folder" Margin="0,0,10,10"/><Button x:Name="OpenBackupsButton" Content="Backups" Margin="0,0,10,10"/><Button x:Name="OpenManagerFolderButton" Content="Manager data" Margin="0,0,10,10"/></WrapPanel>
-     <TextBlock Text="Uninstall removes the selected mod folder, including its settings and generated data. Recovery copies stay outside the active mod folders. Game saves and shared UE4SS support are retained." Style="{StaticResource Muted}" Margin="0,0,0,24"/>
+     <TextBlock Text="Uninstall removes the mod, its settings and generated data. A recovery copy is kept in Backups. Game saves and shared UE4SS files are kept." Style="{StaticResource Muted}" Margin="0,0,0,24"/>
      <Expander x:Name="CreatorSection" Header="For mod creators" Foreground="#D4D8C5" FontSize="15"><StackPanel Margin="0,15,0,0"><TextBox x:Name="CreatorHelp" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" MaxHeight="350" FontSize="13"/><Button x:Name="CopyExampleButton" Content="Copy example bmm.json" HorizontalAlignment="Left" Margin="0,12,0,0"/></StackPanel></Expander>
     </StackPanel></ScrollViewer>
    </Grid>
@@ -81,7 +81,7 @@
    <Border Background="#242B20" BorderBrush="#5E704C" BorderThickness="1" CornerRadius="12" Width="720" MaxHeight="665" Padding="28" HorizontalAlignment="Center" VerticalAlignment="Center">
     <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
      <StackPanel><TextBlock Text="INSTALL MOD" Style="{StaticResource Eyebrow}"/><TextBlock x:Name="PreviewName" TextWrapping="Wrap" FontSize="27" FontWeight="SemiBold" Margin="0,9,0,8"/><TextBlock x:Name="PreviewSummary" Style="{StaticResource Muted}" Margin="0,0,0,20"/></StackPanel>
-     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="380"><StackPanel><TextBlock x:Name="PreviewDescription" TextWrapping="Wrap" Foreground="#D9DECA" LineHeight="23" Margin="0,0,0,15"/><TextBlock x:Name="PreviewDependencies" TextWrapping="Wrap" Foreground="#DDC8A0" LineHeight="20"/><TextBlock Text="Close the game before installing. Your settings and saves are kept." Style="{StaticResource Muted}" Margin="0,16,0,0"/></StackPanel></ScrollViewer>
+     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="380"><StackPanel><TextBlock x:Name="PreviewDescription" TextWrapping="Wrap" Foreground="#D9DECA" LineHeight="23" Margin="0,0,0,15"/><TextBlock x:Name="PreviewDependencies" TextWrapping="Wrap" Foreground="#DDC8A0" LineHeight="20"/><TextBlock Text="Close the game before installing." Style="{StaticResource Muted}" Margin="0,16,0,0"/></StackPanel></ScrollViewer>
      <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,23,0,0"><Button x:Name="CancelImportButton" Content="Cancel" Margin="0,0,10,0"/><Button x:Name="ConfirmImportButton" Content="Install" Style="{StaticResource Primary}"/></StackPanel>
     </Grid>
    </Border>
@@ -91,7 +91,7 @@
     <StackPanel><TextBlock Text="MANAGER UPDATE" Style="{StaticResource Eyebrow}"/>
      <TextBlock x:Name="ManagerPromptVersion" FontSize="24" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,12,0,16"/>
      <ScrollViewer MaxHeight="280" VerticalScrollBarVisibility="Auto"><TextBlock x:Name="ManagerPromptNotes" TextWrapping="Wrap" LineHeight="22"/></ScrollViewer>
-     <TextBlock Text="Install the latest update? BMM will restart. Your installed mods stay in place." Style="{StaticResource Muted}" Margin="0,18,0,0"/>
+     <TextBlock Text="BMM will restart to install the update." Style="{StaticResource Muted}" Margin="0,18,0,0"/>
      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,22,0,0"><Button x:Name="ManagerPromptLater" Content="Later" Margin="0,0,10,0"/><Button x:Name="ManagerPromptInstall" Content="Install update" Style="{StaticResource Primary}"/></StackPanel>
     </StackPanel>
    </Border>
