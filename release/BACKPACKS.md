@@ -6,7 +6,7 @@ Small bags hold 6 items, medium bags 12 and large bags 18. The gold cells are yo
 
 - **Tab:** open your worn bag or a ground bag within 2 metres. Tab or Esc closes it.
 - With a bag worn and empty hands, look at a loose item within 2 metres and **right-click** to store it. Storage cells fill before free hotbar cells.
-- **Drag Hands to an empty cell** to store the held item. Drag a cell to Hands to retrieve it. Drag between cells to move or swap items; release outside a cell to cancel.
+- **Drag Hands to an empty cell** to store the held item. Drag a cell to Hands to retrieve it. Drag between cells to move or swap items; drag outside the window to drop an item. Release over empty space inside the window to cancel.
 - When holding a bag, **left-click** to equip or **right-click** to drop it with its contents.
 - **B:** remove your worn bag to empty hands while on foot. In a vehicle, B remains autopilot.
 - **Caps Lock:** toggle melee. Change melee bindings in **F9 > Controls**.

@@ -1,6 +1,6 @@
 -- One shared 2x optic. Identity rides native items; only the host consumes parts.
 return function(M,R,root,valid,H)
- local O={records={},seen={}};local J=R.journal
+ local O={records={},seen={},candidates={},lenses={},actorLenses={}};local J=R.journal
  local cache=assert(M.weaponMeshes);local meshClass=cache.class
  local scene=StaticFindObject('/Script/Engine.SceneComponent')
  local mathlib=StaticFindObject('/Script/Engine.Default__KismetMathLibrary')
@@ -22,10 +22,38 @@ return function(M,R,root,valid,H)
   for i,key in ipairs({'Diffuse','NormalMap','RoughnessMap','MetalMap'})do
    local tex=asset:LoadImage(i-1,{Compression=i==2 and 1 or 0,Group=0,bSRGB=i==1,MaxWidth=1024,MaxHeight=1024,bVerticalFlip=false,bForceHDR=false,bCompressMips=false,bStreaming=true,LODBias=0,bForceAutoDetect=true,ForcePixelFormat=0});assert(valid(tex));mat:SetTextureParameterValue(FName(key),tex)
   end
-  mat:SetTextureParameterValue(FName('AOMap'),StaticFindObject('/Script/Engine.Default__KismetRenderingLibrary'):ImportFileAsTexture2D(context,root..'/assets/gyrocopter/clean-ao.png'));mat:SetScalarParameterValue(FName('AODarkness'),0);material=mat;return mat
+  mat:SetTextureParameterValue(FName('AOMap'),StaticFindObject('/Script/Engine.Default__KismetRenderingLibrary'):ImportFileAsTexture2D(context,root..'/assets/gyrocopter/clean-ao.png'));mat:SetScalarParameterValue(FName('AODarkness'),1);material=mat;return mat
  end
  local function marker(a,name)
   for _,v in ipairs(a:K2_GetComponentsByClass(scene))do local c=v:get();if valid(c)and c.AttachSocketName:ToString()==name then return c end end
+ end
+ local function lenses(a,parent)
+  local key=parent:GetFullName();local r=O.lenses[key]
+  if r and valid(r.parent)and r.parent:GetAddress()==parent:GetAddress()and valid(r.front)and valid(r.rear)then return end
+  local mat=StaticFindObject('/Script/Engine.Default__KismetMaterialLibrary'):CreateDynamicMaterialInstance(a,LoadAsset('/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial'),FName('None'),0)
+  mat:SetVectorParameterValue(FName('Color'),{R=.025,G=.075,B=.095,A=1})
+  local function lens(x,radius)
+   local c=a:AddComponentByClass(meshClass,true,identity,false);assert(valid(c),'Sight lens unavailable')
+   c:SetStaticMesh((LoadAsset('/Engine/BasicShapes/Sphere.Sphere')));c:SetMaterial(0,mat)
+   c:K2_AttachToComponent(parent,FName('BA_2xLens'),0,0,0,false)
+   c:K2_SetRelativeLocation({X=x,Y=0,Z=O.axisHeight},false,{},true)
+   c:SetRelativeScale3D({X=.0015,Y=radius/50,Z=radius/50})
+   c:SetCollisionEnabled(0);c:SetGenerateOverlapEvents(false);c:SetComponentTickEnabled(false);c:SetIsReplicated(false);c:SetCastShadow(false)
+   return c
+  end
+  O.lenses[key]={actor=a,actorKey=a:GetFullName(),parent=parent,rear=lens(-9.1,1.03),front=lens(10.1,1.34),visible=true}
+  O.actorLenses[a:GetFullName()]=O.lenses[key]
+ end
+ function O.aim(a,aiming)
+  local r=aiming and valid(a)and O.actorLenses[a:GetFullName()]or nil
+  if O.aimed==r then return end
+  for _,old in pairs({previous=O.aimed,current=r})do
+   local visible=old~=r
+   if valid(old.front)then old.front:SetVisibility(visible,false)end
+   if valid(old.rear)then old.rear:SetVisibility(visible,false)end
+   old.visible=visible
+  end
+  O.aimed=r
  end
  function O.item(a)
   if not valid(a)then return false end;local name=a:GetFullName();if not(name:match('^Binocular_C ')or name:match('^LampeTorche_C '))then return false end
@@ -44,6 +72,7 @@ return function(M,R,root,valid,H)
    cache.fill(a,c,'optic','scope',getMaterial(a));c:SetCastShadow(false);built[key]=c
   end
   c:K2_SetRelativeTransform(tr,false,{},true)
+  lenses(a,c)
   return c
  end
  function O.markItem(a)
@@ -53,6 +82,7 @@ return function(M,R,root,valid,H)
  end
  function O.skinItem(a)
   if not O.item(a)then return end
+  O.records[a:GetFullName()]=a
   a.StaticMesh:SetVisibility(false,false)
   if a:GetFullName():match('^LampeTorche_C ')and valid(a.SpotLight)then a.SpotLight:SetVisibility(false,false);a.SpotLight:SetIntensity(0)end
   mesh(a,a.RootMeshComponent,identity,'BA_2xLoose')
@@ -79,21 +109,35 @@ return function(M,R,root,valid,H)
  end
  function O.tick()
   if os.clock()<(O.nextAt or 0)then return end;O.nextAt=os.clock()+1
-  for _,a in ipairs(FindAllOf('Binocular_C')or{})do if valid(a)then O.skinItem(a)end end
-  if os.clock()<(O.worldAt or 0)then return end;O.worldAt=os.clock()+5
-  local held={};for _,pc in ipairs(FindAllOf('PlayerController')or{})do if valid(pc)then local out={};pc:GetItemInHand(out);if valid(out.Item)then held[out.Item:GetAddress()]=true end end end
-  for _,a in ipairs(FindAllOf('LampeTorche_C')or{})do if valid(a)then
+  for key,c in pairs(built)do if not valid(c)then built[key]=nil end end
+  for key,r in pairs(O.lenses)do if not valid(r.actor)or not valid(r.parent)then
+   for _,c in ipairs({r.front,r.rear})do if valid(c)and valid(r.actor)then c:K2_DestroyComponent(r.actor)end end
+   O.lenses[key]=nil;if O.actorLenses[r.actorKey]==r then O.actorLenses[r.actorKey]=nil end
+  end end
+  if not O.seeded then
+   for _,kind in ipairs({'Binocular_C','LampeTorche_C'})do for _,a in ipairs(FindAllOf(kind)or{})do O.observe(a)end end;O.seeded=true
+  end
+  for key,a in pairs(O.records)do if valid(a)then O.skinItem(a)else O.records[key]=nil end end
+  local held;local count=0
+  for key,q in pairs(O.candidates)do local a=q.actor
+   if count>=16 then break end;count=count+1
+   if not valid(a)then O.candidates[key]=nil else
    local id=M.guid(a)
    if a:HasAuthority()and J.ready and id and not O.seen[id]then
     O.seen[id]=true
-    if a['From Level Spawn']==true and not a.FromInventory and not a.isAttached and not valid(a:GetAttachParentActor())and not held[a:GetAddress()]then
+    if a:GetFullName():match('^LampeTorche_C ')and a['From Level Spawn']==true and not a.FromInventory and not a.isAttached and not valid(a:GetAttachParentActor())then
+     if not held then held={};for _,pc in ipairs(FindAllOf('PlayerController')or{})do if valid(pc)then local out={};pc:GetItemInHand(out);if valid(out.Item)then held[out.Item:GetAddress()]=true end end end end
      local h=5381;for i=1,#id do h=(h*33+id:byte(i))&0xffffffff end
-     if h%100<40 then O.markItem(a)end
+     if h%100<40 and not held[a:GetAddress()]then O.markItem(a)end
     end
    end
-   O.skinItem(a)
+   if O.item(a)then O.skinItem(a);O.records[key]=a;O.candidates[key]=nil
+   elseif not a:HasAuthority()or J.ready then q.tries=q.tries+1;if q.tries>=30 then O.candidates[key]=nil end end
   end end
  end
- function O.reset()material=nil;built={};O.seen={};O.nextAt=0;O.worldAt=0 end
+ function O.observe(a)if valid(a)then O.candidates[a:GetFullName()]={actor=a,tries=0}end end
+ NotifyOnNewObject('/Game/BP/Items/Movable/Binocular/Binocular.Binocular_C',O.observe)
+ NotifyOnNewObject('/Game/BP/Items/Movable/ActivableInHand/LampeTorche.LampeTorche_C',O.observe)
+ function O.reset()material=nil;built={};O.seen={};O.records={};O.candidates={};O.lenses={};O.actorLenses={};O.aimed=nil;O.seeded=nil;O.nextAt=0 end
  return O
 end

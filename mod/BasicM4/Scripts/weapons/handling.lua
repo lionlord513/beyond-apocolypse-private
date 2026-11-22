@@ -47,6 +47,7 @@ return function(M,root,H,valid,enqueue,log)
   if c.def then return a,p,pc,c.def end
  end
  function V.reset()
+  if M.rail and M.rail.optic.aim then M.rail.optic.aim(nil,false)end
   reticle(false)
   for key in pairs(V.overlays or{})do opacity(nil,false,key)end
   if valid(V.pc)then V.pc:FOV(0)end
@@ -63,6 +64,7 @@ return function(M,root,H,valid,enqueue,log)
   opacity(hud and hud.CursorOverlay,aim,'cursor');opacity(hud and hud.StaticCursorAk,aim,'ak');opacity(hud and hud.StaticCursorItem,aim,'item')
   opacity(hud and hud.WeightInfoText,a~=nil,'weight')
   reticle(aim and M.rail and M.rail.optic.has(a),hud)
+  if M.rail and M.rail.optic.aim then M.rail.optic.aim(a,aim==true)end
  end
  function V.frame(dt)
   if M.active==false or M.features==false then return end

@@ -1,26 +1,41 @@
--- One retained, click-through cluster. Telemetry/text at 10 Hz; only bars move per frame.
+-- Retained instruments. Telemetry/text at 10 Hz; bars and needles animate per frame.
 return function(M,H,valid)
  local D={nextAt=0,cache={},bars={},segments={}};local game=StaticFindObject('/Script/Engine.Default__GameplayStatics')
  local colors={bg={R=.012,G=.019,B=.029,A=.91},line={R=.13,G=.19,B=.25,A=1},text={R=.90,G=.95,B=1,A=1},muted={R=.39,G=.50,B=.61,A=1},blue={R=.12,G=.57,B=1,A=1},purple={R=.65,G=.28,B=1,A=1},red={R=1,G=.20,B=.15,A=1},amber={R=1,G=.62,B=.15,A=1},green={R=.24,G=.85,B=.63,A=1}}
  local function clamp(x)return math.max(0,math.min(1,x))end
  local path=M.statePath and M.statePath('dashboard-position.txt')
+ local modePath=M.statePath and M.statePath('dashboard-mode.txt')
+ D.realistic=false
+ if modePath then local f=io.open(modePath,'r')or io.open(modePath..'.bak','r');if f then D.realistic=f:read('*l')=='realistic';f:close()end end
+ local function write(file,bytes)
+  local f=assert(io.open(file..'.tmp','w'),'Cannot save dashboard settings');assert(f:write(bytes));assert(f:close())
+  local old=io.open(file,'r');if old then old:close();os.remove(file..'.bak');assert(os.rename(file,file..'.bak'))end
+  local ok,e=os.rename(file..'.tmp',file);if not ok then if old then os.rename(file..'.bak',file)end;error(e)end
+ end
+ function D.setMode(realistic)
+  write(modePath,realistic and 'realistic\n'or 'compact\n');D.realistic=realistic==true;D.hide()
+ end
  if path then
   local f=io.open(path,'r')or io.open(path..'.bak','r')
   if f then
    local x,y=f:read('*n','*n');f:close()
    if x and y and x>=0 and x<=1 and y>=0 and y<=1 then D.savedX=x;D.savedY=y end
   end
+  local a=io.open(path..'.analog','r')or io.open(path..'.analog.bak','r')
+  if a then local x,y=a:read('*n','*n');a:close();if x and y and x>=0 and x<=1 and y>=0 and y<=1 then D.analogX=x;D.analogY=y end end
  end
  local function position(x,y)
   D.x=math.max(0,math.min(D.maxX,x));D.y=math.max(0,math.min(D.maxY,y))
   D.slot:SetPosition({X=D.x,Y=D.y})
  end
  function D.place(width,height,scale)
-  D.maxX=math.max(0,width-304*scale);D.maxY=math.max(0,height-D.height*scale)
-  position(D.savedX and D.savedX*D.maxX or D.maxX-30,D.savedY and D.savedY*D.maxY or height*.52-D.height*scale/2)
+  D.maxX=math.max(0,width-(D.widthBase or 304)*scale);D.maxY=math.max(0,height-D.height*scale)
+  local x,y=D.savedX,D.savedY
+  if D.analog then x,y=D.analogX,D.analogY end
+  position(x and x*D.maxX or(D.analog and D.maxX/2 or D.maxX-30),y and y*D.maxY or(D.analog and D.maxY-14*scale or height*.52-D.height*scale/2))
  end
  function D.press(q)
-  if not valid(D.widget)or not D.scale or q.X<D.x or q.X>D.x+304*D.scale or q.Y<D.y or q.Y>D.y+D.height*D.scale then return end
+  if not valid(D.widget)or not D.scale or q.X<D.x or q.X>D.x+(D.widthBase or 304)*D.scale or q.Y<D.y or q.Y>D.y+34*D.scale then return end
   D.drag={x=q.X-D.x,y=q.Y-D.y};return true
  end
  function D.move(q)if D.drag then position(q.X-D.drag.x,q.Y-D.drag.y)end end
@@ -28,11 +43,8 @@ return function(M,H,valid)
   if not D.drag then return end
   D.move(q);D.drag=nil
   local x=D.x/math.max(1,D.maxX);local y=D.y/math.max(1,D.maxY)
-  local f=assert(io.open(path..'.tmp','w'),'Cannot save dashboard position')
-  assert(f:write(('%.8f %.8f\n'):format(x,y)));assert(f:close())
-  local old=io.open(path,'r');if old then old:close();os.remove(path..'.bak');assert(os.rename(path,path..'.bak'))end
-  local ok,e=os.rename(path..'.tmp',path);if not ok then if old then os.rename(path..'.bak',path)end;error(e)end
-  D.savedX=x;D.savedY=y;return true
+  write(D.analog and path..'.analog' or path,('%.8f %.8f\n'):format(x,y))
+  if D.analog then D.analogX=x;D.analogY=y else D.savedX=x;D.savedY=y end;return true
  end
  local function new(k,outer)return StaticConstructObject(StaticFindObject('/Script/UMG.'..k),outer)end
  local function text(id,value)
@@ -41,7 +53,9 @@ return function(M,H,valid)
  local function tint(o,c)o:SetColorAndOpacity({SpecifiedColor=c,ColorUseRule=0})end
  local function color(id,c)if D.cache[id..'Color']~=c then D.cache[id..'Color']=c;tint(D[id],c)end end
  function D.hide()
+  if D.input then D.input.pointer(false)end
   if valid(D.widget)then D.widget:RemoveFromParent()end;D.widget=nil;D.drag=nil;D.bars={};D.cache={};D.segments={};D.vehicle=nil
+  D.surface=nil;D.buttons={};D.needles={};D.ignitionKey=nil
  end
  local function build(pc,flight)
   D.hide();D.rpmCount=nil;D.batteryColor=nil;D.scale=nil;local w=StaticFindObject('/Script/UMG.Default__WidgetBlueprintLibrary'):Create(pc,StaticFindObject('/Script/UMG.UserWidget'),pc)
@@ -49,7 +63,8 @@ return function(M,H,valid)
   local canvas=new('CanvasPanel',tree);tree.RootWidget=canvas
   local panel=new('CanvasPanel',tree);local slot=canvas:AddChildToCanvas(panel)
   slot:SetAnchors({Minimum={X=0,Y=0},Maximum={X=0,Y=0}});slot:SetAlignment({X=0,Y=0})
-  local height=flight and 426 or 342;slot:SetSize({X=304,Y=height});D.panel=panel;D.slot=slot
+  D.analog=D.realistic and not flight
+  local height=D.analog and 238 or flight and 426 or 342;D.widthBase=D.analog and 720 or 304;slot:SetSize({X=D.widthBase,Y=height});D.panel=panel;D.slot=slot
   local function box(x,y,width,height,c,round)
    local o=new('Image',tree)
    if round then o:SetBrush({DrawAs=4,TintColor={SpecifiedColor=c,ColorUseRule=0},OutlineSettings={Color={SpecifiedColor=colors.line,ColorUseRule=0},Width=1,CornerRadii={X=round,Y=round,Z=round,W=round},RoundingType=0}})else o:SetColorAndOpacity(c)end
@@ -59,6 +74,7 @@ return function(M,H,valid)
    local t=new('TextBlock',tree);local f=t.Font;f.Size=size;t:SetFont(f);tint(t,c or colors.text);if align then t:SetJustification(align)end
    local s=panel:AddChildToCanvas(t);s:SetPosition({X=x,Y=y});s:SetSize({X=width,Y=height});D[id]=t;return t
   end
+  if D.analog then dofile(M.root..'/Scripts/dashboard_realistic.lua')(D,box,label,text,colors)else
   box(0,0,304,height,colors.bg,14);box(20,16,3,15,colors.blue)
   label('title',32,15,218,22,11,colors.muted)
   -- Battery warning is a real vector symbol, independent of font glyph support.
@@ -87,7 +103,10 @@ return function(M,H,valid)
    box(99,y+5,77,4,colors.line);local o,s=box(99,y+5,0,4,colors.blue);D.bars[key]={image=o,slot=s,width=77,height=4,target=0,display=0}
   end
   box(20,height-37,264,1,colors.line);label('status',20,height-25,264,18,10,colors.muted)
-  w:AddToViewport(7900);w:SetVisibility(3);D.widget=w;D.flightMode=flight;D.height=height
+  end
+  D.input=D.input or dofile(M.root..'/Scripts/dashboard_input.lua')(M,H,valid,D)
+  D.input.attach(pc,tree,panel,D.widthBase,height)
+  w:AddToViewport(7900);w:SetVisibility(4);D.widget=w;D.flightMode=flight;D.height=height
  end
  local function fluid(a)
   if not valid(a)then return nil end;local t=a.ItemTankComponent;if not valid(t)then return nil end
@@ -112,7 +131,7 @@ return function(M,H,valid)
   local layout=StaticFindObject('/Script/UMG.Default__WidgetLayoutLibrary');local viewport=layout:GetViewportSize(pc);local dpi=layout:GetViewportScale(pc)
   if dpi<=0 or viewport.X<=0 or viewport.Y<=0 then return end
   local width,height=viewport.X/dpi,viewport.Y/dpi
-  local scale=math.min(1,height/720,width/304)
+  local scale=math.min(1,height/720,width/D.widthBase)
   if D.scale~=scale or D.width~=width or D.vh~=height then
    D.width=width;D.vh=height;D.scale=scale;D.panel:SetRenderTransformPivot({X=0,Y=0});D.panel:SetRenderScale({X=scale,Y=scale});D.place(width,height,scale)
   end
@@ -126,6 +145,15 @@ return function(M,H,valid)
   local count=math.floor(clamp(rpm/math.max(1,maximum))*18+.5)
   if D.rpmCount~=count then D.rpmCount=count;for i,o in ipairs(D.segments)do o:SetColorAndOpacity(i>count and colors.line or i>15 and colors.red or i>12 and colors.amber or colors.blue)end end
   text('rpm',(flight and 'ROTOR 'or '')..('%.0f RPM'):format(rpm))
+  if D.analog then
+   D.needles.speedDial.target=clamp(speed/240);D.needles.rpmDial.target=clamp(rpm/8000)
+   local indicator=tonumber(a['Light Indicator'])or 0;local blink=a.IsLightBlink==true
+   color('leftSignal',blink and(indicator==1 or indicator==3)and colors.green or colors.muted)
+   color('rightSignal',blink and(indicator==2 or indicator==3)and colors.green or colors.muted)
+   local running=a.EngineRunning==true
+   if D.cache.keyRunning~=running then D.cache.keyRunning=running;D.ignitionKey:SetRenderTransformAngle(running and 35 or 0)end
+   text('ignition',running and 'KEY / STOP'or 'HOLD KEY / START')
+  end
   text('temperature',valid(motor)and ('%.0f C'):format(motor.Heat)or 'NO ENGINE');color('temperature',valid(motor)and motor.IsHeatLimit and colors.red or colors.muted)
   local gear=a.CurrentGear;text('gear',flight and 'AIR'or gear<0 and 'R'or gear==0 and 'N'or tostring(gear))
   local fq,fc=fluid(part(a,'CarTankGasV2'));gauge('fuel',fq,fc)
@@ -153,12 +181,16 @@ return function(M,H,valid)
   end
  end
  function D.frame(dt)
+  if D.input then D.input.frame()end
   if not valid(D.widget)then return end
   local r=M.gyrocopter and M.gyrocopter.hudRecord
   if D.flightMode and r and r.result and D.bars.collective then D.bars.collective.target=clamp(r.result.collective or 0)end
   local alpha=1-math.exp(-35*math.max(0,math.min(dt or 0,.1)))
   for _,bar in pairs(D.bars)do local value=bar.display+(bar.target-bar.display)*alpha
    if math.abs(value-bar.display)>.0001 then bar.display=value;bar.slot:SetSize({X=bar.width*value,Y=bar.height})end
+  end
+  for _,needle in pairs(D.needles or{})do local value=needle.value+(needle.target-needle.value)*alpha
+   if math.abs(value-needle.value)>.0001 then needle.value=value;needle.image:SetRenderTransformAngle(135+270*value)end
   end
  end
  function D.reset()D.hide();D.nextAt=0;D.scale=nil;D.rpmCount=nil;D.batteryColor=nil;D.flightMessage=nil end

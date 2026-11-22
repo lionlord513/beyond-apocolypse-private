@@ -12,7 +12,18 @@ return function(B,M,root,H,valid,enqueue,log)
  local function same(a,b)return valid(a)and valid(b)and a:GetAddress()==b:GetAddress()end
  function N.tier(b)return valid(b)and P.tiers[b:GetFullName():match('^(%S+)')]end
  function N.worn(p)local o={};p:GetBackpack(o);return o.Backpack end
- function N.held(pc)local o={};pc:GetItemInHand(o);return valid(o.Item)and o.Item or nil end
+ function N.held(pc)
+  local o={};pc:GetItemInHand(o);if valid(o.Item)then return o.Item end
+  local p=pc.PlayerControlled;return valid(p)and valid(p.ItemEquiped)and p.ItemEquiped or nil
+ end
+ function N.liveSlot(pc,b,k)
+  local p=pc.PlayerControlled;if not valid(p)then return false end
+  local i=b.BP_InventoryComponent;local held=N.held(pc);local equipped=p.ItemEquiped
+  for _,a in pairs({held=held,equipped=equipped})do if valid(a)then
+   if same(a.LastInventoryComponent,i)and a.LastSlot==k then return true end
+  end end
+  return (valid(held)or valid(equipped))and same(N.worn(p),b)and i.CurrentSlot==k
+ end
  function N.nativeData(b)
   local result={}
   if b:HasAuthority()then
@@ -193,7 +204,7 @@ return function(B,M,root,H,valid,enqueue,log)
   elseif r.op=='move'then
    -- Native quick slots retain a save snapshot while their live item is equipped.
    -- Never move that stale snapshot; putting the held item removes it natively.
-   if h and same(N.worn(p),b)and valid(p.ItemEquiped)then assert(r.from~=i.CurrentSlot and r.to~=i.CurrentSlot,'Store the held item before moving its hotbar cell')end
+   assert(not N.liveSlot(pc,b,r.from)and not N.liveSlot(pc,b,r.to),'Put away the equipped item before moving its quick slot')
    local backup=stage(b,{r.from,r.to})
    local worked,err=pcall(function()
     slots:Add(r.to,backup:Find(r.from):get())
@@ -212,6 +223,7 @@ return function(B,M,root,H,valid,enqueue,log)
    local worn=N.worn(p)
    if valid(worn)then worn.BP_InventoryComponent:RemoveItem(h)end
    if valid(p.ItemEquiped)then p:RemoveEquipedItem()end;pc:RemoveItemInHand()
+   assert(not same(N.held(pc),h)and not same(p.ItemEquiped,h),'Item is still equipped; put it away before storing it')
    out={};eligible(h,function()expanded(i,tier.cells,function()i:AddItemToSlot(r.to,h,false,false,out)end)end)
    if not out.Added then h:ExecutePrimaryAction(true,pc,h.RootComponent,h);error('Storage refused; item returned to the world/hands')end
    -- ShouldDestroy=false leaves a recoverable original until success is verified.
@@ -220,7 +232,7 @@ return function(B,M,root,H,valid,enqueue,log)
    h:K2_DestroyActor();changed(b);if valid(worn)and not same(worn,b)then changed(worn)end;return 'Item stored'
   elseif r.op=='attach'then
    assert(M.rail,'Weapon attachments unavailable')
-   if h and same(N.worn(p),b)and valid(p.ItemEquiped)then assert(r.from~=i.CurrentSlot and r.to~=i.CurrentSlot,'Store the equipped item before attaching')end
+   assert(not N.liveSlot(pc,b,r.from)and not N.liveSlot(pc,b,r.to),'Put away the equipped item before fitting attachments')
    local backup=stage(b,{r.from,r.to});local lamp,gun,id,previous,kind
    local worked,err=pcall(function()
     local out={};i:GetItemFromSlot(r.from,true,p:K2_GetActorLocation(),false,true,out);lamp=out.Item;assert(valid(lamp),'Flashlight retrieval failed')
@@ -243,7 +255,7 @@ return function(B,M,root,H,valid,enqueue,log)
    backup:Empty();changed(b);if not worked then error(err)end;return 'Attachment fitted'
   elseif r.op=='detach'then
    assert(M.rail,'Attachments unavailable')
-   if h and same(N.worn(p),b)and valid(p.ItemEquiped)then assert(r.from~=i.CurrentSlot,'Store the equipped rifle first')end
+   assert(not N.liveSlot(pc,b,r.from),'Put away the equipped rifle first')
    local backup=stage(b,{r.from});local gun,id,made,old
    local ok,e=pcall(function()
     local out={};i:GetItemFromSlot(r.from,true,p:K2_GetActorLocation(),false,true,out);gun=out.Item;assert(valid(gun),'Rifle retrieval failed')
@@ -264,7 +276,7 @@ return function(B,M,root,H,valid,enqueue,log)
    N.dropHeld(pc,h)
    changed(b);return 'Item dropped'
   elseif r.op=='take'or r.op=='drop'then
-   if r.op=='drop'and h and same(N.worn(p),b)and valid(p.ItemEquiped)then assert(r.from~=i.CurrentSlot,'Drop the equipped item from hands')end
+   assert(not N.liveSlot(pc,b,r.from),'Use the item in your hands instead of its quick slot')
    local backup=stage(b,{r.from});local out={}
    local at=p:K2_GetActorLocation()
    if r.op=='drop'then local f=p:GetActorForwardVector();at={X=at.X+f.X*100,Y=at.Y+f.Y*100,Z=at.Z+30}end

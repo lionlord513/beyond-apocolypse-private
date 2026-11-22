@@ -1,3 +1,9 @@
+1.1.7
+- Fixed backpack quick slots duplicating an equipped weapon when dragged into storage.
+- Fixed the 2x sight appearing hollow outside aim-down-sights.
+- Hold Right Alt and drag the dashboard header to move it. Enable Realistic dashboard in F9 > Settings > Gameplay for analog gauges, an ignition key and turn signals.
+- Reduced repeated scope and load-menu searches. Cleaned up older changelog entries.
+
 1.1.6
 - Shortened menus, help and descriptions. Gameplay and controls are unchanged.
 
@@ -7,6 +13,15 @@
 - Fixed the zombie limit removing the Mechanic. He now uses one slot in the limit.
 - Fixed a Hornet texture issue after cleaning the airframe.
 - Fixed guests being unable to open some Hangar computers.
+
+1.1.4
+- Added dashboard positioning in F9 > Settings > Gameplay. Restored the Beyond Tuning nitrous gauge and boost status.
+- Fixed rifles disappearing or showing the wrong model in multiplayer.
+- Fixed wild Hornet spawns failing at blocked locations.
+- Fixed the Hornet fighting against a vehicle towing it.
+- Fixed transport, ammo and weapon attachments after loading or using Save As.
+- Fixed guest Hangar orders charging the host and ammo reserves being mixed up for offline players.
+- Fixed leftover mod state when changing worlds.
 
 1.1.3
 - Matched the Nexus and mod manager downloads.
@@ -20,7 +35,7 @@
 - Updated graphics settings support for the November 4 hotfix.
 
 1.1.1
-- Fixed the AlienÃ¢â‚¬â„¢s eyes and added glowing irises.
+- Fixed the Alien's eyes and added glowing irises.
 - Fixed the Alien head appearing in first person.
 - Alien skin paint now leaves toenails unchanged.
 - The Alien can now wear shirts, pants and shoes.
@@ -31,31 +46,57 @@
 - Fixed reserve ammo decreasing after a reload.
 
 1.0.11
-- Moved nitrous bottles and boost to Beyond Tuning.
+- Moved nitrous bottles and boost to Beyond Tuning 1.2.0. Install Beyond Tuning to keep using existing bottles and buy new ones in Car Tuning > Boost.
+- Bottle contents stay in the game save, and Beyond Tuning imports existing nitrous records. Update both mods on every co-op player's PC.
 
 1.0.10
-- Added the player model selector and SciFi Soldier.
+- Added the F9 player-model selector, SciFi Soldier and matching first-person arms.
+- Appearance choices save between sessions and remain active in vehicles. Soldier clothing is hidden; helmets remain visible to other players.
+- Everyone in co-op must update and restart. Separate-PC testing was still pending.
 
 1.0.9
-- Fixed AK iron sights and updated Performance Mode.
+- Corrected AK iron sights.
+- Removed repeated scenery visibility checks from Performance Mode and restored the game's normal distance culling.
+- Performance settings now skip unchanged values and restore previous settings when disabled.
+- FPS improvements varied between test scenes. Final visual testing was still pending.
 
 1.0.8
-- Improved rifle and bottle lighting and fixed motorcycle and inventory issues.
+- Fixed rifle and nitrous textures appearing too dark in shade.
+- Added purple Stage II flames and stage colours to the bottle inspection display.
+- Replaced the barrel-sized collision shape with a bottle-sized one.
+- Bottles now mount horizontally; pickup, pouring and the valve follow the new position.
 
 1.0.7
-- Added six refillable nitrous bottles.
+- Added six refillable nitrous bottles: Stage I and Stage II in 2, 5 and 10 litre sizes.
+- Attach a filled bottle and hold Shift while driving. Braking, sharp steering and high speed limit boost; extra bottles increase supply without stacking boost power.
+- Added bottle loot and Hangar purchases.
+- Added a digital vehicle dashboard and a separate Hornet flight dashboard. Hornet flight controls are unchanged.
+- Remote co-op, all vehicle variants and extended sessions still needed testing.
 
 1.0.6
 - Updated for game build 26106988.
+- Added F9 settings, player stats and host zombie limits of 2�40.
+- Reduced repeated scenery, input and trailer searches.
+- Improved motorcycle seating, parked wheels and removable headlights. Fixed Hornet steering after landing and smoothed its collective gauge.
+- Fixed rotor-blade pickup, multiplayer part fitting, Hangar purchases and saved controls.
+- Audio crackling after a heavily populated session remained unconfirmed. Performance gains vary by PC and scene.
 
 1.0.5
-- Refined both motorcycles, rider positioning and removable headlights.
+- Fixed missing purchase and vehicle data after a fresh Mod Manager install.
+- Improved motorcycles, Hangar purchases, backpacks, saved keybindings, engine fitting and rotor-blade pickup.
+- Reduced Performance Mode and weapon-audio loading work.
+- Renamed the mod folder to BeyondApocalypse and kept existing settings.
 
 1.0.4
-- Refined the compact Suzuki PV 50 with fitted service parts, corrected grip targets and clearer detailed metal finishes.
+- Added the Suzuki PV 50, Hangar purchases and rare motorcycle spawns.
+- Improved moped parts, rider posture and materials. Hold X for a wheelie.
+- Fixed Hangar loading and added saved Performance Mode settings in F8.
 
 1.0.3
-- Added editable melee controls in F8, ammo cartons, small zombie ammo drops, and uncommon ammunition near loose rifles.
+- Added ammo cartons, small zombie ammo drops and uncommon world ammunition. Hangar cartons cost $300 for 30 rounds.
+- Added F8 melee keybindings and wider rotor-blade pickup targeting.
+- Improved towing stability, motorcycle wheels, rifle materials and guest Hangar purchases.
+- Beta release. Live towing, multiplayer, rifle lighting and parked motorcycle movement still needed testing.
 
 1.0.2
 - Public release on Nexus Mods.
@@ -64,16 +105,16 @@
 - Motorcycle update.
 
 0.13.12
-- Optional simple flight and automatic hover and gameplay and keybinding tabs in F8.
+- Added simple flight, automatic hover, and gameplay and keybinding tabs in F8.
 
 0.13.11
-- Aircraft fitting and rotor blade inventory fixes and F8 settings, bindings and personal stats.
+- Fixed aircraft fitting and rotor-blade storage. Added F8 settings, keybindings and player stats.
 
 0.13.10
-- Multiplayer aiming, audio and performance updates and Hangar ammunition and airframe changes.
+- Improved multiplayer aiming, rifle sounds and performance. Updated Hangar ammunition and airframes.
 
 0.13.9
-- Sights, rifle sounds and handling updates and Hangar and airframe fixes.
+- Improved sights, rifle sounds and handling. Fixed Hangar and airframe issues.
 
 0.13.8
 - Hangar shop update.
@@ -112,7 +153,7 @@
 - Mod update with Launcher 1.1.
 
 0.11.11
-- Backpack removal and guest inventory refresh fixes and docking ownership updates.
+- Fixed backpack removal and guest inventory refresh. Improved multiplayer docking.
 
 0.11.10
 - Separated the player release package from development tools.
@@ -127,7 +168,7 @@
 - Improved aircraft movement and rotor-blade fitting in multiplayer.
 
 0.11.6
-- Docking collision, delayed attachment and trailer-mass synchronization fixes.
+- Fixed docking collisions, delayed attachments and trailer weight in multiplayer.
 
 0.11.5
 - Restored the missing heli-trailer landing pad.
@@ -136,16 +177,16 @@
 - Fixed guests fitting rotor blades and standing on landing pads.
 
 0.11.3
-- Multiplayer aircraft/blade identities and docking synchronization.
+- Fixed aircraft and rotor-blade identification and docking in multiplayer.
 
 0.11.2
-- Landing pad trim and stopped-engine Hornet audio cleanup.
+- Adjusted landing-pad trim and stopped Hornet audio when the engine is off.
 
 0.11.1
 - Fixed docking while hovering and towing.
 
 0.11.0
-- Native blade removal/refitting and separate Trailer/Heli trailer choices.
+- Added removable rotor blades and separate Trailer and Heli trailer choices.
 
 0.10.1
 - Fixed blade pickup alignment and left-click attachment.
@@ -157,7 +198,7 @@
 - Hornet radiator and battery mounting positions retained after refitting.
 
 0.9.2
-- Native input conflict fixes for aircraft vertical movement and banking.
+- Fixed conflicting flight controls for climbing, descending and banking.
 
 0.9.1
 - Assisted vertical flight and restored rotor/propeller visibility.
@@ -166,7 +207,7 @@
 - Added the single-seat Hornet gyrocopter and rare airframe spawns.
 
 0.8.0
-- Imported Hazmat zombie variant with distance detail levels.
+- Added Hazmat zombies with lower-detail models at a distance.
 
 0.7.2
 - Multiplayer backpack lookup and transfer feedback fixes.

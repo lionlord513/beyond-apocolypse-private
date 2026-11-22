@@ -1,6 +1,7 @@
 -- Shared edition artwork for the native loading/title screen and home menu.
 return function(root,release,H,valid)
- local B={enabled=true}
+ local B={enabled=true,loaders={}}
+ NotifyOnNewObject('/Game/UI/LoadGameUI.LoadGameUI_C',function(w)B.loaders[#B.loaders+1]=w end)
  local function dispose()
   if valid(B.widget)then B.widget:RemoveFromParent()end
   B.widget=nil;B.texture=nil;B.image=nil;B.label=nil;B.size=nil;B.home=nil;B.splash=nil;B.loading=nil
@@ -28,10 +29,12 @@ return function(root,release,H,valid)
    if B.widget or B.splash or B.loading then dispose()end;return
   end
   -- Saved-world loading can remain visible after the destination map is active.
+  if not B.seeded then B.loaders=FindAllOf('LoadGameUI_C')or{};B.seeded=true end
   if not valid(B.loading)or not B.loading:IsInViewport()then
    B.loading=nil
-   for _,screen in ipairs(FindAllOf('LoadGameUI_C')or{})do
-    if valid(screen)and screen:IsInViewport()then B.loading=screen;break end
+   for i=#B.loaders,1,-1 do local screen=B.loaders[i]
+    if not valid(screen)then table.remove(B.loaders,i)
+    elseif screen:IsInViewport()then B.loading=screen;break end
    end
   end
   replaceLogo(B.loading)
