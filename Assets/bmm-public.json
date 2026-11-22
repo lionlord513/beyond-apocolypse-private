@@ -2,10 +2,9 @@
   "schema": 1,
   "id": "bmm",
   "name": "Beyond Mod Manager",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "notes": [
-    "Shortened descriptions, help and update messages.",
-    "Renamed Repair mod support to repair Mod."
+    "Updated the built-in mod versions and Apocalypse changelog."
   ],
   "description": "Install, update, enable and remove Drive Beyond Horizons mods.",
   "update": {

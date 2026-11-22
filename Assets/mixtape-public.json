@@ -1,7 +1,7 @@
 {
   "id": "mixtapemaker",
   "name": "MixTape Maker",
-  "version": "0.1.0",
+  "version": "0.1.6",
   "description": "Make cassettes with up to five YouTube tracks and play them in car radios or boomboxes.",
   "update": {
     "Provider": "github",
@@ -13,6 +13,14 @@
     "Kind": "mod"
   },
   "history": [
+    {
+      "Version": "0.1.6",
+      "Channel": "beta",
+      "Released": "2026-11-09",
+      "Notes": [
+        "Shortened the player guide and tape recovery instructions."
+      ]
+    },
     {
       "Version": "0.1.0",
       "Channel": "beta",

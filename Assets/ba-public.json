@@ -2,7 +2,7 @@
   "schema": 1,
   "id": "beyondapocalypse",
   "name": "Beyond Apocalypse",
-  "version": "1.0.6",
+  "version": "1.1.7",
   "channel": "stable",
   "description": "Zombies, rifles, backpacks, motorcycles, the Hornet gyrocopter and custom player models. Buy gear at the Hangar. Press F9 for settings. Everyone in co-op needs the same version.",
   "website": "https://www.nexusmods.com/drivebeyondhorizons/mods/28",
@@ -16,17 +16,156 @@
   },
   "history": [
     {
+      "version": "1.1.7",
+      "channel": "stable",
+      "released": "2026-11-22",
+      "notes": [
+        "Fixed backpack quick slots duplicating an equipped weapon when dragged into storage.",
+        "Fixed the 2x sight appearing hollow outside aim-down-sights.",
+        "Hold Right Alt and drag the dashboard header to move it. Enable Realistic dashboard in F9 > Settings > Gameplay for analog gauges, an ignition key and turn signals.",
+        "Reduced repeated scope and load-menu searches. Cleaned up older changelog entries."
+      ]
+    },
+    {
+      "version": "1.1.6",
+      "channel": "stable",
+      "released": "2026-11-09",
+      "notes": [
+        "Shortened menus, help and descriptions. Gameplay and controls are unchanged."
+      ]
+    },
+    {
+      "version": "1.1.5",
+      "channel": "stable",
+      "released": "2026-11-06",
+      "notes": [
+        "Extreme Performance Mode removes decorative grass, bushes and clouds, and lowers sky and tree detail. Turning it off restores your previous settings.",
+        "Reduced rifle-switching stutter and fixed rifles briefly showing the wrong model.",
+        "Fixed the zombie limit removing the Mechanic. He now uses one slot in the limit.",
+        "Fixed a Hornet texture issue after cleaning the airframe.",
+        "Fixed guests being unable to open some Hangar computers."
+      ]
+    },
+    {
+      "version": "1.1.4",
+      "channel": "stable",
+      "released": "2026-11-05",
+      "notes": [
+        "Added dashboard positioning in F9 > Settings > Gameplay. Restored the Beyond Tuning nitrous gauge and boost status.",
+        "Fixed rifles disappearing or showing the wrong model in multiplayer.",
+        "Fixed wild Hornet spawns failing at blocked locations.",
+        "Fixed the Hornet fighting against a vehicle towing it.",
+        "Fixed transport, ammo and weapon attachments after loading or using Save As.",
+        "Fixed guest Hangar orders charging the host and ammo reserves being mixed up for offline players.",
+        "Fixed leftover mod state when changing worlds."
+      ]
+    },
+    {
+      "version": "1.1.3",
+      "channel": "stable",
+      "released": "2026-11-04",
+      "notes": [
+        "Matched the Nexus and mod manager downloads.",
+        "Fixed repeated update prompts after installing from Nexus."
+      ]
+    },
+    {
+      "version": "1.1.2",
+      "channel": "stable",
+      "released": "2026-11-04",
+      "notes": [
+        "Fixed the Alien and Soldier blocking the driver's view.",
+        "Restored visible arms while driving in first person.",
+        "Restored the Alien's arms and chest in first person.",
+        "Improved Alien finger movement.",
+        "Updated graphics settings support for the November 4 hotfix."
+      ]
+    },
+    {
+      "version": "1.1.1",
+      "channel": "stable",
+      "released": "2026-11-03",
+      "notes": [
+        "Fixed the Alien's eyes and added glowing irises.",
+        "Fixed the Alien head appearing in first person.",
+        "Alien skin paint now leaves toenails unchanged.",
+        "The Alien can now wear shirts, pants and shoes."
+      ]
+    },
+    {
+      "version": "1.1.0",
+      "channel": "stable",
+      "released": "2026-11-03",
+      "notes": [
+        "Added the Alien with glowing eyes.",
+        "Added a color wheel for each player model and matte or metallic finishes for the Soldier.",
+        "Fixed reserve ammo decreasing after a reload."
+      ]
+    },
+    {
+      "version": "1.0.11",
+      "released": "2026-11-03",
+      "channel": "stable",
+      "notes": [
+        "Moved nitrous bottles and boost to Beyond Tuning 1.2.0. Install Beyond Tuning to keep using existing bottles and buy new ones in Car Tuning > Boost.",
+        "Bottle contents stay in the game save, and Beyond Tuning imports existing nitrous records. Update both mods on every co-op player's PC."
+      ]
+    },
+    {
+      "version": "1.0.10",
+      "released": "2026-11-02",
+      "channel": "stable",
+      "notes": [
+        "Added the F9 player-model selector, SciFi Soldier and matching first-person arms.",
+        "Appearance choices save between sessions and remain active in vehicles. Soldier clothing is hidden; helmets remain visible to other players.",
+        "Everyone in co-op must update and restart. Separate-PC testing was still pending."
+      ]
+    },
+    {
+      "version": "1.0.9",
+      "released": "2026-11-02",
+      "channel": "stable",
+      "notes": [
+        "Corrected AK iron sights.",
+        "Removed repeated scenery visibility checks from Performance Mode and restored the game's normal distance culling.",
+        "Performance settings now skip unchanged values and restore previous settings when disabled.",
+        "FPS improvements varied between test scenes. Final visual testing was still pending."
+      ]
+    },
+    {
+      "version": "1.0.8",
+      "released": "2026-11-02",
+      "channel": "stable",
+      "notes": [
+        "Fixed rifle and nitrous textures appearing too dark in shade.",
+        "Added purple Stage II flames and stage colours to the bottle inspection display.",
+        "Replaced the barrel-sized collision shape with a bottle-sized one.",
+        "Bottles now mount horizontally; pickup, pouring and the valve follow the new position."
+      ]
+    },
+    {
+      "version": "1.0.7",
+      "released": "2026-11-02",
+      "channel": "stable",
+      "notes": [
+        "Added six refillable nitrous bottles: Stage I and Stage II in 2, 5 and 10 litre sizes.",
+        "Attach a filled bottle and hold Shift while driving. Braking, sharp steering and high speed limit boost; extra bottles increase supply without stacking boost power.",
+        "Added bottle loot and Hangar purchases.",
+        "Added a digital vehicle dashboard and a separate Hornet flight dashboard. Hornet flight controls are unchanged.",
+        "Remote co-op, all vehicle variants and extended sessions still needed testing."
+      ]
+    },
+    {
       "version": "1.0.6",
       "released": "2026-11-01",
       "channel": "stable",
       "notes": [
-        "Updated for Drive Beyond Horizons build 26106988 while retaining established vehicle, inventory, input and Hangar fixes.",
-        "F9 opens player settings, statistics and host zombie population controls (2 to 40). Default targets are 5 by day and 10 at night or around an infested building.",
-        "Reduced background work to improve performance.",
-        "Improved motorcycle rider positions, parked wheels and removable headlights.",
-        "Fixed Hornet steering after landing and made the collective gauge smoother.",
-        "Fixed rotor-blade pickup, fitting parts in multiplayer, Hangar purchases and saved keybindings.",
-        "Public gameplay files only. Mod Manager is optional; the game can be launched directly through Steam."
+        "Updated for game build 26106988.",
+        "Added F9 settings, player stats and host zombie limits of 2\u201340.",
+        "Reduced repeated scenery, input and trailer searches.",
+        "Improved motorcycle seating, parked wheels and removable headlights. Fixed Hornet steering after landing and smoothed its collective gauge.",
+        "Fixed rotor-blade pickup, multiplayer part fitting, Hangar purchases and saved controls.",
+        "Audio crackling after a heavily populated session remained unconfirmed. Performance gains vary by PC and scene."
       ]
     },
     {
@@ -34,10 +173,10 @@
       "released": "2026-10-07",
       "channel": "beta",
       "notes": [
-        "Refined both motorcycles, rider positioning and removable headlights.",
-        "Improved Hangar purchases, backpack handling and saved keybinds.",
-        "Smoother Performance Mode updates and lighter weapon audio loading.",
-        "Improved engine fitting and rotor-blade pickup."
+        "Fixed missing purchase and vehicle data after a fresh Mod Manager install.",
+        "Improved motorcycles, Hangar purchases, backpacks, saved keybindings, engine fitting and rotor-blade pickup.",
+        "Reduced Performance Mode and weapon-audio loading work.",
+        "Renamed the mod folder to BeyondApocalypse and kept existing settings."
       ]
     },
     {
@@ -45,10 +184,9 @@
       "released": "2026-10-06",
       "channel": "beta",
       "notes": [
-        "Refined the compact Suzuki PV 50 with fitted service parts, corrected grip targets and clearer detailed metal finishes.",
-        "Hold X while riding either motorcycle to gradually raise the front up to 35 degrees; release X to lower it.",
-        "Fixed issues opening the Hangar and ordering items.",
-        "Includes saved F8 Performance Mode, both rare motorcycle loot variants, all three repaired rifles and the existing 1.0.4 fixes. Everyone in co-op should update and restart."
+        "Added the Suzuki PV 50, Hangar purchases and rare motorcycle spawns.",
+        "Improved moped parts, rider posture and materials. Hold X for a wheelie.",
+        "Fixed Hangar loading and added saved Performance Mode settings in F8."
       ]
     },
     {
@@ -56,11 +194,10 @@
       "released": "2026-10-05",
       "channel": "beta",
       "notes": [
-        "Added editable melee controls in F8, ammo cartons, small zombie ammo drops, and uncommon ammunition near loose rifles.",
-        "Added 30-round ammo cartons for $300 and a $1,000 radiator. Fixed guest purchases and parcel delivery.",
-        "Improved Hornet towing and rotor-blade pickup.",
-        "Adjusted motorcycle tire alignment and rear skid effects, and improved rifle materials.",
-        "Included performance fixes and published-release history in Launcher 1.2.2."
+        "Added ammo cartons, small zombie ammo drops and uncommon world ammunition. Hangar cartons cost $300 for 30 rounds.",
+        "Added F8 melee keybindings and wider rotor-blade pickup targeting.",
+        "Improved towing stability, motorcycle wheels, rifle materials and guest Hangar purchases.",
+        "Beta release. Live towing, multiplayer, rifle lighting and parked motorcycle movement still needed testing."
       ]
     },
     {
@@ -84,7 +221,7 @@
       "released": "2026-10-03",
       "channel": "beta",
       "notes": [
-        "Optional simple flight and automatic hover; gameplay and keybinding tabs in F8."
+        "Added simple flight, automatic hover, and gameplay and keybinding tabs in F8."
       ]
     },
     {
@@ -92,7 +229,7 @@
       "released": "2026-10-03",
       "channel": "beta",
       "notes": [
-        "Aircraft fitting and rotor blade inventory fixes; F8 settings, bindings and personal stats."
+        "Fixed aircraft fitting and rotor-blade storage. Added F8 settings, keybindings and player stats."
       ]
     },
     {
@@ -100,7 +237,7 @@
       "released": "2026-10-03",
       "channel": "beta",
       "notes": [
-        "Multiplayer aiming, audio and performance updates; Hangar ammunition and airframe changes."
+        "Improved multiplayer aiming, rifle sounds and performance. Updated Hangar ammunition and airframes."
       ]
     },
     {
@@ -108,7 +245,7 @@
       "released": "2026-10-03",
       "channel": "beta",
       "notes": [
-        "Sights, rifle sounds and handling updates; Hangar and airframe fixes."
+        "Improved sights, rifle sounds and handling. Fixed Hangar and airframe issues."
       ]
     },
     {
@@ -212,7 +349,7 @@
       "released": "2026-09-30",
       "channel": "beta",
       "notes": [
-        "Backpack removal and guest inventory refresh fixes; docking ownership updates."
+        "Fixed backpack removal and guest inventory refresh. Improved multiplayer docking."
       ]
     },
     {
@@ -236,7 +373,7 @@
       "released": "2026-09-29",
       "channel": "beta",
       "notes": [
-        "Fixed a multiplayer crash when syncing rotor blades."
+        "Fixed a multiplayer crash while syncing rotor blades."
       ]
     },
     {
@@ -252,7 +389,7 @@
       "released": "2026-09-28",
       "channel": "beta",
       "notes": [
-        "Docking collision, delayed attachment and trailer-mass synchronization fixes."
+        "Fixed docking collisions, delayed attachments and trailer weight in multiplayer."
       ]
     },
     {
@@ -276,7 +413,7 @@
       "released": "2026-09-28",
       "channel": "beta",
       "notes": [
-        "Multiplayer aircraft/blade identities and docking synchronization."
+        "Fixed aircraft and rotor-blade identification and docking in multiplayer."
       ]
     },
     {
@@ -284,7 +421,7 @@
       "released": "2026-09-28",
       "channel": "beta",
       "notes": [
-        "Landing pad trim and stopped-engine Hornet audio cleanup."
+        "Adjusted landing-pad trim and stopped Hornet audio when the engine is off."
       ]
     },
     {
@@ -300,7 +437,7 @@
       "released": "2026-09-28",
       "channel": "beta",
       "notes": [
-        "Native blade removal/refitting and separate Trailer/Heli trailer choices."
+        "Added removable rotor blades and separate Trailer and Heli trailer choices."
       ]
     },
     {
@@ -332,7 +469,7 @@
       "released": "2026-09-28",
       "channel": "beta",
       "notes": [
-        "Native input conflict fixes for aircraft vertical movement and banking."
+        "Fixed conflicting flight controls for climbing, descending and banking."
       ]
     },
     {
@@ -356,7 +493,7 @@
       "released": "2026-09-27",
       "channel": "beta",
       "notes": [
-        "Imported Hazmat zombie variant with distance detail levels."
+        "Added Hazmat zombies with lower-detail models at a distance."
       ]
     },
     {
@@ -367,5 +504,6 @@
         "Multiplayer backpack lookup and transfer feedback fixes."
       ]
     }
-  ]
+  ],
+  "changelog": "Fixed backpack quick slots duplicating an equipped weapon when dragged into storage.\nFixed the 2x sight appearing hollow outside aim-down-sights.\nHold Right Alt and drag the dashboard header to move it. Enable Realistic dashboard in F9 > Settings > Gameplay for analog gauges, an ignition key and turn signals.\nReduced repeated scope and load-menu searches. Cleaned up older changelog entries."
 }

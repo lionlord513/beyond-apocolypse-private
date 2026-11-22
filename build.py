@@ -17,7 +17,7 @@ metadata = json.loads((ROOT / 'Assets/bmm-public.json').read_text(encoding='utf-
 assert metadata['version'] == version
 assert metadata['update']['TagPrefix'] == 'bmm-v'
 assert metadata['update']['ManifestAsset'] == 'bmm-update.json'
-assert json.loads((ROOT / 'Assets/ba-public.json').read_text(encoding='utf-8'))['version'] == '1.0.6'
+assert json.loads((ROOT / 'Assets/ba-public.json').read_text(encoding='utf-8'))['version'] == '1.1.7'
 
 references = ['System.dll', 'System.Core.dll', 'System.Xaml.dll', 'System.Web.Extensions.dll',
               'System.Windows.Forms.dll', 'System.Drawing.dll', 'System.Net.Http.dll',

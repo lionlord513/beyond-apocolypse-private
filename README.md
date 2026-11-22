@@ -1,4 +1,4 @@
-# Beyond Mod Manager 1.0.11
+# Beyond Mod Manager 1.0.12
 
 Install, update, enable and remove Drive Beyond Horizons mods.
 
@@ -7,6 +7,9 @@ Open BMM, choose your game folder if needed, then select a mod or use **Add ZIP*
 Use **Settings > repair Mod** to repair the shared UE4SS support files. Uninstall removes the selected mod, its settings and generated data, and keeps a recovery copy in Backups. Game saves and shared UE4SS files remain installed.
 
 ## Changes
+
+### 1.0.12
+- Updated built-in mod versions and the Apocalypse changelog.
 
 ### 1.0.11
 - Shortened descriptions, help and update messages.
