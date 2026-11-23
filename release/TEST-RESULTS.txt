@@ -1,3 +1,7 @@
+BEYOND APOCALYPSE 1.1.8
+
+Checked the analog dashboard in the native game: ignition starts and stops the engine; turn signals and hazards use native input actions. The dashboard retains separate compact and analog positions. Regression tests cover equipped backpack slots, scope visibility, vehicle changes, paused input and existing gameplay. Separate-PC multiplayer was not exercised.
+
 1.1.3: Packaging update only. Nexus, public and legacy download aliases are byte-identical. Native gameplay is unchanged from 1.1.2.
 
 BEYOND APOCALYPSE 1.1.2

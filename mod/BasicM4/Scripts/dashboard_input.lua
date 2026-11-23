@@ -86,8 +86,8 @@ return function(M,H,valid,D)
    if not valid(p.pc)or pc:GetAddress()~=p.pc:GetAddress()or not valid(p.vehicle)or pc.Vehicle:GetAddress()~=p.vehicle:GetAddress()then I.pressed=nil;return end
    local sub=StaticFindObject('/Script/Engine.Default__SubsystemBlueprintLibrary'):GetLocalPlayerSubSystemFromPlayerController(pc,StaticFindObject('/Script/EnhancedInput.EnhancedInputLocalPlayerSubsystem'))
    if valid(sub)then
-    local value=StaticFindObject('/Script/EnhancedInput.Default__EnhancedInputLibrary'):MakeInputActionValueOfType(1,0,0,0)
-    sub:InjectInputForAction(p.action,value,{},{})
+    -- FInputActionValue has native-only fields that UE4SS cannot round-trip.
+    sub:InjectInputVectorForAction(p.action,{X=1,Y=0,Z=0},{},{})
    end
    if p.once or not pc:IsInputKeyDown({KeyName=FName('LeftMouseButton')})then I.pressed=nil end
   end

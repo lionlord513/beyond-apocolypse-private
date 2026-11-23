@@ -10,7 +10,7 @@ FName=function(n)return n end
 local lib={SetInputMode_GameOnly=function()end,SetInputMode_GameAndUIEx=function()end}
 local action=object(6);action.GetFName=function()return {ToString=function()return 'Ignition'end}end
 local ctx={Mappings={ForEach=function(_,fn)fn(nil,{get=function()return {Action=action}end})end}}
-local sub={InjectInputForAction=function(_,a,value)assert(a==action and value==1);injections=injections+1 end}
+local sub={InjectInputVectorForAction=function(_,a,value)assert(a==action and value.X==1 and value.Y==0 and value.Z==0);injections=injections+1 end}
 StaticFindObject=function(path)
  if path:find('IMC_Vehicule')then return ctx end
  if path:find('SubsystemBlueprintLibrary')then return {GetLocalPlayerSubSystemFromPlayerController=function()return sub end}end

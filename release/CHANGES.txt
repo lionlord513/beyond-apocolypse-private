@@ -1,3 +1,7 @@
+1.1.8
+- Fixed the realistic dashboard ignition and signal buttons.
+- Corrected the dashboard turn-signal and hazard indicators.
+
 1.1.7
 - Fixed backpack quick slots duplicating an equipped weapon when dragged into storage.
 - Fixed the 2x sight appearing hollow outside aim-down-sights.

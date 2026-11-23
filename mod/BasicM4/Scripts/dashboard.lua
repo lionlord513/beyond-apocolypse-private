@@ -148,8 +148,9 @@ return function(M,H,valid)
   if D.analog then
    D.needles.speedDial.target=clamp(speed/240);D.needles.rpmDial.target=clamp(rpm/8000)
    local indicator=tonumber(a['Light Indicator'])or 0;local blink=a.IsLightBlink==true
-   color('leftSignal',blink and(indicator==1 or indicator==3)and colors.green or colors.muted)
-   color('rightSignal',blink and(indicator==2 or indicator==3)and colors.green or colors.muted)
+   local hazards=a['Is Light Warnings']==true
+   color('leftSignal',blink and(indicator==2 or hazards)and colors.green or colors.muted)
+   color('rightSignal',blink and(indicator==1 or hazards)and colors.green or colors.muted)
    local running=a.EngineRunning==true
    if D.cache.keyRunning~=running then D.cache.keyRunning=running;D.ignitionKey:SetRenderTransformAngle(running and 35 or 0)end
    text('ignition',running and 'KEY / STOP'or 'HOLD KEY / START')

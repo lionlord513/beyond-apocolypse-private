@@ -1,4 +1,4 @@
-BEYOND APOCALYPSE 1.1.7
+BEYOND APOCALYPSE 1.1.8
 
 Survive zombie encounters, pack supplies in a backpack and shop for gear at the Hangar. Ride motorcycles, fly the Hornet gyrocopter or choose a custom player model.
 
