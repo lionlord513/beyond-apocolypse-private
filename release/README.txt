@@ -1,4 +1,4 @@
-BEYOND APOCALYPSE 1.1.8
+BEYOND APOCALYPSE 1.1.9
 
 Survive zombie encounters, pack supplies in a backpack and shop for gear at the Hangar. Ride motorcycles, fly the Hornet gyrocopter or choose a custom player model.
 
@@ -8,7 +8,7 @@ Press F9 and open Models to choose Default, SciFi Soldier or Alien. Click the pe
 
 Press Tab to open your backpack. Use the Hangar app on an in-game computer to buy gear. Nitrous bottles are available with Beyond Tuning.
 
-While driving, hold Right Alt to use the dashboard. Drag its header to save its position. F9 > Settings > Gameplay > Realistic dashboard switches to a bottom-center analog dash with an ignition key, turn signals and hazard lights. Hold the key to start the engine; click it to stop. Beyond Tuning adds the nitrous gauge and boost status.
+The analog dashboard is on by default at the lower right. Hold Alt to use its controls or drag its header. Hold the ignition key to start; click to stop. Fuel has its own dial, and a nitrous gauge appears above the upper-right corner when a bottle is installed. Switch to the compact dashboard in F9 > Settings > Gameplay > Realistic dashboard. Your chosen mode and positions are saved.
 
 Extreme Performance Mode is in F9 > Settings > Gameplay. It removes decorative grass, bushes and clouds and lowers tree, sky, shadow and effect detail. Turning it off restores your previous settings.
 

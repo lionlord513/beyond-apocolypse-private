@@ -5,7 +5,7 @@ return function(M,H,valid)
  local function clamp(x)return math.max(0,math.min(1,x))end
  local path=M.statePath and M.statePath('dashboard-position.txt')
  local modePath=M.statePath and M.statePath('dashboard-mode.txt')
- D.realistic=false
+ D.realistic=true
  if modePath then local f=io.open(modePath,'r')or io.open(modePath..'.bak','r');if f then D.realistic=f:read('*l')=='realistic';f:close()end end
  local function write(file,bytes)
   local f=assert(io.open(file..'.tmp','w'),'Cannot save dashboard settings');assert(f:write(bytes));assert(f:close())
@@ -25,14 +25,15 @@ return function(M,H,valid)
   if a then local x,y=a:read('*n','*n');a:close();if x and y and x>=0 and x<=1 and y>=0 and y<=1 then D.analogX=x;D.analogY=y end end
  end
  local function position(x,y)
-  D.x=math.max(0,math.min(D.maxX,x));D.y=math.max(0,math.min(D.maxY,y))
+  D.x=math.max(0,math.min(D.maxX,x));D.y=math.max(D.minY or 0,math.min(D.maxY,y))
   D.slot:SetPosition({X=D.x,Y=D.y})
  end
  function D.place(width,height,scale)
   D.maxX=math.max(0,width-(D.widthBase or 304)*scale);D.maxY=math.max(0,height-D.height*scale)
+  D.minY=math.min(D.maxY,D.analog and 108*scale or 0)
   local x,y=D.savedX,D.savedY
   if D.analog then x,y=D.analogX,D.analogY end
-  position(x and x*D.maxX or(D.analog and D.maxX/2 or D.maxX-30),y and y*D.maxY or(D.analog and D.maxY-14*scale or height*.52-D.height*scale/2))
+  position(x and x*D.maxX or(D.analog and D.maxX-14*scale or D.maxX-30),y and y*D.maxY or(D.analog and D.maxY-14*scale or height*.52-D.height*scale/2))
  end
  function D.press(q)
   if not valid(D.widget)or not D.scale or q.X<D.x or q.X>D.x+(D.widthBase or 304)*D.scale or q.Y<D.y or q.Y>D.y+34*D.scale then return end
@@ -56,6 +57,7 @@ return function(M,H,valid)
   if D.input then D.input.pointer(false)end
   if valid(D.widget)then D.widget:RemoveFromParent()end;D.widget=nil;D.drag=nil;D.bars={};D.cache={};D.segments={};D.vehicle=nil
   D.surface=nil;D.buttons={};D.needles={};D.ignitionKey=nil
+  D.nitrousWidgets=nil;D.nitrousVisible=nil
  end
  local function build(pc,flight)
   D.hide();D.rpmCount=nil;D.batteryColor=nil;D.scale=nil;local w=StaticFindObject('/Script/UMG.Default__WidgetBlueprintLibrary'):Create(pc,StaticFindObject('/Script/UMG.UserWidget'),pc)
@@ -64,7 +66,7 @@ return function(M,H,valid)
   local panel=new('CanvasPanel',tree);local slot=canvas:AddChildToCanvas(panel)
   slot:SetAnchors({Minimum={X=0,Y=0},Maximum={X=0,Y=0}});slot:SetAlignment({X=0,Y=0})
   D.analog=D.realistic and not flight
-  local height=D.analog and 238 or flight and 426 or 342;D.widthBase=D.analog and 720 or 304;slot:SetSize({X=D.widthBase,Y=height});D.panel=panel;D.slot=slot
+  local height=D.analog and 260 or flight and 426 or 342;D.widthBase=D.analog and 720 or 304;slot:SetSize({X=D.widthBase,Y=height});D.panel=panel;D.slot=slot
   local function box(x,y,width,height,c,round)
    local o=new('Image',tree)
    if round then o:SetBrush({DrawAs=4,TintColor={SpecifiedColor=c,ColorUseRule=0},OutlineSettings={Color={SpecifiedColor=colors.line,ColorUseRule=0},Width=1,CornerRadii={X=round,Y=round,Z=round,W=round},RoundingType=0}})else o:SetColorAndOpacity(c)end
@@ -72,6 +74,7 @@ return function(M,H,valid)
   end
   local function label(id,x,y,width,height,size,c,align)
    local t=new('TextBlock',tree);local f=t.Font;f.Size=size;t:SetFont(f);tint(t,c or colors.text);if align then t:SetJustification(align)end
+   if D.analog then t:SetClipping(1)end
    local s=panel:AddChildToCanvas(t);s:SetPosition({X=x,Y=y});s:SetSize({X=width,Y=height});D[id]=t;return t
   end
   if D.analog then dofile(M.root..'/Scripts/dashboard_realistic.lua')(D,box,label,text,colors)else
@@ -114,11 +117,13 @@ return function(M,H,valid)
  end
  local function part(a,key)local c=a[key];return valid(c)and c.AttachedCarEquipableActor or nil end
  local function gauge(key,qty,capacity,unit)
-  local bar=D.bars[key];if not bar then return end
+  local bar=D.bars[key];local needle=D.needles and D.needles[key..'Dial'];if not bar and not needle then return end
   local has=type(qty)=='number'and type(capacity)=='number'and capacity>0
-  local percent=has and clamp(qty/capacity)or 0;bar.target=percent
+  local percent=has and clamp(qty/capacity)or 0
+  if bar then bar.target=percent end;if needle then needle.target=percent end
   local c=not has and colors.muted or percent<.1 and colors.red or percent<.25 and colors.amber or key=='nitrous'and D.nitrousColor or colors.blue
-  if bar.color~=c then bar.color=c;bar.image:SetColorAndOpacity(c)end
+  if bar and bar.color~=c then bar.color=c;bar.image:SetColorAndOpacity(c)end
+  if needle and needle.color~=c then needle.color=c;needle.image:SetColorAndOpacity(c)end
   text(key..'Value',not has and '--'or unit=='%'and ('%.0f%%'):format(percent*100)or ('%.1f / %.0f L'):format(qty,capacity))
  end
  function D.flight(message,collective,hover,climb)D.flightMessage=message;D.flightCollective=collective;D.flightHover=hover end
@@ -139,7 +144,7 @@ return function(M,H,valid)
   text('speed',('%03d'):format(math.floor(speed+.5)))
   local bike=M.motorcycle and M.motorcycle.tracked[key]
   local title=flight and 'HORNET / FLIGHT' or bike and(bike.variant=='suzuki'and 'SUZUKI PV 50'or 'MOTORCYCLE')or a:GetClass():GetFName():ToString():gsub('_C$',''):gsub('(%l)(%u)','%1 %2'):gsub('CarNew',''):gsub('Car$',''):upper()
-  text('title',title:sub(1,26))
+  if not D.analog then text('title',title:sub(1,26))end
   local motor=part(a,'CarMotorV2');local battery=part(a,'CarBatteryV2')
   local rpm=flight and r.result and r.result.rpm or a.RPM or 0;local maximum=flight and 400 or a.IdleMaxRPM or 7000
   local count=math.floor(clamp(rpm/math.max(1,maximum))*18+.5)
@@ -177,6 +182,13 @@ return function(M,H,valid)
     if car==tostring(a:GetAddress())then qty,cap,tier,active=tonumber(q),tonumber(c),tonumber(t),on=='1' end
    end
    D.nitrousColor=tier==2 and colors.purple or colors.blue;gauge('nitrous',qty,cap)
+   if D.analog then
+    local installed=type(cap)=='number'and cap>0
+    if D.nitrousVisible~=installed then
+     D.nitrousVisible=installed
+     for _,o in ipairs(D.nitrousWidgets or{})do o:SetVisibility(installed and 3 or 2)end
+    end
+   end
    local status=badBattery and 'BATTERY / LOW OR MISSING'or not valid(motor)and 'ENGINE MISSING'or motor.IsHeatLimit and 'ENGINE OVERHEATING'or not a.EngineRunning and 'ENGINE OFF'or fq and fq<.1 and 'FUEL EMPTY'or active and ('NITROUS / STAGE '..(tier==2 and 'II'or 'I'))or qty and (qty>.001 and 'HOLD SHIFT / NITROUS'or 'NITROUS EMPTY')or 'SYSTEMS READY'
    text('status',status);color('status',badBattery and colors.red or active and D.nitrousColor or colors.muted)
   end

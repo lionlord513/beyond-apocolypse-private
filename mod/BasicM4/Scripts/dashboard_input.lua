@@ -71,7 +71,7 @@ return function(M,H,valid,D)
  function I.frame()
   local pc=H.GetPlayerController()
   local ready=valid(D.widget)and allowed(pc)
-  local alt=ready and pc:IsInputKeyDown({KeyName=FName('RightAlt')})
+  local alt=ready and(pc:IsInputKeyDown({KeyName=FName('RightAlt')})or pc:IsInputKeyDown({KeyName=FName('LeftAlt')}))
   if alt and not I.owner then I.pointer(true)elseif not alt and I.owner then
    if D.drag and not blocked(pc)then local q={};slate:AbsoluteToViewport(pc,layout:GetMousePositionOnPlatform(),{},q);pcall(D.release,q)end
    I.pointer(false)

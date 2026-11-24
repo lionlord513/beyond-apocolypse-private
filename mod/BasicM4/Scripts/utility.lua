@@ -73,7 +73,7 @@ return function(M,root,H,valid,enqueue,log)
     button((M.dashboard.realistic and '[X] 'or '[ ] ')..'Realistic dashboard',270,628,520,54,function()
      local ok,e=pcall(M.dashboard.setMode,not M.dashboard.realistic);U.message=ok and ''or tostring(e):gsub('^.-:%d+: ','');U.render()
     end)
-    text('Hold Right Alt to use the dashboard. Drag its header to move it.',286,700,1080,32,16,'muted')
+    text('Hold Alt to use the dashboard or drag its header.',286,700,1080,32,16,'muted')
    else
    text('GYROCOPTER KEYBINDINGS',270,195,1000,40,25,'gold')
    text('Click a key, then press a new one. Esc cancels. Backspace clears an alternate key.',270,235,1120,28,14,'muted')

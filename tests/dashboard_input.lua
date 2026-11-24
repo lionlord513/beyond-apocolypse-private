@@ -26,4 +26,6 @@ car.Driver=other;I.frame();assert(not I.pressed and look==0 and not pc.bShowMous
 car.Driver=p;paused=true;I.press('Ignition');assert(not I.pressed,'Pause blocks dashboard input')
 paused=false;I.frame();I.press('Ignition');pc.Vehicle=other;I.frame();assert(not I.pressed and look==0,'Changing vehicles releases input')
 pc.Vehicle=car;keys.RightAlt=false;I.frame();assert(look==0,'No unmatched look-input release')
+keys.LeftAlt=true;I.frame();assert(look==1 and pc.bShowMouseCursor,'Either Alt key can drag the dashboard')
+keys.LeftAlt=false;I.frame();assert(look==0 and not pc.bShowMouseCursor)
 return 'Driver-only controls, held ignition, pause, vehicle changes and balanced pointer cleanup'
