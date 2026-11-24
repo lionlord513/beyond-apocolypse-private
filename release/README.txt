@@ -8,7 +8,7 @@ Press F9 and open Models to choose Default, SciFi Soldier or Alien. Click the pe
 
 Press Tab to open your backpack. Use the Hangar app on an in-game computer to buy gear. Nitrous bottles are available with Beyond Tuning.
 
-The analog dashboard is on by default at the lower right. Hold Alt to use its controls or drag its header. Hold the ignition key to start; click to stop. Fuel has its own dial, and a nitrous gauge appears above the upper-right corner when a bottle is installed. Switch to the compact dashboard in F9 > Settings > Gameplay > Realistic dashboard. Your chosen mode and positions are saved.
+The realistic dashboard is on by default at the lower right. Move it from F9 > Settings > Gameplay > Move dashboard: drag it into place, then click Confirm to save and return to the menu. Hold Alt to use the dashboard controls. Hold the ignition key to start; click to stop. Fuel has its own dial, and a nitrous gauge attaches to the upper-right edge when a bottle is installed. Switch to the compact dashboard with the Realistic dashboard option. Your chosen mode and positions are saved.
 
 Extreme Performance Mode is in F9 > Settings > Gameplay. It removes decorative grass, bushes and clouds and lowers tree, sky, shadow and effect detail. Turning it off restores your previous settings.
 

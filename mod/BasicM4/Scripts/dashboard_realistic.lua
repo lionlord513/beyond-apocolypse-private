@@ -1,8 +1,7 @@
 -- Imported instrument artwork with retained, live needles and indicator lamps.
 return function(D,box,label,text,colors,picture)
  local cream={R=.88,G=.84,B=.69,A=1};local dim={R=.17,G=.19,B=.15,A=1}
- picture('panel',0,0,720,280)
- label('grip',492,20,200,20,8,colors.muted,2);text('grip','Hold Alt to drag')
+ picture('panel',0,0,720,320)
  D.needles={};D.images={}
  local function dial(id,cx,cy,r,max,step,caption,marks,pod)
   local function keep(o)if pod then D.nitrousWidgets[#D.nitrousWidgets+1]=o end;return o end
@@ -42,17 +41,17 @@ return function(D,box,label,text,colors,picture)
  D.batteryIcon={}
  D.leftSignal=picture('arrow',247,47,42,22);D.images.leftSignal=true
  D.rightSignal=picture('arrow',431,47,42,22);D.rightSignal:SetRenderTransformAngle(180);D.images.rightSignal=true
- D.hazards=picture('hazard',45,193,36,24)
- picture('dial',642,184,46,46)
- D.ignitionKey=picture('key',636,178,58,58);D.ignitionKey:SetRenderTransformPivot({X=.5,Y=.5})
- label('ignition',623,242,83,18,7,cream,1);text('ignition','IGNITION')
- label('status',58,20,370,20,8,cream)
- D.buttons={{x=630,y=176,w=70,h=62,action='Ignition'},{x=240,y=41,w=56,h=34,action='IndicatorLeft'},
-  {x=424,y=41,w=56,h=34,action='IndicatorRight'},{x=40,y=188,w=46,h=34,action='IndicatorWarnings'}}
+ D.hazards=picture('hazard',82,244,42,28)
+ picture('dial',533,229,42,42)
+ D.ignitionKey=picture('key',530,226,48,48);D.ignitionKey:SetRenderTransformPivot({X=.5,Y=.5})
+ label('engineState',584,242,78,20,8,cream,1)
+ label('status',220,270,330,20,8,cream,1)
+ D.buttons={{x=525,y=221,w=58,h=58,action='Ignition'},{x=240,y=41,w=56,h=34,action='IndicatorLeft'},
+  {x=424,y=41,w=56,h=34,action='IndicatorRight'},{x=76,y=238,w=54,h=40,action='IndicatorWarnings'}}
  D.nitrousWidgets={}
  dial('nitrousDial',654,-43,58,1,.5,'NITROUS',{'E','1/2','F'},true)
  D.nitrousWidgets[#D.nitrousWidgets+1]=label('nitrousValue',603,-18,102,18,8,cream,1)
  for _,o in ipairs(D.nitrousWidgets)do o:SetVisibility(2)end
  D.nitrousVisible=false
- D.widthBase=720;D.height=280
+ D.widthBase=720;D.height=320
 end

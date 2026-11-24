@@ -27,6 +27,7 @@ return function(M,root,H,valid,enqueue,log)
   U.buttons[#U.buttons+1]={x=x,y=y,w=w,h=h,fn=fn}
  end
  function U.close()
+  if U.dashboardEdit then M.dashboard.finishEdit(false);U.dashboardEdit=nil end
   U.opened=false;U.capture=nil;if U.saveStats then U.saveStats()end
   if valid(U.child)then U.child:RemoveFromParent()end;U.child=nil
   if valid(U.widget)then U.widget:RemoveFromParent()end
@@ -73,7 +74,7 @@ return function(M,root,H,valid,enqueue,log)
     button((M.dashboard.realistic and '[X] 'or '[ ] ')..'Realistic dashboard',270,628,520,54,function()
      local ok,e=pcall(M.dashboard.setMode,not M.dashboard.realistic);U.message=ok and ''or tostring(e):gsub('^.-:%d+: ','');U.render()
     end)
-    text('Hold Alt to use the dashboard or drag its header.',286,700,1080,32,16,'muted')
+    button('Move dashboard',820,628,350,54,function()U.startDashboard()end)
    else
    text('GYROCOPTER KEYBINDINGS',270,195,1000,40,25,'gold')
    text('Click a key, then press a new one. Esc cancels. Backspace clears an alternate key.',270,235,1120,28,14,'muted')
@@ -130,7 +131,24 @@ return function(M,root,H,valid,enqueue,log)
   U.pc.bShowMouseCursor=true;lib:SetInputMode_UIOnlyEx(U.pc,U.widget,0,true);U.opened=true
  end
  function U.toggle()
-  if U.opened then U.close()else local ok,e=pcall(U.open);if not ok then U.close();error(e)end end
+  if U.dashboardEdit then U.finishDashboard(false)
+  elseif U.opened then U.close()else local ok,e=pcall(U.open);if not ok then U.close();error(e)end end
+ end
+ function U.startDashboard()
+  M.dashboard.startEdit(U.pc);U.dashboardEdit=true;U.capture=nil
+  U.canvas:ClearChildren();U.buttons={};U.statCells={};U.zombieSlider=nil;U.zombieLabel=nil
+  C.green={R=.07,G=.40,B=.16,A=1}
+  button('Confirm',600,30,240,54,function()U.finishDashboard(true)end,'green')
+  text('Drag the dashboard into place. Esc cancels.',480,92,600,30,16)
+  -- Keep the pawn blocked while allowing native mouse-button state for dragging.
+  lib:SetInputMode_GameOnly(U.pc,false);U.pc.bShowMouseCursor=true
+ end
+ function U.finishDashboard(save)
+  if not U.dashboardEdit then return end
+  local ok,e=pcall(M.dashboard.finishEdit,save)
+  if not ok then U.message=tostring(e):gsub('^.-:%d+: ','');text(U.message,380,130,900,32,16);return end
+  U.dashboardEdit=nil;U.message='';U.render()
+  lib:SetInputMode_UIOnlyEx(U.pc,U.widget,0,true);U.pc.bShowMouseCursor=true
  end
  function U.click()
   if not U.opened or U.child then return end
@@ -139,6 +157,7 @@ return function(M,root,H,valid,enqueue,log)
   local pixel,q={},{};slate:AbsoluteToViewport(U.pc,layout:GetMousePositionOnPlatform(),pixel,q)
   local x,y=(q.X-U.x)/U.scale,(q.Y-U.y)/U.scale
   for _,b in ipairs(U.buttons)do if x>=b.x and x<=b.x+b.w and y>=b.y and y<=b.y+b.h then if b.xy then b.fn(x,y)else b.fn()end;return end end
+  if U.dashboardEdit then M.dashboard.press(q)end
  end
 
  function U.accept(key)

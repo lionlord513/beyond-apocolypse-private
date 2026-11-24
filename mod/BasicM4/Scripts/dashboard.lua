@@ -36,13 +36,17 @@ return function(M,H,valid)
   position(x and x*D.maxX or(D.analog and D.maxX-14*scale or D.maxX-30),y and y*D.maxY or(D.analog and D.maxY-14*scale or height*.52-D.height*scale/2))
  end
  function D.press(q)
-  if not valid(D.widget)or not D.scale or q.X<D.x or q.X>D.x+(D.widthBase or 304)*D.scale or q.Y<D.y or q.Y>D.y+34*D.scale then return end
+  if not D.editing then return end
+  if not valid(D.widget)or not D.scale or q.X<D.x or q.X>D.x+(D.widthBase or 304)*D.scale or q.Y<D.y or q.Y>D.y+D.height*D.scale then return end
   D.drag={x=q.X-D.x,y=q.Y-D.y};return true
  end
  function D.move(q)if D.drag then position(q.X-D.drag.x,q.Y-D.drag.y)end end
  function D.release(q)
   if not D.drag then return end
   D.move(q);D.drag=nil
+  if not D.editing then D.savePosition()end;return true
+ end
+ function D.savePosition()
   local x=D.x/math.max(1,D.maxX);local y=D.y/math.max(1,D.maxY)
   write(D.analog and path..'.analog' or path,('%.8f %.8f\n'):format(x,y))
   if D.analog then D.analogX=x;D.analogY=y else D.savedX=x;D.savedY=y end;return true
@@ -66,7 +70,7 @@ return function(M,H,valid)
   local panel=new('CanvasPanel',tree);local slot=canvas:AddChildToCanvas(panel)
   slot:SetAnchors({Minimum={X=0,Y=0},Maximum={X=0,Y=0}});slot:SetAlignment({X=0,Y=0})
   D.analog=D.realistic and not flight
-  local height=D.analog and 280 or flight and 426 or 342;D.widthBase=D.analog and 720 or 304;slot:SetSize({X=D.widthBase,Y=height});D.panel=panel;D.slot=slot
+  local height=D.analog and 320 or flight and 426 or 342;D.widthBase=D.analog and 720 or 304;slot:SetSize({X=D.widthBase,Y=height});D.panel=panel;D.slot=slot
   local function box(x,y,width,height,c,round)
    local o=new('Image',tree)
    if round then o:SetBrush({DrawAs=4,TintColor={SpecifiedColor=c,ColorUseRule=0},OutlineSettings={Color={SpecifiedColor=colors.line,ColorUseRule=0},Width=1,CornerRadii={X=round,Y=round,Z=round,W=round},RoundingType=0}})else o:SetColorAndOpacity(c)end
@@ -133,19 +137,24 @@ return function(M,H,valid)
   if D[key..'Value']then text(key..'Value',not has and '--'or unit=='%'and ('%.0f%%'):format(percent*100)or ('%.1f / %.0f L'):format(qty,capacity))end
  end
  function D.flight(message,collective,hover,climb)D.flightMessage=message;D.flightCollective=collective;D.flightHover=hover end
- function D.tick(now)
-  if now<D.nextAt then return end;D.nextAt=now+.1
-  local pc=H.GetPlayerController();local a=valid(pc)and pc.Vehicle
-  if M.features==false or M.config.VehicleDashboard==false or not valid(a)or not valid(a.VehicleMesh)then if D.widget then D.hide()end;return end
-  local key=a:GetFullName();local r=M.gyrocopter and M.gyrocopter.tracked[key];local flight=r~=nil
-  if not valid(D.widget)or D.flightMode~=flight or D.vehicle~=key then build(pc,flight);D.vehicle=key end
+ function D.layout(pc)
   local layout=StaticFindObject('/Script/UMG.Default__WidgetLayoutLibrary');local viewport=layout:GetViewportSize(pc);local dpi=layout:GetViewportScale(pc)
-  if dpi<=0 or viewport.X<=0 or viewport.Y<=0 then return end
+  if dpi<=0 or viewport.X<=0 or viewport.Y<=0 then return false end
   local width,height=viewport.X/dpi,viewport.Y/dpi
   local scale=math.min(1,height/720,width/D.widthBase)
   if D.scale~=scale or D.width~=width or D.vh~=height then
    D.width=width;D.vh=height;D.scale=scale;D.panel:SetRenderTransformPivot({X=0,Y=0});D.panel:SetRenderScale({X=scale,Y=scale});D.place(width,height,scale)
   end
+  return true
+ end
+ function D.tick(now)
+  if now<D.nextAt then return end;D.nextAt=now+.1
+  local pc=H.GetPlayerController();local a=valid(pc)and pc.Vehicle
+  if D.editing then if valid(pc)and valid(D.widget)then D.layout(pc)end;return end
+  if M.features==false or M.config.VehicleDashboard==false or not valid(a)or not valid(a.VehicleMesh)then if D.widget then D.hide()end;return end
+  local key=a:GetFullName();local r=M.gyrocopter and M.gyrocopter.tracked[key];local flight=r~=nil
+  if not valid(D.widget)or D.flightMode~=flight or D.vehicle~=key then build(pc,flight);D.vehicle=key end
+  if not D.layout(pc)then return end
   local v=a.VehicleMesh:GetPhysicsLinearVelocity(FName('None'));local speed=math.sqrt(v.X*v.X+v.Y*v.Y+v.Z*v.Z)*.036
   text('speed',('%03d'):format(math.floor(speed+.5)))
   local bike=M.motorcycle and M.motorcycle.tracked[key]
@@ -163,7 +172,7 @@ return function(M,H,valid)
    color('leftSignal',blink and(indicator==2 or hazards)and colors.green or colors.muted)
    color('rightSignal',blink and(indicator==1 or hazards)and colors.green or colors.muted)
    local running=a.EngineRunning==true
-   D.keyRunning=running
+   D.keyRunning=running;text('engineState',running and 'ENGINE ON'or 'ENGINE OFF')
   end
   text('temperature',valid(motor)and ('%.0f C'):format(motor.Heat)or 'NO ENGINE');color('temperature',valid(motor)and motor.IsHeatLimit and colors.red or colors.muted)
   local gear=a.CurrentGear;text('gear',flight and 'AIR'or gear<0 and 'R'or gear==0 and 'N'or tostring(gear))
@@ -195,6 +204,7 @@ return function(M,H,valid)
     end
    end
    local status=badBattery and 'BATTERY / LOW OR MISSING'or not valid(motor)and 'ENGINE MISSING'or motor.IsHeatLimit and 'ENGINE OVERHEATING'or not a.EngineRunning and 'ENGINE OFF'or fq and fq<.1 and 'FUEL EMPTY'or active and ('NITROUS / STAGE '..(tier==2 and 'II'or 'I'))or qty and (qty>.001 and 'HOLD SHIFT / NITROUS'or 'NITROUS EMPTY')or 'SYSTEMS READY'
+   if D.analog and(status=='ENGINE OFF'or status=='SYSTEMS READY')then status=''end
    text('status',status);color('status',badBattery and colors.red or active and D.nitrousColor or colors.muted)
   end
  end
@@ -217,6 +227,25 @@ return function(M,H,valid)
    if math.abs(angle-D.keyAngle)>.02 then D.keyAngle=angle;D.ignitionKey:SetRenderTransformAngle(angle)end
   end
  end
- function D.reset()D.hide();D.nextAt=0;D.scale=nil;D.rpmCount=nil;D.batteryColor=nil;D.flightMessage=nil end
+ function D.startEdit(pc)
+  assert(valid(pc),'Join a game first')
+  D.editing=true;D.drag=nil
+  if not valid(D.widget)then
+   build(pc,false);D.preview=true
+   if not D.analog then text('title','DASHBOARD')end
+   text('speed','000');text('rpm','0 RPM');text('gear','N');text('temperature','--');text('status','')
+   if D.analog then text('engineState','ENGINE OFF')end
+   for _,key in ipairs({'fuel','oil','coolant','battery','nitrous'})do gauge(key,nil,nil)end
+  end
+  D.layout(pc)
+ end
+ function D.finishEdit(save)
+  if not D.editing then return end
+  if save then D.savePosition()end
+  D.drag=nil;D.editing=false
+  if D.preview then D.preview=false;D.hide()elseif valid(D.widget)and D.width then D.place(D.width,D.vh,D.scale)end
+  D.nextAt=0
+ end
+ function D.reset()D.editing=false;D.preview=false;D.hide();D.nextAt=0;D.scale=nil;D.rpmCount=nil;D.batteryColor=nil;D.flightMessage=nil end
  return D
 end

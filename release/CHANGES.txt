@@ -1,8 +1,9 @@
 1.1.9
-- Added realistic instrument faces, needles, switches and a front-facing ignition key that turns clockwise.
-- The analog dashboard now defaults to the lower right and is enabled for new settings. Saved preferences are retained.
-- Replaced the fuel bar with a dial. A separate nitrous gauge appears above the dashboard only while a bottle is installed.
-- Removed the vehicle name, shortened the drag hint and fixed footer text extending beyond the panel. Either Alt key can be used to drag.
+- Added realistic gauge faces, needles, switches and a front-facing ignition key that turns clockwise.
+- The realistic dashboard starts at the lower right for new settings. Existing mode and position preferences are retained.
+- Fuel uses a dial. An attached nitrous gauge appears at the upper-right edge only while a bottle is installed.
+- Move the dashboard from F9 > Settings > Gameplay. Drag it into place and click Confirm to save and return to the menu.
+- Moved the engine status beside the key, brought the controls inside the panel and fixed overlapping text. Removed the vehicle name and drag hint.
 
 1.1.8
 - Fixed the realistic dashboard ignition and signal buttons.
@@ -11,7 +12,7 @@
 1.1.7
 - Fixed backpack quick slots duplicating an equipped weapon when dragged into storage.
 - Fixed the 2x sight appearing hollow outside aim-down-sights.
-- Hold Right Alt and drag the dashboard header to move it. Enable Realistic dashboard in F9 > Settings > Gameplay for analog gauges, an ignition key and turn signals.
+- Added a realistic dashboard with analog gauges, an ignition key and turn signals.
 - Reduced repeated scope and load-menu searches. Cleaned up older changelog entries.
 
 1.1.6

@@ -29,13 +29,13 @@ local D=dofile(scripts..'/dashboard.lua')(M,{GetPlayerController=function()retur
 D.input={pointer=function()end,attach=function()end,frame=function()end}
 D.tick(1)
 assert(D.analog and D.realistic and not D.title,'Default analog layout omits the vehicle title')
-assert(D.grip.text=='Hold Alt to drag'and D.status.text=='ENGINE OFF')
+assert(not D.grip and D.engineState.text=='ENGINE OFF'and D.status.text=='')
 assert(D.needles.fuelDial.target==.25 and not D.bars.fuel,'Fuel quantity drives the analog needle')
 assert(not D.nitrousVisible and not D.bars.nitrous)
 for _,o in ipairs(D.nitrousWidgets)do assert(o.visible==2)end
 for _,t in ipairs(labels)do
  local p,s=t.slot.position,t.slot.size
- assert(p.X>=0 and p.X+s.X<=720 and p.Y+s.Y<=280,'Text exceeds the dashboard bounds')
+ assert(p.X>=0 and p.X+s.X<=720 and p.Y+s.Y<=320,'Text exceeds the dashboard bounds')
  assert(t.clipping==1,'Text has an explicit clipping boundary')
 end
 data='99|0|10|2|0';D.tick(2)
@@ -48,4 +48,11 @@ assert(imports==6,'Shared dial artwork is imported once per texture')
 D.input.pressed={name='Ignition'};D.frame(.1);assert(D.keyAngle>0,'Starting turns the front-facing key clockwise')
 D.input.pressed=nil;D.keyRunning=true;D.frame(.1);assert(D.keyAngle>29 and D.keyAngle<35)
 D.keyRunning=false;D.frame(.1);assert(D.keyAngle<2,'The key returns upright when switched off')
-return 'Fuel needle, empty/full/removed nitrous, vehicle ownership, clipped text and default layout'
+pc.Vehicle=nil;D.hide();D.startEdit(pc);D.tick(6)
+assert(D.editing and D.preview and D.widget,'Placement works on foot and remains visible')
+local oldX,oldY=D.x,D.y;D.press({X=oldX+10,Y=oldY+10});D.release({X=400,Y=300})
+D.finishEdit(false);assert(not D.widget and not D.editing and not D.analogX,'Cancel discards preview position')
+D.startEdit(pc);assert(D.x==oldX and D.y==oldY);D.press({X=D.x+10,Y=D.y+10});D.release({X=400,Y=300});D.finishEdit(true)
+assert(D.analogX and not D.widget and not D.editing,'Confirm saves and dismisses on-foot preview')
+D.startEdit(pc);assert(math.abs(D.x-390)<.001 and math.abs(D.y-290)<.001,'Confirmed position survives reopening')
+return 'On-foot preview, Confirm/Cancel, fuel needle, empty/full/removed nitrous, vehicle ownership, clipped text and default layout'

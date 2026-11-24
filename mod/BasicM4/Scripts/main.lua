@@ -310,7 +310,7 @@ dofile(root..'/Scripts/game_loop.lua')(function()return M.active end,function()
   end)
   if not ok and not errors[tostring(e)]then errors[tostring(e)]=true;log(tostring(e))end
 end,log)
-RegisterKeyBind(Key.ESCAPE,function()shortcut(function()if M.utility.opened then if M.utility.capture then M.utility.capture=nil;M.utility.render()else M.utility.close()end end;if M.overlayCapturesInput()then companion.ui.close()end;if backpack.ui.opened then backpack.ui.close()end end)end)
+RegisterKeyBind(Key.ESCAPE,function()shortcut(function()if M.utility.opened then if M.utility.dashboardEdit then M.utility.finishDashboard(false)elseif M.utility.capture then M.utility.capture=nil;M.utility.render()else M.utility.close()end end;if M.overlayCapturesInput()then companion.ui.close()end;if backpack.ui.opened then backpack.ui.close()end end)end)
 RegisterKeyBind(Key.MIDDLE_MOUSE_BUTTON,function()shortcut(function()rail.request('drop')end)end)
 RegisterKeyBind(Key.L,function()shortcut(function()rail.request('light')end)end)
 RegisterKeyBind(Key.TAB,function()shortcut(function()backpack.toggle()end)end)
