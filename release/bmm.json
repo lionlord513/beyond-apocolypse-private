@@ -22,7 +22,8 @@
       "notes": [
         "The analog dashboard now defaults to the lower right and is enabled for new settings. Saved preferences are retained.",
         "Replaced the fuel bar with a dial. A separate nitrous gauge appears above the dashboard only while a bottle is installed.",
-        "Removed the vehicle name, shortened the drag hint and fixed footer text extending beyond the panel. Either Alt key can be used to drag."
+        "Removed the vehicle name, shortened the drag hint and fixed footer text extending beyond the panel. Either Alt key can be used to drag.",
+        "Added realistic instrument faces, needles, switches and a front-facing ignition key that turns clockwise."
       ]
     },
     {

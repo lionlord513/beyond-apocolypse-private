@@ -1,64 +1,59 @@
--- Retained analog instruments; all gauges reuse their widgets between updates.
-return function(D,box,label,text,colors)
- local cream={R=.80,G=.79,B=.65,A=1};local dim={R=.22,G=.24,B=.20,A=1}
- local rim={R=.18,G=.19,B=.18,A=1};local face={R=.014,G=.017,B=.014,A=1}
- box(0,0,720,260,{R=.027,G=.029,B=.025,A=.97},22)
- box(8,8,704,244,{R=.07,G=.074,B=.063,A=1},16)
- box(14,31,692,193,face,16)
- label('grip',484,10,210,20,8,colors.muted,2);text('grip','Hold Alt to drag')
- D.needles={}
+-- Imported instrument artwork with retained, live needles and indicator lamps.
+return function(D,box,label,text,colors,picture)
+ local cream={R=.88,G=.84,B=.69,A=1};local dim={R=.17,G=.19,B=.15,A=1}
+ picture('panel',0,0,720,280)
+ label('grip',492,20,200,20,8,colors.muted,2);text('grip','Hold Alt to drag')
+ D.needles={};D.images={}
  local function dial(id,cx,cy,r,max,step,caption,marks,pod)
-  local function b(...)
-   local o,s=box(...);if pod then D.nitrousWidgets[#D.nitrousWidgets+1]=o end;return o,s
-  end
-  local function l(...)
-   local o=label(...);if pod then D.nitrousWidgets[#D.nitrousWidgets+1]=o end;return o
-  end
-  b(cx-r-3,cy-r-3,2*r+6,2*r+6,rim,r+3);b(cx-r,cy-r,2*r,2*r,face,r)
-  local small=r<60
-  for i=0,max/step do
-   local a=math.rad(135+i/(max/step)*270)
-   local t=b(cx+math.cos(a)*(r-9)-1,cy+math.sin(a)*(r-9)-4,2,8,cream)
+  local function keep(o)if pod then D.nitrousWidgets[#D.nitrousWidgets+1]=o end;return o end
+  local function b(...)local o=box(...);return keep(o)end
+  local function l(...)return keep(label(...))end
+  local function art(...)return keep(picture(...))end
+  art('dial',cx-r-3,cy-r-3,2*r+6,2*r+6)
+  local small=r<65;local tiny=r<35;local start=small and 180 or 135;local sweep=small and 180 or 270
+  local count=max/step
+  for i=0,count*4 do
+   local a=math.rad(start+i/(count*4)*sweep);local major=i%4==0;local length=major and(tiny and 4 or 7)or(tiny and 2 or 3)
+   local t=b(cx+math.cos(a)*(r-12)-.5,cy+math.sin(a)*(r-12)-length/2,1,length,cream)
    t:SetRenderTransformPivot({X=.5,Y=.5});t:SetRenderTransformAngle(math.deg(a)-90)
-   l(id..'Mark'..i,cx+math.cos(a)*(r-(small and 21 or 28))-17,cy+math.sin(a)*(r-(small and 21 or 28))-9,34,20,small and 7 or 9,cream,1)
-   text(id..'Mark'..i,marks and marks[i+1]or tostring(i*step))
+   if major then
+    local index=i/4;local radius=r-(tiny and 21 or small and 24 or 29);local width=tiny and 14 or 28
+    l(id..'Mark'..index,cx+math.cos(a)*radius-width/2,cy+math.sin(a)*radius-9,width,19,tiny and 5 or small and 7 or 9,cream,1)
+    text(id..'Mark'..index,marks and marks[index+1]or tostring(index*step):gsub('%.0$',''))
+   end
   end
-  l(id..'Caption',cx-r,cy+(small and 9 or 20),2*r,20,small and 7 or 9,cream,1);text(id..'Caption',caption)
-  local n=b(cx,cy-1,r-(small and 12 or 17),2,colors.red);n:SetRenderTransformPivot({X=0,Y=.5});n:SetRenderTransformAngle(135)
-  b(cx-5,cy-5,10,10,rim,5)
-  D.needles[id]={image=n,value=0,target=0}
+  l(id..'Caption',cx-r+8,cy+(small and 9 or 22),2*r-16,18,tiny and 6 or small and 7 or 9,cream,1);text(id..'Caption',caption)
+  local w=(r-(small and 17 or 21))/.934;local h=w/3
+  local n=art('needle',cx-w*.066,cy-h*.5,w,h);n:SetRenderTransformPivot({X=.066,Y=.5});n:SetRenderTransformAngle(start)
+  D.needles[id]={image=n,value=0,target=0,start=start,sweep=sweep,textured=true}
  end
- dial('speedDial',145,126,81,240,30,'KM/H')
- dial('rpmDial',575,126,81,8,1,'RPM x 1000')
- dial('fuelDial',360,112,44,1,.5,'FUEL',{'E','1/2','F'})
- label('fuelValue',300,158,120,20,8,cream,1)
- label('speed',110,169,70,26,15,cream,1);label('unit',180,178,20,16,7,cream);text('unit','')
- label('rpm',529,169,92,22,10,cream,1)
- label('gear',328,34,64,33,22,cream,1)
- label('temperature',529,192,92,20,8,cream,1)
+ dial('speedDial',145,133,84,240,30,'KM/H')
+ dial('rpmDial',575,133,84,8,1,'RPM x 1000')
+ dial('fuelDial',360,114,49,1,.5,'FUEL',{'E','1/2','F'})
+ label('fuelValue',300,135,120,18,8,cream,1)
+ label('speed',110,177,70,26,15,cream,1);label('unit',180,184,20,16,7,cream);text('unit','')
+ label('rpm',529,174,92,20,10,cream,1)
+ label('gear',330,37,60,34,22,cream,1)
+ label('temperature',529,194,92,17,7,cream,1)
  for i,key in ipairs({'oil','coolant','battery'})do
-  local y=180+(i-1)*16
-  label(key..'Label',250,y,72,20,8,cream);text(key..'Label',key:upper())
-  label(key..'Value',380,y,90,20,8,cream,2)
-  box(323,y+6,48,4,dim);local o,s=box(323,y+6,0,4,cream)
-  D.bars[key]={image=o,slot=s,width=48,height=4,target=0,display=0}
+  D[key..'Value']=nil
+  dial(key..'Dial',290+(i-1)*70,215,30,1,1,key:upper(),{'E','F'})
  end
- local batteryIcon=box(402,44,22,9,dim);D.batteryIcon={batteryIcon}
- label('leftSignal',245,44,42,28,19,dim,1);text('leftSignal','<')
- label('rightSignal',433,44,42,28,19,dim,1);text('rightSignal','>')
- box(34,211,42,26,rim,8);label('hazards',34,214,42,20,11,colors.amber,1);text('hazards','!')
- box(648,194,40,40,rim,20);box(656,202,24,24,face,12)
- local key=box(662,207,29,6,cream,2);key:SetRenderTransformPivot({X=.2,Y=.5});D.ignitionKey=key
- box(682,203,12,15,cream,3)
- label('ignition',570,235,132,20,8,cream,2);text('ignition','HOLD KEY / START')
- label('status',90,232,470,22,9,cream,1)
- D.buttons={{x=636,y=190,w=68,h=44,action='Ignition'},{x=238,y=39,w=54,h=38,action='IndicatorLeft'},
-  {x=426,y=39,w=54,h=38,action='IndicatorRight'},{x=30,y=206,w=52,h=35,action='IndicatorWarnings'}}
+ D.batteryIcon={}
+ D.leftSignal=picture('arrow',247,47,42,22);D.images.leftSignal=true
+ D.rightSignal=picture('arrow',431,47,42,22);D.rightSignal:SetRenderTransformAngle(180);D.images.rightSignal=true
+ D.hazards=picture('hazard',36,226,46,31)
+ picture('dial',634,192,56,56)
+ D.ignitionKey=picture('key',633,190,58,58);D.ignitionKey:SetRenderTransformPivot({X=.5,Y=.5})
+ label('ignition',620,253,83,18,7,cream,1);text('ignition','IGNITION')
+ label('status',30,20,420,20,8,cream)
+ D.buttons={{x=628,y=186,w=72,h=64,action='Ignition'},{x=240,y=41,w=56,h=34,action='IndicatorLeft'},
+  {x=424,y=41,w=56,h=34,action='IndicatorRight'},{x=30,y=220,w=58,h=42,action='IndicatorWarnings'}}
  D.nitrousWidgets={}
- D.nitrousWidgets[#D.nitrousWidgets+1]=box(638,-6,40,23,rim,5)
- dial('nitrousDial',658,-48,52,1,.5,'NITROUS',{'E','1/2','F'},true)
- D.nitrousWidgets[#D.nitrousWidgets+1]=label('nitrousValue',609,-23,98,20,7,cream,1)
+ D.nitrousWidgets[#D.nitrousWidgets+1]=box(635,-14,38,20,{R=.09,G=.085,B=.075,A=1},5)
+ dial('nitrousDial',654,-68,58,1,.5,'NITROUS',{'E','1/2','F'},true)
+ D.nitrousWidgets[#D.nitrousWidgets+1]=label('nitrousValue',603,-37,102,20,8,cream,1)
  for _,o in ipairs(D.nitrousWidgets)do o:SetVisibility(2)end
  D.nitrousVisible=false
- D.widthBase=720;D.height=260
+ D.widthBase=720;D.height=280
 end

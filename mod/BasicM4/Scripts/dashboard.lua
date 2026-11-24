@@ -30,7 +30,7 @@ return function(M,H,valid)
  end
  function D.place(width,height,scale)
   D.maxX=math.max(0,width-(D.widthBase or 304)*scale);D.maxY=math.max(0,height-D.height*scale)
-  D.minY=math.min(D.maxY,D.analog and 108*scale or 0)
+  D.minY=math.min(D.maxY,D.analog and 134*scale or 0)
   local x,y=D.savedX,D.savedY
   if D.analog then x,y=D.analogX,D.analogY end
   position(x and x*D.maxX or(D.analog and D.maxX-14*scale or D.maxX-30),y and y*D.maxY or(D.analog and D.maxY-14*scale or height*.52-D.height*scale/2))
@@ -52,12 +52,12 @@ return function(M,H,valid)
   if D.cache[id]~=value then D.cache[id]=value;D[id]:SetText(FText(value))end
  end
  local function tint(o,c)o:SetColorAndOpacity({SpecifiedColor=c,ColorUseRule=0})end
- local function color(id,c)if D.cache[id..'Color']~=c then D.cache[id..'Color']=c;tint(D[id],c)end end
+ local function color(id,c)if D.cache[id..'Color']~=c then D.cache[id..'Color']=c;if D.images and D.images[id]then D[id]:SetColorAndOpacity(c)else tint(D[id],c)end end end
  function D.hide()
   if D.input then D.input.pointer(false)end
   if valid(D.widget)then D.widget:RemoveFromParent()end;D.widget=nil;D.drag=nil;D.bars={};D.cache={};D.segments={};D.vehicle=nil
   D.surface=nil;D.buttons={};D.needles={};D.ignitionKey=nil
-  D.nitrousWidgets=nil;D.nitrousVisible=nil
+  D.nitrousWidgets=nil;D.nitrousVisible=nil;D.images={};D.keyAngle=0;D.keyRunning=false
  end
  local function build(pc,flight)
   D.hide();D.rpmCount=nil;D.batteryColor=nil;D.scale=nil;local w=StaticFindObject('/Script/UMG.Default__WidgetBlueprintLibrary'):Create(pc,StaticFindObject('/Script/UMG.UserWidget'),pc)
@@ -66,7 +66,7 @@ return function(M,H,valid)
   local panel=new('CanvasPanel',tree);local slot=canvas:AddChildToCanvas(panel)
   slot:SetAnchors({Minimum={X=0,Y=0},Maximum={X=0,Y=0}});slot:SetAlignment({X=0,Y=0})
   D.analog=D.realistic and not flight
-  local height=D.analog and 260 or flight and 426 or 342;D.widthBase=D.analog and 720 or 304;slot:SetSize({X=D.widthBase,Y=height});D.panel=panel;D.slot=slot
+  local height=D.analog and 280 or flight and 426 or 342;D.widthBase=D.analog and 720 or 304;slot:SetSize({X=D.widthBase,Y=height});D.panel=panel;D.slot=slot
   local function box(x,y,width,height,c,round)
    local o=new('Image',tree)
    if round then o:SetBrush({DrawAs=4,TintColor={SpecifiedColor=c,ColorUseRule=0},OutlineSettings={Color={SpecifiedColor=colors.line,ColorUseRule=0},Width=1,CornerRadii={X=round,Y=round,Z=round,W=round},RoundingType=0}})else o:SetColorAndOpacity(c)end
@@ -77,7 +77,13 @@ return function(M,H,valid)
    if D.analog then t:SetClipping(1)end
    local s=panel:AddChildToCanvas(t);s:SetPosition({X=x,Y=y});s:SetSize({X=width,Y=height});D[id]=t;return t
   end
-  if D.analog then dofile(M.root..'/Scripts/dashboard_realistic.lua')(D,box,label,text,colors)else
+  local function picture(name,x,y,width,height)
+   D.textures=D.textures or{};local t=D.textures[name]
+   if not valid(t)then t=StaticFindObject('/Script/Engine.Default__KismetRenderingLibrary'):ImportFileAsTexture2D(pc,M.root..'/assets/dashboard/'..name..'.png');assert(valid(t),'Missing dashboard texture: '..name);D.textures[name]=t end
+   local o=new('Image',tree);o:SetBrushFromTexture(t,false);o:SetVisibility(3)
+   local s=panel:AddChildToCanvas(o);s:SetPosition({X=x,Y=y});s:SetSize({X=width,Y=height});return o,s
+  end
+  if D.analog then dofile(M.root..'/Scripts/dashboard_realistic.lua')(D,box,label,text,colors,picture)else
   box(0,0,304,height,colors.bg,14);box(20,16,3,15,colors.blue)
   label('title',32,15,218,22,11,colors.muted)
   -- Battery warning is a real vector symbol, independent of font glyph support.
@@ -123,8 +129,8 @@ return function(M,H,valid)
   if bar then bar.target=percent end;if needle then needle.target=percent end
   local c=not has and colors.muted or percent<.1 and colors.red or percent<.25 and colors.amber or key=='nitrous'and D.nitrousColor or colors.blue
   if bar and bar.color~=c then bar.color=c;bar.image:SetColorAndOpacity(c)end
-  if needle and needle.color~=c then needle.color=c;needle.image:SetColorAndOpacity(c)end
-  text(key..'Value',not has and '--'or unit=='%'and ('%.0f%%'):format(percent*100)or ('%.1f / %.0f L'):format(qty,capacity))
+  if needle and not needle.textured and needle.color~=c then needle.color=c;needle.image:SetColorAndOpacity(c)end
+  if D[key..'Value']then text(key..'Value',not has and '--'or unit=='%'and ('%.0f%%'):format(percent*100)or ('%.1f / %.0f L'):format(qty,capacity))end
  end
  function D.flight(message,collective,hover,climb)D.flightMessage=message;D.flightCollective=collective;D.flightHover=hover end
  function D.tick(now)
@@ -157,8 +163,7 @@ return function(M,H,valid)
    color('leftSignal',blink and(indicator==2 or hazards)and colors.green or colors.muted)
    color('rightSignal',blink and(indicator==1 or hazards)and colors.green or colors.muted)
    local running=a.EngineRunning==true
-   if D.cache.keyRunning~=running then D.cache.keyRunning=running;D.ignitionKey:SetRenderTransformAngle(running and 35 or 0)end
-   text('ignition',running and 'KEY / STOP'or 'HOLD KEY / START')
+   D.keyRunning=running
   end
   text('temperature',valid(motor)and ('%.0f C'):format(motor.Heat)or 'NO ENGINE');color('temperature',valid(motor)and motor.IsHeatLimit and colors.red or colors.muted)
   local gear=a.CurrentGear;text('gear',flight and 'AIR'or gear<0 and 'R'or gear==0 and 'N'or tostring(gear))
@@ -203,7 +208,13 @@ return function(M,H,valid)
    if math.abs(value-bar.display)>.0001 then bar.display=value;bar.slot:SetSize({X=bar.width*value,Y=bar.height})end
   end
   for _,needle in pairs(D.needles or{})do local value=needle.value+(needle.target-needle.value)*alpha
-   if math.abs(value-needle.value)>.0001 then needle.value=value;needle.image:SetRenderTransformAngle(135+270*value)end
+   if math.abs(value-needle.value)>.0001 then needle.value=value;needle.image:SetRenderTransformAngle((needle.start or 135)+(needle.sweep or 270)*value)end
+  end
+  if valid(D.ignitionKey)then
+   local pressed=D.input and D.input.pressed
+   local target=pressed and pressed.name=='Ignition'and 55 or D.keyRunning and 30 or 0
+   local angle=D.keyAngle+(target-D.keyAngle)*alpha
+   if math.abs(angle-D.keyAngle)>.02 then D.keyAngle=angle;D.ignitionKey:SetRenderTransformAngle(angle)end
   end
  end
  function D.reset()D.hide();D.nextAt=0;D.scale=nil;D.rpmCount=nil;D.batteryColor=nil;D.flightMessage=nil end

@@ -1,8 +1,8 @@
 local scripts,dir=arg[1],arg[2]
-local labels={}
+local labels={};local imports=0
 local function widget()
  local w={Font={},visible=0}
- for _,m in ipairs({'SetColorAndOpacity','SetBrush','SetRenderTransformPivot','SetRenderTransformAngle','SetRenderScale','SetAnchors','SetAlignment','SetJustification','AddToViewport','RemoveFromParent'})do w[m]=function()end end
+ for _,m in ipairs({'SetColorAndOpacity','SetBrushFromTexture','SetBrush','SetRenderTransformPivot','SetRenderTransformAngle','SetRenderScale','SetAnchors','SetAlignment','SetJustification','AddToViewport','RemoveFromParent'})do w[m]=function()end end
  w.SetText=function(_,t)w.text=t end;w.SetFont=function(_,f)w.Font=f end;w.SetClipping=function(_,v)w.clipping=v end
  w.SetVisibility=function(_,v)w.visible=v end;w.SetPosition=function(_,p)w.position=p end;w.SetSize=function(_,s)w.size=s end
  w.AddChildToCanvas=function(_,o)local s=widget();o.slot=s;return s end
@@ -11,6 +11,7 @@ end
 StaticConstructObject=function(c)local w=widget();if c:find('TextBlock')then labels[#labels+1]=w end;return w end
 local lib={Create=function()local w=widget();w.WidgetTree={};return w end}
 StaticFindObject=function(path)
+ if path:find('KismetRenderingLibrary')then return {ImportFileAsTexture2D=function()imports=imports+1;return {}end}end
  if path:find('WidgetBlueprintLibrary')then return lib end
  if path:find('WidgetLayoutLibrary')then return {GetViewportSize=function()return {X=1600,Y=900}end,GetViewportScale=function()return 1 end}end
  return path
@@ -34,7 +35,7 @@ assert(not D.nitrousVisible and not D.bars.nitrous)
 for _,o in ipairs(D.nitrousWidgets)do assert(o.visible==2)end
 for _,t in ipairs(labels)do
  local p,s=t.slot.position,t.slot.size
- assert(p.X>=0 and p.X+s.X<=720 and p.Y+s.Y<=260,'Text exceeds the dashboard bounds')
+ assert(p.X>=0 and p.X+s.X<=720 and p.Y+s.Y<=280,'Text exceeds the dashboard bounds')
  assert(t.clipping==1,'Text has an explicit clipping boundary')
 end
 data='99|0|10|2|0';D.tick(2)
@@ -43,4 +44,8 @@ for _,o in ipairs(D.nitrousWidgets)do assert(o.visible==3)end
 data='99|7.5|10|2|1';D.tick(3);assert(D.needles.nitrousDial.target==.75)
 data='100|7.5|10|2|1';D.tick(4);assert(not D.nitrousVisible,'Another vehicle cannot show a nitrous gauge here')
 data='';D.tick(5);assert(not D.nitrousVisible,'Removing nitrous hides the entire pod')
+assert(imports==6,'Shared dial artwork is imported once per texture')
+D.input.pressed={name='Ignition'};D.frame(.1);assert(D.keyAngle>0,'Starting turns the front-facing key clockwise')
+D.input.pressed=nil;D.keyRunning=true;D.frame(.1);assert(D.keyAngle>29 and D.keyAngle<35)
+D.keyRunning=false;D.frame(.1);assert(D.keyAngle<2,'The key returns upright when switched off')
 return 'Fuel needle, empty/full/removed nitrous, vehicle ownership, clipped text and default layout'
