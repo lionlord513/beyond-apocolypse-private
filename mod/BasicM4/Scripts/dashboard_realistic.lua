@@ -42,17 +42,16 @@ return function(D,box,label,text,colors,picture)
  D.batteryIcon={}
  D.leftSignal=picture('arrow',247,47,42,22);D.images.leftSignal=true
  D.rightSignal=picture('arrow',431,47,42,22);D.rightSignal:SetRenderTransformAngle(180);D.images.rightSignal=true
- D.hazards=picture('hazard',36,226,46,31)
- picture('dial',634,192,56,56)
- D.ignitionKey=picture('key',633,190,58,58);D.ignitionKey:SetRenderTransformPivot({X=.5,Y=.5})
- label('ignition',620,253,83,18,7,cream,1);text('ignition','IGNITION')
- label('status',30,20,420,20,8,cream)
- D.buttons={{x=628,y=186,w=72,h=64,action='Ignition'},{x=240,y=41,w=56,h=34,action='IndicatorLeft'},
-  {x=424,y=41,w=56,h=34,action='IndicatorRight'},{x=30,y=220,w=58,h=42,action='IndicatorWarnings'}}
+ D.hazards=picture('hazard',45,193,36,24)
+ picture('dial',642,184,46,46)
+ D.ignitionKey=picture('key',636,178,58,58);D.ignitionKey:SetRenderTransformPivot({X=.5,Y=.5})
+ label('ignition',623,242,83,18,7,cream,1);text('ignition','IGNITION')
+ label('status',58,20,370,20,8,cream)
+ D.buttons={{x=630,y=176,w=70,h=62,action='Ignition'},{x=240,y=41,w=56,h=34,action='IndicatorLeft'},
+  {x=424,y=41,w=56,h=34,action='IndicatorRight'},{x=40,y=188,w=46,h=34,action='IndicatorWarnings'}}
  D.nitrousWidgets={}
- D.nitrousWidgets[#D.nitrousWidgets+1]=box(635,-14,38,20,{R=.09,G=.085,B=.075,A=1},5)
- dial('nitrousDial',654,-68,58,1,.5,'NITROUS',{'E','1/2','F'},true)
- D.nitrousWidgets[#D.nitrousWidgets+1]=label('nitrousValue',603,-37,102,20,8,cream,1)
+ dial('nitrousDial',654,-43,58,1,.5,'NITROUS',{'E','1/2','F'},true)
+ D.nitrousWidgets[#D.nitrousWidgets+1]=label('nitrousValue',603,-18,102,18,8,cream,1)
  for _,o in ipairs(D.nitrousWidgets)do o:SetVisibility(2)end
  D.nitrousVisible=false
  D.widthBase=720;D.height=280

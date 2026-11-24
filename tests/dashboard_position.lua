@@ -18,6 +18,6 @@ assert(analog.press({X=analog.x+30,Y=analog.y+12}));analog.release({X=900,Y=500}
 local restored=build();restored.analog=true;restored.widthBase=720;restored.height=280;restored.place(1600,900,1)
 assert(math.abs(restored.x-870)<.001 and math.abs(restored.y-488)<.001)
 assert(restored.savedX==0 and restored.savedY==1,'Layouts keep independent positions')
-assert(restored.press({X=restored.x+10,Y=restored.y+10}));restored.move({X=900,Y=-500});assert(restored.y==134,'Top-mounted gauge stays inside the viewport')
+assert(restored.press({X=restored.x+10,Y=restored.y+10}));restored.move({X=900,Y=-500});assert(restored.y==108,'Top-mounted gauge stays inside the viewport')
 local f=assert(io.open(dir..'/state/dashboard-mode.txt','w'));f:write('compact\n');f:close();assert(not build().realistic,'An explicit compact preference is retained')
 return 'Default-on analog layout, bottom-right placement, pod clearance, saved preferences, dragging, DPI and flight height'

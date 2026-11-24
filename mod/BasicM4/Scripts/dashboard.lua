@@ -30,7 +30,7 @@ return function(M,H,valid)
  end
  function D.place(width,height,scale)
   D.maxX=math.max(0,width-(D.widthBase or 304)*scale);D.maxY=math.max(0,height-D.height*scale)
-  D.minY=math.min(D.maxY,D.analog and 134*scale or 0)
+  D.minY=math.min(D.maxY,D.analog and 108*scale or 0)
   local x,y=D.savedX,D.savedY
   if D.analog then x,y=D.analogX,D.analogY end
   position(x and x*D.maxX or(D.analog and D.maxX-14*scale or D.maxX-30),y and y*D.maxY or(D.analog and D.maxY-14*scale or height*.52-D.height*scale/2))
