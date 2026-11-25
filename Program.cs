@@ -34,14 +34,14 @@ namespace BeyondModManager
 
     public static class Program
     {
-        public const string ManagerVersion = "1.0.12";
+        public const string ManagerVersion = "1.0.13";
         static readonly string DataRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BeyondModManager");
         static readonly JavaScriptSerializer Json = new JavaScriptSerializer { MaxJsonLength = 2 * 1024 * 1024, RecursionLimit = 32 };
         static readonly Dictionary<string, UpdateCandidate> Available = new Dictionary<string, UpdateCandidate>(StringComparer.OrdinalIgnoreCase);
         static readonly Queue<string> Imports = new Queue<string>();
         static readonly StringBuilder Activity = new StringBuilder();
         static Window Window;
-        static PublicCatalog Beyond, Manager, MixTape;
+        static PublicCatalog Beyond, Manager, MixTape, Menu;
         static ManagerPreferences Preferences;
         static ModStore Store;
         static InstallPlan Pending;
@@ -163,6 +163,7 @@ namespace BeyondModManager
             var list = GameReady ? Store.List().Where(ShowMod).Select(x => new ModTile { Record = x }).ToList() : new List<ModTile>();
             if (!list.Any(x => IsBeyond(x.Record))) list.Add(new ModTile { Catalog = true, Record = new ModRecord { Id = "beyondapocalypse", Name = Beyond.Name, Version = Beyond.Version, Update = Beyond.Update } });
             if (!list.Any(x => SameIdentity(x.Record.Id, MixTape.Id))) list.Add(new ModTile { Catalog = true, Record = new ModRecord { Id = MixTape.Id, Name = MixTape.Name, Version = MixTape.Version, Description = MixTape.Description, Dependencies = new[] { "UE4SS" }, Update = MixTape.Update } });
+            if (!list.Any(x => SameIdentity(x.Record.Id, Menu.Id))) list.Add(new ModTile { Catalog = true, Record = new ModRecord { Id = Menu.Id, Name = Menu.Name, Version = Menu.Version, Description = Menu.Description, Dependencies = new[] { "UE4SS" }, Update = Menu.Update } });
             list = list.OrderByDescending(x => IsBeyond(x.Record)).ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase).ToList();
             View<ListBox>("ModList").ItemsSource = list;
             View<ListBox>("ModList").SelectedItem = list.FirstOrDefault(x => SameIdentity(x.Record.Id, selectedId)) ?? list.FirstOrDefault();
@@ -279,11 +280,13 @@ namespace BeyondModManager
             View<TextBlock>("PreviewDescription").Visibility = String.IsNullOrWhiteSpace(description) ? Visibility.Collapsed : Visibility.Visible;
             var other = plan.MissingDependencies.Where(x => !x.Equals("UE4SS", StringComparison.OrdinalIgnoreCase) && !x.Equals("BPModLoaderMod", StringComparison.OrdinalIgnoreCase)).ToArray();
             var notices = new List<string>();
+            if (plan.ExistingUnmanaged) notices.Add("BMM found a manual installation. It will take over this mod and keep your settings.");
+            if (plan.MissingDependencies.Any(x => SameIdentity(x, "UE4SS"))) notices.Add("BMM will install or repair the supported UE4SS loader.");
             if (other.Length > 0) notices.Add("Install these mods first: " + String.Join(", ", other) + ".");
             if (plan.Warnings.Any(x => x.StartsWith("ZodMenu uses F8", StringComparison.Ordinal))) notices.Add("ZodMenu uses F8. If another mod uses that key, change one of their bindings.");
             Text("PreviewDependencies", String.Join(Environment.NewLine, notices));
             View<TextBlock>("PreviewDependencies").Visibility = notices.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
-            View<Button>("ConfirmImportButton").Content = "Install";
+            View<Button>("ConfirmImportButton").Content = plan.ExistingUnmanaged ? "Adopt and install" : "Install";
             View<Border>("ImportOverlay").Visibility = Visibility.Visible; Status("Select Install to add " + plan.Name + "."); RefreshButtons();
         }
         static string MaterializeResource(string resource, string directory)
@@ -340,20 +343,28 @@ namespace BeyondModManager
                 ShowPreview(plan);
             });
         }
-        static async void CheckInstalledMixTape(object sender, EventArgs args)
+        static async void CheckInstalledUpdates(object sender, EventArgs args)
         {
-            Window.ContentRendered -= CheckInstalledMixTape;
+            Window.ContentRendered -= CheckInstalledUpdates;
             if (!GameReady) return;
+            var store = Store;
             try
             {
-                var record = Store.List().FirstOrDefault(x => x.Managed && SameIdentity(x.Id, MixTape.Id));
-                if (record == null) return;
-                var candidate = await Updates.QueryModUpdateAsync(MixTape.Update, record.Version, record.ArchiveHash);
-                if (candidate == null) return;
-                Available[record.Id] = candidate;
+                foreach (var record in store.List().Where(r => r.Managed && (SameIdentity(r.Id, Menu.Id) || SameIdentity(r.Id, MixTape.Id))))
+                {
+                    if (Store != store) return;
+                    try
+                    {
+                        var source = SameIdentity(record.Id, Menu.Id) ? Menu.Update : MixTape.Update;
+                        var candidate = await Updates.QueryModUpdateAsync(source, record.Version, record.ArchiveHash);
+                        if (Store != store) return;
+                        if (candidate != null) Available[record.Id] = candidate;
+                    }
+                    catch (Exception error) { Log("Could not check " + record.Name + " updates. " + Friendly(error)); }
+                }
                 RefreshDetail(); RefreshButtons();
             }
-            catch (Exception) { /* Offline launch is supported. A manual check reports connection errors. */ }
+            catch (Exception error) { Log(Friendly(error)); }
         }
         static async Task ToggleSelected()
         {
@@ -449,6 +460,11 @@ namespace BeyondModManager
             if (GameInstallation.Running()) { Status("Drive Beyond Horizons is already running."); return; }
             try
             {
+                if (Store.List().Any(r => r.Enabled && r.Managed && r.LuaRoots.Count > 0) && !RuntimeSupport.Compatible(Store.GamePath))
+                {
+                    Store.RepairRuntime();
+                    Log("Repaired UE4SS before launch.");
+                }
                 // Steam owns the game process and its normal launch environment.
                 // Closing this optional manager has no effect on that process.
                 Process.Start(new ProcessStartInfo("steam://rungameid/2625420") { UseShellExecute = true }); Log("Starting Drive Beyond Horizons through Steam.");
@@ -485,6 +501,7 @@ namespace BeyondModManager
         static void LoadWindow(bool preview)
         {
             PreviewOnly = preview; Beyond = Json.Deserialize<PublicCatalog>(ResourceText("ba-public.json")); Manager = Json.Deserialize<PublicCatalog>(ResourceText("bmm-public.json"));
+            Menu = Json.Deserialize<PublicCatalog>(ResourceText("beyondmenu-public.json")); Updates.ValidateSource(Menu.Update);
             MixTape = Json.Deserialize<PublicCatalog>(ResourceText("mixtape-public.json")); Updates.ValidateSource(MixTape.Update);
             Updates.ValidateSource(Beyond.Update); Updates.ValidateSource(Manager.Update);
             if (Manager.Version != ManagerVersion) throw new InvalidDataException("Manager metadata version mismatch.");
@@ -502,7 +519,7 @@ namespace BeyondModManager
                 ReadPreferences();
                 try { if (File.Exists(LogFile)) { var lines = File.ReadLines(LogFile).Reverse().Take(120).Reverse(); Activity.Append(String.Join(Environment.NewLine, lines) + Environment.NewLine); View<TextBox>("ActivityText").Text = Activity.ToString(); } } catch { }
                 RefreshList(); if (!GameReady) SelectPage("Settings");
-                Window.ContentRendered += CheckInstalledMixTape;
+                Window.ContentRendered += CheckInstalledUpdates;
                 Window.ContentRendered += StartupManagerCheck;
             }
         }

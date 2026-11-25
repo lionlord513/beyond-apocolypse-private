@@ -2,9 +2,11 @@
   "schema": 1,
   "id": "bmm",
   "name": "Beyond Mod Manager",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "notes": [
-    "Updated the built-in mod versions and Apocalypse changelog."
+    "Install BeyondMenu from the mod list or by dropping its ZIP into BMM.",
+    "BMM identifies manual installs before taking them over and checks the supported loader before starting a game with managed Lua mods.",
+    "Checks for BeyondMenu updates when the manager opens."
   ],
   "description": "Install, update, enable and remove Drive Beyond Horizons mods.",
   "update": {

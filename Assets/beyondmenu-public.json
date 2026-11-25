@@ -1,0 +1,15 @@
+{
+  "id": "beyondmenu",
+  "name": "BeyondMenu",
+  "version": "0.1.1",
+  "description": "An independent F8 menu with item and car catalogs, player tools and custom colors.",
+  "update": {
+    "Provider": "github",
+    "Repository": "lionlord513/beyond-menu",
+    "TagPrefix": "v",
+    "AssetPattern": "BeyondMenu-{version}-Nexus.zip",
+    "ManifestAsset": "bmm-mod.json",
+    "Sha256Asset": "SHA256SUMS.txt",
+    "Kind": "mod"
+  }
+}
